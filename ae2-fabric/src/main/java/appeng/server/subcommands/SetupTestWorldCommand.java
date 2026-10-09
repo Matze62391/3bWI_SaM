@@ -45,7 +45,7 @@ public class SetupTestWorldCommand implements ISubCommand {
     @Override
     public void addArguments(LiteralArgumentBuilder<CommandSourceStack> builder) {
         for (var plot : TestPlots.getPlots()) {
-            builder.then(literal(plot.toString()).executes(ctx -> {
+            builder.then(literal(plot.id().getPath()).executes(ctx -> {
                 setupTestWorld(ctx.getSource().getServer(), ctx.getSource(), plot.id());
                 return 1;
             }));

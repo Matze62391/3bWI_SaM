@@ -12,6 +12,7 @@
     "ItemEntityMixin",
     "tests.TestInstanceBlockEntityMixin",
     "tests.TestCommandMixin",
+    "tests.GameTestRegistrationMixin",
     "StructureTemplateMixin",
     "PlayerDestroySpeedMixin",
     "LivingEntityClimbableMixin",
