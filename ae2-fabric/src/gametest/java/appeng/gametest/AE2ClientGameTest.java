@@ -2,6 +2,7 @@ package appeng.gametest;
 
 import java.util.List;
 
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -10,7 +11,12 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext;
 import net.minecraft.client.gui.screens.worldselection.WorldCreationUiState;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.levelgen.presets.WorldPresets;
+
+import appeng.api.parts.IPartHost;
 
 /**
  * Opens the user interfaces of AE2's machines and terminals in a real client and takes screenshots of them. The
@@ -69,14 +75,38 @@ public class AE2ClientGameTest implements FabricClientGameTest {
             server.runCommand("execute as @p at @p run ae2 setuptestworld all_terminals");
             context.waitTicks(100);
             context.takeScreenshot("ae2-all-terminals-overview");
-            for (int i = 0; i < TERMINALS.size(); i++) {
-                var terminalPos = origin.offset(i + 1, 0, 0);
+            for (var terminal : TERMINALS) {
+                var terminalPos = server.computeOnServer(s -> findNorthFacingPart(s, terminal));
+                if (terminalPos == null) {
+                    LOG.warn("Could not find {} in the test plot", terminal);
+                    continue;
+                }
                 server.runCommand("tp @p %d.5 %d %d.5".formatted(terminalPos.getX(), terminalPos.getY(),
                         terminalPos.getZ() - 2));
                 context.waitTicks(10);
-                openAndScreenshot(context, terminalPos, "ae2-" + TERMINALS.get(i));
+                openAndScreenshot(context, terminalPos, "ae2-" + terminal);
             }
         }
+    }
+
+    /**
+     * Finds a cable bus near the player that has the given part attached to its north side.
+     */
+    @Nullable
+    private static BlockPos findNorthFacingPart(MinecraftServer server, String partId) {
+        var player = server.getPlayerList().getPlayers().getFirst();
+        var level = player.level();
+        var center = player.blockPosition();
+        for (var pos : BlockPos.betweenClosed(center.offset(-32, -8, -32), center.offset(32, 24, 32))) {
+            if (level.getBlockEntity(pos) instanceof IPartHost host) {
+                var part = host.getPart(Direction.NORTH);
+                if (part != null && BuiltInRegistries.ITEM.getKey(part.getPartItem().asItem()).getPath()
+                        .equals(partId)) {
+                    return pos.immutable();
+                }
+            }
+        }
+        return null;
     }
 
     private static void setBlock(TestServerContext server, BlockPos pos, String block) {
