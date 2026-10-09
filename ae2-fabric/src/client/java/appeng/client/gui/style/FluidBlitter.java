@@ -21,8 +21,9 @@ package appeng.client.gui.style;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.world.level.material.Fluid;
+import net.fabricmc.fabric.api.transfer.v1.client.fluid.FluidVariantRendering;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant;
 import net.minecraft.world.level.material.Fluids;
-import net.neoforged.neoforge.fluids.FluidStack;
 
 import appeng.api.stacks.AEFluidKey;
 
@@ -35,26 +36,18 @@ public final class FluidBlitter {
     }
 
     public static Blitter create(AEFluidKey fluidKey) {
-        return create(fluidKey.toStack(1));
+        return create(fluidKey.toVariant());
     }
 
-    public static Blitter create(FluidStack stack) {
-        if (stack.isEmpty() && stack.getFluid() != Fluids.EMPTY) {
-            stack = new FluidStack(stack.typeHolder(), 1, stack.getComponentsPatch());
-        }
-
-        Fluid fluid = stack.getFluid();
+    public static Blitter create(FluidVariant variant) {
+        Fluid fluid = variant.getFluid();
 
         var fluidModel = Minecraft.getInstance().getModelManager().getFluidStateModelSet()
                 .get(fluid.defaultFluidState());
 
         TextureAtlasSprite sprite = fluidModel.stillMaterial().sprite();
 
-        var color = -1;
-        var tintSource = fluidModel.fluidTintSource();
-        if (tintSource != null) {
-            color = tintSource.colorAsStack(stack);
-        }
+        var color = FluidVariantRendering.getColor(variant);
 
         return Blitter.sprite(sprite)
                 .colorRgb(color)

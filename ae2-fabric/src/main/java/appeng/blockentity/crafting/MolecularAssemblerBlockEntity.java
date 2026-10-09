@@ -36,7 +36,7 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
-import net.neoforged.neoforge.network.PacketDistributor;
+import appeng.core.network.NetworkHelper;
 
 import appeng.api.config.Actionable;
 import appeng.api.config.PowerMultiplier;
@@ -462,7 +462,7 @@ public class MolecularAssemblerBlockEntity extends AENetworkedInvBlockEntity
 
                 var item = AEItemKey.of(output);
                 if (item != null) {
-                    PacketDistributor.sendToPlayersNear(node.getLevel(), null, worldPosition.getX(),
+                    NetworkHelper.sendToPlayersNear(node.getLevel(), null, worldPosition.getX(),
                             worldPosition.getY(),
                             worldPosition.getZ(), 32,
                             new MolecularAssemblerAnimationPacket(this.worldPosition, (byte) speed, item));

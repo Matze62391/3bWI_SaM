@@ -21,7 +21,7 @@ package appeng.client.render.crafting;
 import net.minecraft.client.resources.model.sprite.Material;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.model.data.ModelData;
+import appeng.api.model.ModelData;
 
 import appeng.block.crafting.AbstractCraftingUnitBlock;
 import appeng.client.render.CubeBuilder;

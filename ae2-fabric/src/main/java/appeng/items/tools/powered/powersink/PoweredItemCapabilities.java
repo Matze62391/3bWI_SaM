@@ -18,12 +18,13 @@
 
 package appeng.items.tools.powered.powersink;
 
+import net.fabricmc.fabric.api.transfer.v1.context.ContainerItemContext;
+import team.reborn.energy.api.EnergyStorage;
+
 import net.minecraft.world.item.Item;
-import net.neoforged.neoforge.transfer.TransferPreconditions;
-import net.neoforged.neoforge.transfer.access.ItemAccess;
-import net.neoforged.neoforge.transfer.energy.EnergyHandler;
-import net.neoforged.neoforge.transfer.item.ItemResource;
-import net.neoforged.neoforge.transfer.transaction.TransactionContext;
+import appeng.util.transfer.TransferPreconditions;
+import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
+import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
 
 import appeng.api.config.Actionable;
 import appeng.api.config.PowerUnit;
@@ -32,68 +33,68 @@ import appeng.api.implementations.items.IAEItemPowerStorage;
 /**
  * The capability provider to expose chargable items to other mods.
  */
-public class PoweredItemCapabilities implements EnergyHandler {
-    private final ItemAccess itemAccess;
+public class PoweredItemCapabilities implements EnergyStorage {
+    private final ContainerItemContext itemAccess;
     private final Item validItem;
     private final IAEItemPowerStorage item;
 
-    public PoweredItemCapabilities(ItemAccess itemAccess, Item validItem, IAEItemPowerStorage item) {
+    public PoweredItemCapabilities(ContainerItemContext itemAccess, Item validItem, IAEItemPowerStorage item) {
         this.itemAccess = itemAccess;
         this.validItem = validItem;
         this.item = item;
     }
 
-    private int getAmountFrom(ItemResource currentItem) {
-        if (!currentItem.is(validItem)) {
+    private long getAmountFrom(ItemVariant currentItem) {
+        if (!currentItem.isOf(validItem)) {
             return 0;
         }
-        return (int) PowerUnit.AE.convertTo(PowerUnit.FE, item.getAECurrentPower(currentItem.toStack()));
+        return (long) PowerUnit.AE.convertTo(PowerUnit.TR, item.getAECurrentPower(currentItem.toStack()));
     }
 
     @Override
-    public long getAmountAsLong() {
-        var currentItem = itemAccess.getResource();
+    public long getAmount() {
+        var currentItem = itemAccess.getItemVariant();
         return getAmountFrom(currentItem);
     }
 
     @Override
-    public long getCapacityAsLong() {
-        var currentItem = itemAccess.getResource();
-        if (!currentItem.is(validItem)) {
+    public long getCapacity() {
+        var currentItem = itemAccess.getItemVariant();
+        if (!currentItem.isOf(validItem)) {
             return 0;
         }
-        return (int) PowerUnit.AE.convertTo(PowerUnit.FE, item.getAEMaxPower(currentItem.toStack()));
+        return (long) PowerUnit.AE.convertTo(PowerUnit.TR, item.getAEMaxPower(currentItem.toStack()));
     }
 
     @Override
-    public int insert(int amount, TransactionContext transaction) {
+    public long insert(long amount, TransactionContext transaction) {
         TransferPreconditions.checkNonNegative(amount);
 
-        int accessAmount = itemAccess.getAmount();
+        long accessAmount = itemAccess.getAmount();
         if (accessAmount == 0) {
             return 0;
         }
-        int amountPerItem = amount / accessAmount;
+        long amountPerItem = amount / accessAmount;
         if (amountPerItem == 0) {
             return 0;
         }
 
-        ItemResource accessResource = itemAccess.getResource();
-        if (!accessResource.is(validItem)) {
+        ItemVariant accessResource = itemAccess.getItemVariant();
+        if (!accessResource.isOf(validItem)) {
             return 0;
         }
 
         // We'll essentially perform the insertion into a copy of the stack, then convert back to the resource
-        var amountAE = PowerUnit.FE.convertTo(PowerUnit.AE, amount);
+        var amountAE = PowerUnit.TR.convertTo(PowerUnit.AE, amount);
         var mutableStack = accessResource.toStack();
         double overflowAE = item.injectAEPower(mutableStack, amountAE, Actionable.MODULATE);
-        var insertedPerItem = (int) PowerUnit.AE.convertTo(PowerUnit.FE, amountAE - overflowAE);
+        var insertedPerItem = (long) PowerUnit.AE.convertTo(PowerUnit.TR, amountAE - overflowAE);
 
         insertedPerItem = Math.min(amountPerItem, insertedPerItem);
         if (insertedPerItem > 0) {
-            var filledResource = ItemResource.of(mutableStack);
+            var filledResource = ItemVariant.of(mutableStack);
 
-            if (!filledResource.isEmpty()) {
+            if (!filledResource.isBlank()) {
                 return insertedPerItem * itemAccess.exchange(filledResource, accessAmount, transaction);
             }
         }
@@ -102,7 +103,12 @@ public class PoweredItemCapabilities implements EnergyHandler {
     }
 
     @Override
-    public int extract(int amount, TransactionContext transaction) {
+    public boolean supportsExtraction() {
+        return false;
+    }
+
+    @Override
+    public long extract(long amount, TransactionContext transaction) {
         return 0;
     }
 }

@@ -75,7 +75,7 @@ import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsE
 import net.neoforged.neoforge.client.gui.ConfigurationScreen;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 import net.neoforged.neoforge.client.model.standalone.SimpleUnbakedStandaloneModel;
-import net.neoforged.neoforge.client.network.ClientPacketDistributor;
+import appeng.core.network.NetworkHelper;
 import net.neoforged.neoforge.client.resources.VanillaClientListeners;
 import net.neoforged.neoforge.client.settings.KeyConflictContext;
 import net.neoforged.neoforge.common.NeoForge;
@@ -399,7 +399,7 @@ public class AppEngClient extends AppEngBase {
 
             if (mainHand || offHand) {
                 ServerboundPacket message = new MouseWheelPacket(me.getScrollDeltaY() > 0);
-                ClientPacketDistributor.sendToServer(message);
+                NetworkHelper.sendToServer(message);
                 me.setCanceled(true);
             }
         }
@@ -411,10 +411,10 @@ public class AppEngClient extends AppEngBase {
 
             if (player != null) {
                 var isDown = event.getAction() == InputConstants.PRESS || event.getAction() == InputConstants.REPEAT;
-                var previousIsDown = player.getData(AEAttachmentTypes.HOLDING_CTRL);
+                var previousIsDown = player.getAttachedOrCreate(AEAttachmentTypes.HOLDING_CTRL);
                 if (previousIsDown != isDown) {
-                    player.setData(AEAttachmentTypes.HOLDING_CTRL, isDown);
-                    ClientPacketDistributor.sendToServer(new UpdateHoldingCtrlPacket(isDown));
+                    player.setAttached(AEAttachmentTypes.HOLDING_CTRL, isDown);
+                    NetworkHelper.sendToServer(new UpdateHoldingCtrlPacket(isDown));
                 }
             }
         }

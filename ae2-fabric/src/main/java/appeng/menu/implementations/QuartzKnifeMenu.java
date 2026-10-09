@@ -26,8 +26,6 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.entity.player.PlayerDestroyItemEvent;
 
 import appeng.api.ids.AEComponents;
 import appeng.api.implementations.menuobjects.ItemMenuHost;
@@ -136,7 +134,6 @@ public class QuartzKnifeMenu extends AEBaseMenu {
                     if (itemMenuHost.getPlayerInventorySlot() != null) {
                         playerInv.setItem(itemMenuHost.getPlayerInventorySlot(), ItemStack.EMPTY);
                     }
-                    NeoForge.EVENT_BUS.post(new PlayerDestroyItemEvent(playerInv.player, before, null));
                 });
 
                 QuartzKnifeMenu.this.broadcastChanges();

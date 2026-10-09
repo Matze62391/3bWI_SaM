@@ -1,5 +1,7 @@
 package appeng.me.storage;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -7,11 +9,12 @@ import javax.annotation.Nullable;
 import com.google.common.primitives.Ints;
 
 import net.minecraft.network.chat.Component;
-import net.neoforged.neoforge.transfer.ResourceHandler;
-import net.neoforged.neoforge.transfer.fluid.FluidResource;
-import net.neoforged.neoforge.transfer.item.ItemResource;
-import net.neoforged.neoforge.transfer.resource.Resource;
-import net.neoforged.neoforge.transfer.transaction.Transaction;
+import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant;
+import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
+import net.fabricmc.fabric.api.transfer.v1.storage.StorageView;
+import net.fabricmc.fabric.api.transfer.v1.storage.TransferVariant;
+import net.fabricmc.fabric.api.transfer.v1.transaction.Transaction;
 
 import appeng.api.config.Actionable;
 import appeng.api.networking.security.IActionSource;
@@ -23,6 +26,7 @@ import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.MEStorage;
 import appeng.core.localization.GuiText;
+import appeng.util.Platform;
 
 /**
  * Adapts external platform storage to behave like an {@link MEStorage}.
@@ -56,7 +60,7 @@ public abstract class ExternalStorageFacade implements MEStorage {
 
     @Override
     public long insert(AEKey what, long amount, Actionable mode, IActionSource source) {
-        var inserted = insertExternal(what, Ints.saturatedCast(amount), mode);
+        var inserted = insertExternal(what, amount, mode);
         if (inserted > 0 && mode == Actionable.MODULATE) {
             if (this.changeListener != null) {
                 this.changeListener.run();
@@ -67,7 +71,7 @@ public abstract class ExternalStorageFacade implements MEStorage {
 
     @Override
     public long extract(AEKey what, long amount, Actionable mode, IActionSource source) {
-        var extracted = extractExternal(what, Ints.saturatedCast(amount), mode);
+        var extracted = extractExternal(what, amount, mode);
         if (extracted > 0 && mode == Actionable.MODULATE) {
             if (this.changeListener != null) {
                 this.changeListener.run();
@@ -81,17 +85,17 @@ public abstract class ExternalStorageFacade implements MEStorage {
         return GuiText.ExternalStorage.text(AEKeyType.fluids().getDescription());
     }
 
-    protected abstract int insertExternal(AEKey what, int amount, Actionable mode);
+    protected abstract long insertExternal(AEKey what, long amount, Actionable mode);
 
-    protected abstract int extractExternal(AEKey what, int amount, Actionable mode);
+    protected abstract long extractExternal(AEKey what, long amount, Actionable mode);
 
     public abstract boolean containsAnyFuzzy(Set<AEKey> keys);
 
-    public static ExternalStorageFacade ofFluidHandler(ResourceHandler<FluidResource> handler) {
+    public static ExternalStorageFacade ofFluidHandler(Storage<FluidVariant> handler) {
         return new FluidHandlerFacade(handler);
     }
 
-    public static ExternalStorageFacade ofItemHandler(ResourceHandler<ItemResource> handler) {
+    public static ExternalStorageFacade ofItemHandler(Storage<ItemVariant> handler) {
         return new ItemHandlerFacade(handler);
     }
 
@@ -99,34 +103,51 @@ public abstract class ExternalStorageFacade implements MEStorage {
         this.extractableOnly = extractableOnly;
     }
 
-    private static abstract class ResourceHandlerFacade<R extends Resource, K extends AEKey>
+    private static abstract class ResourceHandlerFacade<R extends TransferVariant<?>, K extends AEKey>
             extends ExternalStorageFacade {
-        protected final ResourceHandler<R> handler;
+        protected final Storage<R> handler;
+        /**
+         * Fabric storages are not slot based. {@link #getSlots()} takes a snapshot of the storage's views, which
+         * {@link #getStackInSlot(int)} then indexes into.
+         */
+        private List<StorageView<R>> views = List.of();
 
-        public ResourceHandlerFacade(ResourceHandler<R> handler) {
+        public ResourceHandlerFacade(Storage<R> handler) {
             this.handler = handler;
         }
 
         @Override
         public int getSlots() {
-            return handler.size();
+            var result = new ArrayList<StorageView<R>>();
+            for (var view : handler) {
+                result.add(view);
+            }
+            views = result;
+            return result.size();
         }
 
         @Nullable
         @Override
         public GenericStack getStackInSlot(int slot) {
-            K key = toKey(handler.getResource(slot));
-            return key == null ? null : new GenericStack(key, handler.getAmountAsLong(slot));
+            if (slot < 0 || slot >= views.size()) {
+                return null;
+            }
+            var view = views.get(slot);
+            if (view.isResourceBlank()) {
+                return null;
+            }
+            K key = toKey(view.getResource());
+            return key == null ? null : new GenericStack(key, view.getAmount());
         }
 
         @Override
-        public int insertExternal(AEKey what, int amount, Actionable mode) {
+        public long insertExternal(AEKey what, long amount, Actionable mode) {
             var resource = toResource(what);
-            if (resource == null) {
+            if (resource == null || amount <= 0) {
                 return 0;
             }
 
-            try (var tx = Transaction.openRoot()) {
+            try (var tx = Platform.openOrJoinTx()) {
                 var inserted = handler.insert(resource, amount, tx);
                 if (!mode.isSimulate()) {
                     tx.commit();
@@ -136,13 +157,13 @@ public abstract class ExternalStorageFacade implements MEStorage {
         }
 
         @Override
-        public int extractExternal(AEKey what, int amount, Actionable mode) {
+        public long extractExternal(AEKey what, long amount, Actionable mode) {
             var resource = toResource(what);
-            if (resource == null) {
+            if (resource == null || amount <= 0) {
                 return 0;
             }
 
-            try (var tx = Transaction.openRoot()) {
+            try (var tx = Platform.openOrJoinTx()) {
                 var extracted = handler.extract(resource, amount, tx);
                 if (!mode.isSimulate()) {
                     tx.commit();
@@ -153,43 +174,47 @@ public abstract class ExternalStorageFacade implements MEStorage {
 
         @Override
         public void getAvailableStacks(KeyCounter out) {
-            for (int i = 0; i < handler.size(); i++) {
-                // Skip resources that cannot be extracted if that filter was enabled
-                var stack = handler.getResource(i);
-                if (stack.isEmpty()) {
+            for (var view : handler) {
+                if (view.isResourceBlank()) {
+                    continue;
+                }
+                var resource = view.getResource();
+                long amount = Math.min(view.getAmount(), MAX_REPORTED_AMOUNT);
+                if (amount <= 0) {
                     continue;
                 }
 
-                long amount = handler.getAmountAsLong(i);
-
+                // Skip resources that cannot be extracted if that filter was enabled
                 if (extractableOnly) {
-                    // Try to determine whether the resource is extractable
-
-                    try (var tx = Transaction.openRoot()) {
-                        var extracted = handler.extract(i, stack, 1, tx);
-                        // Try again in case the handler only allows extracting the resource in its entirety (i.e.
-                        // cauldrons)
+                    try (var tx = Platform.openOrJoinTx()) {
+                        var extracted = view.extract(resource, 1, tx);
+                        // Try again in case the storage only allows extracting the resource in its entirety
+                        // (i.e. cauldrons)
                         if (extracted == 0) {
-                            extracted = handler.extract(i, stack, 1, tx);
+                            extracted = view.extract(resource, view.getAmount(), tx);
                         }
                         if (extracted == 0) {
-                            continue; // Skip unextractable slots
+                            continue; // Skip unextractable views
                         }
                     }
                 }
 
-                out.add(toKey(stack), amount);
+                var key = toKey(resource);
+                if (key != null) {
+                    out.add(key, amount);
+                }
             }
         }
 
         @Override
         public boolean containsAnyFuzzy(Set<AEKey> keys) {
-            for (int i = 0; i < handler.size(); i++) {
-                var what = toKey(handler.getResource(i));
-                if (what != null) {
-                    if (keys.contains(what.dropSecondary())) {
-                        return true;
-                    }
+            for (var view : handler) {
+                if (view.isResourceBlank()) {
+                    continue;
+                }
+                var what = toKey(view.getResource());
+                if (what != null && keys.contains(what.dropSecondary())) {
+                    return true;
                 }
             }
             return false;
@@ -202,8 +227,8 @@ public abstract class ExternalStorageFacade implements MEStorage {
         protected abstract R toResource(AEKey key);
     }
 
-    private static class ItemHandlerFacade extends ResourceHandlerFacade<ItemResource, AEItemKey> {
-        public ItemHandlerFacade(ResourceHandler<ItemResource> handler) {
+    private static class ItemHandlerFacade extends ResourceHandlerFacade<ItemVariant, AEItemKey> {
+        public ItemHandlerFacade(Storage<ItemVariant> handler) {
             super(handler);
         }
 
@@ -213,18 +238,18 @@ public abstract class ExternalStorageFacade implements MEStorage {
         }
 
         @Override
-        protected @org.jspecify.annotations.Nullable AEItemKey toKey(ItemResource resource) {
+        protected @Nullable AEItemKey toKey(ItemVariant resource) {
             return AEItemKey.of(resource);
         }
 
         @Override
-        protected @org.jspecify.annotations.Nullable ItemResource toResource(AEKey key) {
-            return (key instanceof AEItemKey itemKey) ? itemKey.toResource() : null;
+        protected @Nullable ItemVariant toResource(AEKey key) {
+            return (key instanceof AEItemKey itemKey) ? itemKey.toVariant() : null;
         }
     }
 
-    private static class FluidHandlerFacade extends ResourceHandlerFacade<FluidResource, AEFluidKey> {
-        public FluidHandlerFacade(ResourceHandler<FluidResource> handler) {
+    private static class FluidHandlerFacade extends ResourceHandlerFacade<FluidVariant, AEFluidKey> {
+        public FluidHandlerFacade(Storage<FluidVariant> handler) {
             super(handler);
         }
 
@@ -234,13 +259,13 @@ public abstract class ExternalStorageFacade implements MEStorage {
         }
 
         @Override
-        protected @org.jspecify.annotations.Nullable AEFluidKey toKey(FluidResource resource) {
+        protected @Nullable AEFluidKey toKey(FluidVariant resource) {
             return AEFluidKey.of(resource);
         }
 
         @Override
-        protected @org.jspecify.annotations.Nullable FluidResource toResource(AEKey key) {
-            return (key instanceof AEFluidKey fluidKey) ? fluidKey.toResource() : null;
+        protected @Nullable FluidVariant toResource(AEKey key) {
+            return (key instanceof AEFluidKey fluidKey) ? fluidKey.toVariant() : null;
         }
     }
 }

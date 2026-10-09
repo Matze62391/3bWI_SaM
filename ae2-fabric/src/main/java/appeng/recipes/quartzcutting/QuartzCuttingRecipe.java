@@ -26,12 +26,11 @@ import net.minecraft.world.item.crafting.display.RecipeDisplay;
 import net.minecraft.world.item.crafting.display.ShapelessCraftingRecipeDisplay;
 import net.minecraft.world.item.crafting.display.SlotDisplay;
 import net.minecraft.world.level.Level;
-import net.neoforged.neoforge.common.CommonHooks;
-import net.neoforged.neoforge.common.util.RecipeMatcher;
-import net.neoforged.neoforge.server.ServerLifecycleHooks;
 
 import appeng.core.ConventionTags;
+import appeng.core.AppEng;
 import appeng.core.definitions.AEItems;
+import appeng.util.RecipeMatcher;
 
 public class QuartzCuttingRecipe extends NormalCraftingRecipe {
     public static final MapCodec<QuartzCuttingRecipe> CODEC = RecordCodecBuilder.mapCodec((builder) -> builder.group(
@@ -59,7 +58,8 @@ public class QuartzCuttingRecipe extends NormalCraftingRecipe {
         super(commonInfo, bookInfo);
         this.result = result;
         this.ingredients = ingredients;
-        this.isSimple = ingredients.stream().allMatch(Ingredient::isSimple);
+        // Fabric: custom ingredients that need to test the actual stack cannot use the stacked contents matcher
+        this.isSimple = ingredients.stream().noneMatch(Ingredient::requiresTesting);
     }
 
     public RecipeSerializer<QuartzCuttingRecipe> getSerializer() {
@@ -127,13 +127,10 @@ public class QuartzCuttingRecipe extends NormalCraftingRecipe {
                 var result = item.copy();
 
                 var broken = new MutableBoolean(false);
-                if (CommonHooks.getCraftingPlayer() instanceof ServerPlayer serverPlayer) {
-                    result.hurtAndBreak(1, serverPlayer.level(), serverPlayer, ignored -> broken.setTrue());
-                } else {
-                    var currentServer = ServerLifecycleHooks.getCurrentServer();
-                    if (currentServer != null) {
-                        result.hurtAndBreak(1, currentServer.overworld(), null, ignored -> broken.setTrue());
-                    }
+                // NeoForge exposes the crafting player here, Fabric does not
+                var currentServer = AppEng.instance().getCurrentServer();
+                if (currentServer != null) {
+                    result.hurtAndBreak(1, currentServer.overworld(), null, ignored -> broken.setTrue());
                 }
                 remainingItems.set(i, broken.getValue() ? ItemStack.EMPTY : result);
             } else if (item.getCraftingRemainder() != null) {

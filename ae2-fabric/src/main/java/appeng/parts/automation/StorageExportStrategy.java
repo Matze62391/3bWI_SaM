@@ -6,9 +6,10 @@ import org.slf4j.LoggerFactory;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
-import net.neoforged.neoforge.capabilities.BlockCapability;
-import net.neoforged.neoforge.capabilities.BlockCapabilityCache;
-import net.neoforged.neoforge.capabilities.Capabilities;
+import net.fabricmc.fabric.api.lookup.v1.block.BlockApiLookup;
+import net.fabricmc.fabric.api.lookup.v1.block.BlockApiCache;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidStorage;
+import net.fabricmc.fabric.api.transfer.v1.item.ItemStorage;
 
 import appeng.api.behaviors.StackExportStrategy;
 import appeng.api.behaviors.StackTransferContext;
@@ -18,16 +19,18 @@ import appeng.api.storage.StorageHelper;
 
 public class StorageExportStrategy<T, S> implements StackExportStrategy {
     private static final Logger LOG = LoggerFactory.getLogger(StorageExportStrategy.class);
-    private final BlockCapabilityCache<T, Direction> cache;
+    private final BlockApiCache<T, Direction> cache;
+    private final Direction side;
     private final HandlerStrategy<T, S> handlerStrategy;
 
-    public StorageExportStrategy(BlockCapability<T, Direction> capability,
+    public StorageExportStrategy(BlockApiLookup<T, Direction> capability,
             HandlerStrategy<T, S> handlerStrategy,
             ServerLevel level,
             BlockPos fromPos,
             Direction fromSide) {
         this.handlerStrategy = handlerStrategy;
-        this.cache = BlockCapabilityCache.create(capability, level, fromPos, fromSide);
+        this.cache = BlockApiCache.create(capability, level, fromPos);
+        this.side = fromSide;
     }
 
     @Override
@@ -36,7 +39,7 @@ public class StorageExportStrategy<T, S> implements StackExportStrategy {
             return 0;
         }
 
-        var adjacentStorage = cache.getCapability();
+        var adjacentStorage = cache.find(side);
         if (adjacentStorage == null) {
             return 0;
         }
@@ -84,7 +87,7 @@ public class StorageExportStrategy<T, S> implements StackExportStrategy {
             return 0;
         }
 
-        var adjacentStorage = cache.getCapability();
+        var adjacentStorage = cache.find(side);
         if (adjacentStorage == null) {
             return 0;
         }
@@ -94,7 +97,7 @@ public class StorageExportStrategy<T, S> implements StackExportStrategy {
 
     public static StackExportStrategy createItem(ServerLevel level, BlockPos fromPos, Direction fromSide) {
         return new StorageExportStrategy<>(
-                Capabilities.Item.BLOCK,
+                ItemStorage.SIDED,
                 HandlerStrategy.ITEMS,
                 level,
                 fromPos,
@@ -103,7 +106,7 @@ public class StorageExportStrategy<T, S> implements StackExportStrategy {
 
     public static StackExportStrategy createFluid(ServerLevel level, BlockPos fromPos, Direction fromSide) {
         return new StorageExportStrategy<>(
-                Capabilities.Fluid.BLOCK,
+                FluidStorage.SIDED,
                 HandlerStrategy.FLUIDS,
                 level,
                 fromPos,

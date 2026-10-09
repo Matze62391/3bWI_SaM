@@ -3,18 +3,14 @@ package appeng.server.testplots;
 import java.util.List;
 
 import net.minecraft.core.GlobalPos;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 
 import appeng.api.config.Actionable;
 import appeng.api.features.GridLinkables;
 import appeng.blockentity.networking.WirelessAccessPointBlockEntity;
 import appeng.core.definitions.AEItems;
 
-@EventBusSubscriber
 public final class SpawnTestTools {
 
-    @SubscribeEvent
     public static void spawnWirelessTerminals(SpawnExtraGridTestTools e) {
         // Find a suitable WAP to link to
         var waps = e.getGrid().getMachines(WirelessAccessPointBlockEntity.class);

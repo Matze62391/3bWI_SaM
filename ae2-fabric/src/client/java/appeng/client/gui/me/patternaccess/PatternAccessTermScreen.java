@@ -49,7 +49,7 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.client.network.ClientPacketDistributor;
+import appeng.core.network.NetworkHelper;
 
 import guideme.color.ConstantColor;
 import guideme.document.LytRect;
@@ -347,7 +347,7 @@ public class PatternAccessTermScreen<C extends PatternAccessTermMenu> extends AE
                 PatternSlot machineSlot = (PatternSlot) slot;
                 final InventoryActionPacket p = new InventoryActionPacket(action, machineSlot.getSlotIndex(),
                         machineSlot.getMachineInv().getServerId());
-                ClientPacketDistributor.sendToServer(p);
+                NetworkHelper.sendToServer(p);
             }
 
             return;
@@ -364,7 +364,7 @@ public class PatternAccessTermScreen<C extends PatternAccessTermMenu> extends AE
             int clickedSlot = slot.getContainerSlot();
             var packet = new QuickMovePatternPacket(
                     menu.containerId, clickedSlot, List.copyOf(visiblePatternContainers));
-            ClientPacketDistributor.sendToServer(packet);
+            NetworkHelper.sendToServer(packet);
             return;
         }
 

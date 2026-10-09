@@ -18,8 +18,8 @@
 
 package appeng.blockentity;
 
-import net.neoforged.neoforge.model.data.ModelData;
-import net.neoforged.neoforge.model.data.ModelProperty;
+import appeng.api.model.ModelData;
+import appeng.api.model.ModelProperty;
 
 /**
  * This implementation of IModelData allows us to know precisely which data is part of the model data.

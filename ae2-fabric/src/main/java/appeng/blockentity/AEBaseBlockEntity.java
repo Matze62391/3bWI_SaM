@@ -70,9 +70,7 @@ import net.minecraft.world.level.storage.TagValueOutput;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.phys.BlockHitResult;
-import net.neoforged.neoforge.common.util.FriendlyByteBufUtil;
-import net.neoforged.neoforge.model.data.ModelData;
-import net.neoforged.neoforge.network.connection.ConnectionType;
+import appeng.api.model.ModelData;
 
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 
@@ -157,8 +155,7 @@ public class AEBaseBlockEntity extends BlockEntity
             if (registryAccess == null) {
                 LOG.warn("Ignoring  update packet for {} since no registry is available.", this);
             } else if (readUpdateData(
-                    new RegistryFriendlyByteBuf(Unpooled.wrappedBuffer(decodedUpdateData), registryAccess,
-                            ConnectionType.NEOFORGE))) {
+                    new RegistryFriendlyByteBuf(Unpooled.wrappedBuffer(decodedUpdateData), registryAccess))) {
                 // Triggers a chunk re-render if the level is already loaded
                 if (level != null) {
                     requestModelDataUpdate();
@@ -216,7 +213,15 @@ public class AEBaseBlockEntity extends BlockEntity
     @Override
     public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
         var data = new CompoundTag();
-        var updateData = FriendlyByteBufUtil.writeCustomData(this::writeToStream, level.registryAccess());
+        var buffer = new RegistryFriendlyByteBuf(Unpooled.buffer(), level.registryAccess());
+        byte[] updateData;
+        try {
+            writeToStream(buffer);
+            updateData = new byte[buffer.readableBytes()];
+            buffer.readBytes(updateData);
+        } finally {
+            buffer.release();
+        }
         data.putString("#upd", Base64.getEncoder().encodeToString(updateData));
         return data;
     }
@@ -317,7 +322,7 @@ public class AEBaseBlockEntity extends BlockEntity
      */
     @ApiStatus.OverrideOnly
     protected void onOrientationChanged(BlockOrientation orientation) {
-        invalidateCapabilities();
+        Platform.invalidateCapabilities(this);
     }
 
     public final DataComponentMap exportSettings(SettingsFrom mode, @Nullable Player player) {
@@ -440,9 +445,27 @@ public class AEBaseBlockEntity extends BlockEntity
         return null;
     }
 
-    @Override
+    /**
+     * @return The data used by this block entity's dynamic model.
+     */
     public ModelData getModelData() {
         return AEModelData.create();
+    }
+
+    /**
+     * Exposes {@link #getModelData()} to Fabric's renderer.
+     */
+    @Override
+    public Object getRenderData() {
+        return getModelData();
+    }
+
+    /**
+     * Fabric queries {@link #getRenderData()} whenever the chunk section is re-meshed, so on the client, all that is
+     * needed is to mark the section for re-rendering. (Replaces NeoForge's method of the same name.)
+     */
+    public void requestModelDataUpdate() {
+        Platform.requestModelDataUpdate(this);
     }
 
     /**

@@ -34,8 +34,8 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
-import net.neoforged.neoforge.model.data.ModelData;
-import net.neoforged.neoforge.model.data.ModelProperty;
+import appeng.api.model.ModelData;
+import appeng.api.model.ModelProperty;
 
 import appeng.api.networking.GridFlags;
 import appeng.api.networking.IGridMultiblock;

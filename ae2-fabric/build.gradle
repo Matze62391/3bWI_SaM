@@ -30,6 +30,7 @@ sourceSets {
             // the GuideME-based guidebook (GuideME only exists for NeoForge) and third-party integrations.
             exclude "appeng/datagen/**"
             exclude "appeng/client/guidebook/**"
+            exclude "appeng/server/testplots/GuidebookPlot.java"
             exclude "appeng/integration/modules/**"
             exclude "appeng/client/integrations/**"
         }
@@ -64,6 +65,9 @@ dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
     implementation "net.fabricmc:fabric-loader:${project.loader_version}"
     implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+
+    // NeoForge ships these annotation libraries, AE2 uses them
+    compileOnly "com.google.code.findbugs:jsr305:3.0.2"
 
     // De-facto standard energy API on Fabric (replaces NeoForge's EnergyHandler capability)
     implementation "teamreborn:energy:${project.tr_energy_version}"

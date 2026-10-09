@@ -8,7 +8,6 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
-import net.neoforged.neoforge.common.NeoForge;
 
 import appeng.core.definitions.AEBlockEntities;
 import appeng.core.definitions.AEBlocks;
@@ -35,7 +34,7 @@ public record SpawnExtraGridTestToolsChest(BlockPos chestPos, BlockPos gridPos,
             var chest = AEBlockEntities.SKY_CHEST.getBlockEntity(level, absChestPod);
             if (chest != null) {
                 var inventory = chest.getInternalInventory();
-                NeoForge.EVENT_BUS.post(new SpawnExtraGridTestTools(plotId, inventory, grid));
+                SpawnExtraGridTestTools.EVENT.invoker().onSpawnExtraGridTestTools(new SpawnExtraGridTestTools(plotId, inventory, grid));
             }
         });
     }

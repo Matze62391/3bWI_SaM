@@ -22,15 +22,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.DoubleSupplier;
 
-import net.neoforged.fml.ModContainer;
-import net.neoforged.fml.config.ModConfig;
-import net.neoforged.fml.event.config.ModConfigEvent;
-import net.neoforged.neoforge.common.ModConfigSpec;
-import net.neoforged.neoforge.common.ModConfigSpec.BooleanValue;
-import net.neoforged.neoforge.common.ModConfigSpec.DoubleValue;
-import net.neoforged.neoforge.common.ModConfigSpec.EnumValue;
-import net.neoforged.neoforge.common.ModConfigSpec.IntValue;
+import net.fabricmc.loader.api.FabricLoader;
 
+import appeng.core.config.ConfigSpec;
+import appeng.core.config.ConfigSpec.BooleanValue;
+import appeng.core.config.ConfigSpec.DoubleValue;
+import appeng.core.config.ConfigSpec.EnumValue;
+import appeng.core.config.ConfigSpec.IntValue;
 import appeng.api.config.CondenserOutput;
 import appeng.api.config.PowerMultiplier;
 import appeng.api.config.PowerUnit;
@@ -46,32 +44,24 @@ public final class AEConfig {
     private final ClientConfig client = new ClientConfig();
     private final CommonConfig common = new CommonConfig();
 
-    // Default Energy Conversion Rates
-    private static final double DEFAULT_FE_EXCHANGE = 0.5;
+    // Default Energy Conversion Rates (1 E = 2 AE, the same ratio the previous Fabric versions of AE2 used)
+    private static final double DEFAULT_TR_EXCHANGE = 2.0;
 
     private static AEConfig instance;
 
-    private AEConfig(ModContainer container) {
-        container.registerConfig(ModConfig.Type.CLIENT, client.spec);
-        // Keep the old file name to continue reading existing configs
-        container.registerConfig(ModConfig.Type.LOCAL, common.spec, "ae2-common.toml");
-        container.getEventBus().addListener((ModConfigEvent.Loading evt) -> {
-            if (evt.getConfig().getSpec() == common.spec) {
-                common.sync();
-            }
-        });
-        container.getEventBus().addListener((ModConfigEvent.Reloading evt) -> {
-            if (evt.getConfig().getSpec() == common.spec) {
-                common.sync();
-            }
-        });
+    private AEConfig() {
+        var configDir = FabricLoader.getInstance().getConfigDir();
+        client.spec.load(configDir.resolve("ae2-client.json"));
+        // Same file name as the NeoForge version, but in JSON format
+        common.spec.load(configDir.resolve("ae2-common.json"));
+        common.sync();
     }
 
-    public static void register(ModContainer container) {
-        if (!container.getModId().equals(AppEng.MOD_ID)) {
-            throw new IllegalArgumentException();
+    public static void register() {
+        if (instance != null) {
+            throw new IllegalStateException("Config already registered");
         }
-        instance = new AEConfig(container);
+        instance = new AEConfig();
     }
 
     public static AEConfig instance() {
@@ -418,7 +408,7 @@ public final class AEConfig {
     }
 
     private static class ClientConfig {
-        private final ModConfigSpec spec;
+        private final ConfigSpec spec;
 
         // Misc
         public final BooleanValue enableEffects;
@@ -453,7 +443,7 @@ public final class AEConfig {
         public final IntValue tooltipMaxCellContentShown;
 
         public ClientConfig() {
-            var builder = new ModConfigSpec.Builder();
+            var builder = new ConfigSpec.Builder();
 
             builder.push("recipeViewers");
             this.disableColoredCableRecipesInRecipeViewer = define(builder, "disableColoredCableRecipesInRecipeViewer",
@@ -519,7 +509,7 @@ public final class AEConfig {
     }
 
     private static class CommonConfig {
-        private final ModConfigSpec spec;
+        private final ConfigSpec spec;
 
         // Misc
         public final IntValue formationPlaneEntityLimit;
@@ -567,7 +557,7 @@ public final class AEConfig {
         public final DoubleValue wirelessHighWirelessCount;
 
         // Power Ratios
-        public final DoubleValue powerRatioForgeEnergy;
+        public final DoubleValue powerRatioTechReborn;
         public final DoubleValue powerUsageMultiplier;
         public final DoubleValue gridEnergyStoragePerNode;
         public final DoubleValue crystalResonanceGeneratorRate;
@@ -587,7 +577,7 @@ public final class AEConfig {
         public final Map<TickRates, IntValue> tickRateMax = new HashMap<>();
 
         public CommonConfig() {
-            var builder = new ModConfigSpec.Builder();
+            var builder = new ConfigSpec.Builder();
 
             builder.push("general");
             debugTools = define(builder, "unsupportedDeveloperTools", Platform.isDevelopmentEnvironment());
@@ -658,7 +648,7 @@ public final class AEConfig {
             builder.pop();
 
             builder.push("powerRatios");
-            powerRatioForgeEnergy = define(builder, "forgeEnergy", DEFAULT_FE_EXCHANGE);
+            powerRatioTechReborn = define(builder, "techRebornEnergy", DEFAULT_TR_EXCHANGE);
             powerUsageMultiplier = define(builder, "usageMultiplier", 1.0, 0.01, Double.MAX_VALUE);
             gridEnergyStoragePerNode = define(builder, "gridEnergyStoragePerNode", 25.0, 1.0, 1000000.0,
                     "How much energy can the internal grid buffer storage per node attached to the grid.");
@@ -698,7 +688,7 @@ public final class AEConfig {
         }
 
         public void sync() {
-            PowerUnit.FE.conversionRatio = powerRatioForgeEnergy.get();
+            PowerUnit.TR.conversionRatio = powerRatioTechReborn.get();
             PowerMultiplier.CONFIG.multiplier = powerUsageMultiplier.get();
 
             CondenserOutput.MATTER_BALLS.requiredPower = condenserMatterBallsPower.get();
@@ -715,61 +705,61 @@ public final class AEConfig {
         }
     }
 
-    private static BooleanValue define(ModConfigSpec.Builder builder, String name, boolean defaultValue,
+    private static BooleanValue define(ConfigSpec.Builder builder, String name, boolean defaultValue,
             String comment) {
         builder.comment(comment);
         return define(builder, name, defaultValue);
     }
 
-    private static BooleanValue define(ModConfigSpec.Builder builder, String name, boolean defaultValue) {
+    private static BooleanValue define(ConfigSpec.Builder builder, String name, boolean defaultValue) {
         return builder.define(name, defaultValue);
     }
 
-    private static IntValue define(ModConfigSpec.Builder builder, String name, int defaultValue, String comment) {
+    private static IntValue define(ConfigSpec.Builder builder, String name, int defaultValue, String comment) {
         builder.comment(comment);
         return define(builder, name, defaultValue);
     }
 
-    private static DoubleValue define(ModConfigSpec.Builder builder, String name, double defaultValue) {
+    private static DoubleValue define(ConfigSpec.Builder builder, String name, double defaultValue) {
         return define(builder, name, defaultValue, Double.MIN_VALUE, Double.MAX_VALUE);
     }
 
-    private static DoubleValue define(ModConfigSpec.Builder builder, String name, double defaultValue, String comment) {
+    private static DoubleValue define(ConfigSpec.Builder builder, String name, double defaultValue, String comment) {
         builder.comment(comment);
         return define(builder, name, defaultValue);
     }
 
-    private static DoubleValue define(ModConfigSpec.Builder builder, String name, double defaultValue, double min,
+    private static DoubleValue define(ConfigSpec.Builder builder, String name, double defaultValue, double min,
             double max, String comment) {
         builder.comment(comment);
         return define(builder, name, defaultValue, min, max);
     }
 
-    private static DoubleValue define(ModConfigSpec.Builder builder, String name, double defaultValue, double min,
+    private static DoubleValue define(ConfigSpec.Builder builder, String name, double defaultValue, double min,
             double max) {
         return builder.defineInRange(name, defaultValue, min, max);
     }
 
-    private static IntValue define(ModConfigSpec.Builder builder, String name, int defaultValue, int min, int max,
+    private static IntValue define(ConfigSpec.Builder builder, String name, int defaultValue, int min, int max,
             String comment) {
         builder.comment(comment);
         return define(builder, name, defaultValue, min, max);
     }
 
-    private static IntValue define(ModConfigSpec.Builder builder, String name, int defaultValue, int min, int max) {
+    private static IntValue define(ConfigSpec.Builder builder, String name, int defaultValue, int min, int max) {
         return builder.defineInRange(name, defaultValue, min, max);
     }
 
-    private static IntValue define(ModConfigSpec.Builder builder, String name, int defaultValue) {
+    private static IntValue define(ConfigSpec.Builder builder, String name, int defaultValue) {
         return define(builder, name, defaultValue, Integer.MIN_VALUE, Integer.MAX_VALUE);
     }
 
-    private static <T extends Enum<T>> EnumValue<T> defineEnum(ModConfigSpec.Builder builder, String name,
+    private static <T extends Enum<T>> EnumValue<T> defineEnum(ConfigSpec.Builder builder, String name,
             T defaultValue) {
         return builder.defineEnum(name, defaultValue);
     }
 
-    private static <T extends Enum<T>> EnumValue<T> defineEnum(ModConfigSpec.Builder builder, String name,
+    private static <T extends Enum<T>> EnumValue<T> defineEnum(ConfigSpec.Builder builder, String name,
             T defaultValue, String comment) {
         builder.comment(comment);
         return defineEnum(builder, name, defaultValue);

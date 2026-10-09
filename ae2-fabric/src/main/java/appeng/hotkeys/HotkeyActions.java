@@ -52,11 +52,10 @@ public class HotkeyActions {
     }
 
     /**
-     * a convenience Helper for registering Hotkeys for both the Inventory and Curios (if applicable)
+     * a convenience Helper for registering Hotkeys for the Inventory (Curios does not exist on Fabric)
      */
     public static void register(ItemLike item, InventoryHotkeyAction.Opener opener, String id) {
         register(new InventoryHotkeyAction(item, opener), id);
-        register(new CuriosHotkeyAction(item, opener), id);
     }
 
     /**

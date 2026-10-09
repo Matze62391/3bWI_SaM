@@ -31,7 +31,7 @@ import org.jetbrains.annotations.Nullable;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
-import net.neoforged.neoforge.transfer.transaction.SnapshotJournal;
+import appeng.util.transfer.SnapshotJournal;
 
 import it.unimi.dsi.fastutil.objects.Reference2LongArrayMap;
 import it.unimi.dsi.fastutil.objects.Reference2LongMap;

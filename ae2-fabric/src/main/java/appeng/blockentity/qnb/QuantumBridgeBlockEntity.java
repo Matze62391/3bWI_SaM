@@ -29,8 +29,8 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.model.data.ModelData;
-import net.neoforged.neoforge.model.data.ModelProperty;
+import appeng.api.model.ModelData;
+import appeng.api.model.ModelProperty;
 
 import appeng.api.ids.AEComponents;
 import appeng.api.inventories.InternalInventory;

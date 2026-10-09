@@ -22,7 +22,7 @@ import org.jetbrains.annotations.Nullable;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.ChunkPos;
-import net.neoforged.neoforge.client.network.ClientPacketDistributor;
+import appeng.core.network.NetworkHelper;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 
@@ -83,7 +83,7 @@ public final class CompassManager {
 
         if (request) {
             this.requests.put(chunkPos.pack(), new CachedResult(result, now));
-            ClientPacketDistributor.sendToServer(new RequestClosestMeteoritePacket(chunkPos));
+            NetworkHelper.sendToServer(new RequestClosestMeteoritePacket(chunkPos));
         }
 
         // Prefetch meteor positions from the server for adjacent blocks, so they are

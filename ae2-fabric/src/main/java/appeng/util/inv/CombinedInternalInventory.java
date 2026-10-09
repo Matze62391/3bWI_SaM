@@ -22,9 +22,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.transfer.CombinedResourceHandler;
-import net.neoforged.neoforge.transfer.ResourceHandler;
-import net.neoforged.neoforge.transfer.item.ItemResource;
+import net.fabricmc.fabric.api.transfer.v1.storage.base.CombinedStorage;
+import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
+import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
 
 import appeng.api.inventories.BaseInternalInventory;
 import appeng.api.inventories.InternalInventory;
@@ -139,13 +139,13 @@ public class CombinedInternalInventory extends BaseInternalInventory {
 
     @SuppressWarnings("unchecked")
     @Override
-    protected ResourceHandler<ItemResource> createResourceHandler() {
-        List<ResourceHandler<ItemResource>> parts = new ArrayList<>(this.inventories.length);
+    protected Storage<ItemVariant> createStorage() {
+        List<Storage<ItemVariant>> parts = new ArrayList<>(this.inventories.length);
 
         for (InternalInventory inventory : this.inventories) {
-            parts.add(inventory.toResourceHandler());
+            parts.add(inventory.toStorage());
         }
 
-        return new CombinedResourceHandler<>(parts.toArray(ResourceHandler[]::new));
+        return new CombinedStorage<>(parts);
     }
 }

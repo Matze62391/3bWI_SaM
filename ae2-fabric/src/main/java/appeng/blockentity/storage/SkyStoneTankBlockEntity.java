@@ -11,12 +11,12 @@ import net.minecraft.world.level.storage.TagValueInput;
 import net.minecraft.world.level.storage.TagValueOutput;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
-import net.neoforged.neoforge.fluids.FluidStack;
-import net.neoforged.neoforge.fluids.FluidType;
-import net.neoforged.neoforge.transfer.ResourceHandler;
-import net.neoforged.neoforge.transfer.fluid.FluidResource;
-import net.neoforged.neoforge.transfer.fluid.FluidStacksResourceHandler;
-import net.neoforged.neoforge.transfer.fluid.FluidUtil;
+import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant;
+
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidConstants;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidStorageUtil;
+import net.fabricmc.fabric.api.transfer.v1.fluid.base.SingleFluidStorage;
 
 import appeng.blockentity.AEBaseBlockEntity;
 
@@ -24,14 +24,11 @@ public class SkyStoneTankBlockEntity extends AEBaseBlockEntity {
 
     public static final int BUCKET_CAPACITY = 16;
 
-    protected FluidStacksResourceHandler tank = new FluidStacksResourceHandler(1,
-            FluidType.BUCKET_VOLUME * BUCKET_CAPACITY) {
-        @Override
-        protected void onContentsChanged(int index, FluidStack previousContents) {
-            SkyStoneTankBlockEntity.this.markForUpdate();
-            SkyStoneTankBlockEntity.this.setChanged();
-        }
-    };
+    protected SingleFluidStorage tank = SingleFluidStorage.withFixedCapacity(
+            FluidConstants.BUCKET * BUCKET_CAPACITY, () -> {
+                SkyStoneTankBlockEntity.this.markForUpdate();
+                SkyStoneTankBlockEntity.this.setChanged();
+            });
 
     public SkyStoneTankBlockEntity(BlockEntityType<?> blockEntityType, BlockPos pos, BlockState blockState) {
         super(blockEntityType, pos, blockState);
@@ -40,34 +37,34 @@ public class SkyStoneTankBlockEntity extends AEBaseBlockEntity {
     @Override
     public void saveAdditional(ValueOutput data) {
         super.saveAdditional(data);
-        data.putChild("tank", tank);
+        tank.writeValue(data.child("tank"));
     }
 
     @Override
     public void loadTag(ValueInput data) {
         super.loadTag(data);
-        tank.deserialize(data.childOrEmpty("tank"));
+        tank.readValue(data.childOrEmpty("tank"));
     }
 
     public boolean onPlayerUse(Player player, InteractionHand hand) {
-        return FluidUtil.interactWithFluidHandler(player, hand, getBlockPos(), tank, null);
+        return FluidStorageUtil.interactWithFluidStorage(tank, player, hand);
     }
 
-    public ResourceHandler<FluidResource> getFluidHandler() {
+    public SingleFluidStorage getFluidHandler() {
         return tank;
     }
 
     protected boolean readFromStream(RegistryFriendlyByteBuf data) {
         boolean ret = super.readFromStream(data);
         var input = TagValueInput.create(ProblemReporter.DISCARDING, data.registryAccess(), data.readNbt());
-        tank.deserialize(input);
+        tank.readValue(input);
         return ret;
     }
 
     protected void writeToStream(RegistryFriendlyByteBuf data) {
         super.writeToStream(data);
         var output = TagValueOutput.createWithContext(ProblemReporter.DISCARDING, data.registryAccess());
-        tank.serialize(output);
+        tank.writeValue(output);
         data.writeNbt(output.buildResult());
     }
 }

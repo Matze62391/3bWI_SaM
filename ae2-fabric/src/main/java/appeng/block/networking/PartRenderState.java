@@ -1,6 +1,6 @@
 package appeng.block.networking;
 
-import net.neoforged.neoforge.model.data.ModelData;
+import appeng.api.model.ModelData;
 
 import appeng.api.parts.IPartItem;
 

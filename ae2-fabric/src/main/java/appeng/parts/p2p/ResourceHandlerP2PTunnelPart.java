@@ -1,60 +1,82 @@
+/*
+ * This file is part of Applied Energistics 2.
+ * Copyright (c) 2021, TeamAppliedEnergistics, All rights reserved.
+ *
+ * Applied Energistics 2 is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Applied Energistics 2 is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with Applied Energistics 2.  If not, see <http://www.gnu.org/licenses/lgpl>.
+ */
+
 package appeng.parts.p2p;
 
+import java.util.Collections;
+import java.util.Iterator;
+
+import com.google.common.collect.Iterators;
+
+import net.fabricmc.fabric.api.lookup.v1.block.BlockApiLookup;
+import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
+import net.fabricmc.fabric.api.transfer.v1.storage.StorageView;
+import net.fabricmc.fabric.api.transfer.v1.storage.TransferVariant;
+import net.fabricmc.fabric.api.transfer.v1.storage.base.ExtractionOnlyStorage;
+import net.fabricmc.fabric.api.transfer.v1.storage.base.InsertionOnlyStorage;
+import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
 import net.minecraft.core.Direction;
-import net.neoforged.neoforge.capabilities.BlockCapability;
-import net.neoforged.neoforge.transfer.EmptyResourceHandler;
-import net.neoforged.neoforge.transfer.ResourceHandler;
-import net.neoforged.neoforge.transfer.TransferPreconditions;
-import net.neoforged.neoforge.transfer.resource.Resource;
-import net.neoforged.neoforge.transfer.transaction.TransactionContext;
 
 import appeng.api.parts.IPartItem;
 import appeng.api.stacks.AEKeyType;
-import appeng.util.InsertionOnlyResourceHandler;
+import appeng.util.transfer.TransferPreconditions;
 
-public abstract class ResourceHandlerP2PTunnelPart<P extends ResourceHandlerP2PTunnelPart<P, T>, T extends Resource>
-        extends CapabilityP2PTunnelPart<P, ResourceHandler<T>> {
+/**
+ * Base class for P2P tunnels that work with Fabric's {@code Storage<T>}.
+ */
+public abstract class ResourceHandlerP2PTunnelPart<P extends ResourceHandlerP2PTunnelPart<P, T>, T extends TransferVariant<?>>
+        extends CapabilityP2PTunnelPart<P, Storage<T>> {
 
     private final AEKeyType keyType;
 
     public ResourceHandlerP2PTunnelPart(IPartItem<?> partItem,
-            BlockCapability<ResourceHandler<T>, Direction> capability,
-            T emptyResource,
+            BlockApiLookup<Storage<T>, Direction> capability,
             AEKeyType keyType) {
         super(partItem, capability);
-        this.inputHandler = new InputStorage(emptyResource);
+        this.inputHandler = new InputStorage();
         this.outputHandler = new OutputStorage();
-        this.emptyHandler = EmptyResourceHandler.instance();
+        this.emptyHandler = Storage.empty();
         this.keyType = keyType;
     }
 
-    private class InputStorage extends InsertionOnlyResourceHandler<T> {
-        public InputStorage(T emptyResource) {
-            super(emptyResource);
-        }
-
+    private class InputStorage implements InsertionOnlyStorage<T> {
         @Override
-        public int insert(T resource, int maxAmount, TransactionContext tx) {
+        public long insert(T resource, long maxAmount, TransactionContext tx) {
             TransferPreconditions.checkNonEmptyNonNegative(resource, maxAmount);
-            int total = 0;
+            long total = 0;
 
             var outputs = getOutputs();
             final int outputTunnels = outputs.size();
-            final int amount = maxAmount;
+            final long amount = maxAmount;
 
             if (outputTunnels == 0 || amount == 0) {
                 return 0;
             }
 
-            final int amountPerOutput = amount / outputTunnels;
-            int overflow = amountPerOutput == 0 ? amount : amount % amountPerOutput;
+            final long amountPerOutput = amount / outputTunnels;
+            long overflow = amountPerOutput == 0 ? amount : amount % amountPerOutput;
 
             for (var target : outputs) {
                 try (CapabilityGuard capabilityGuard = target.getAdjacentCapability()) {
-                    final ResourceHandler<T> output = capabilityGuard.get();
-                    final int toSend = amountPerOutput + overflow;
+                    final Storage<T> output = capabilityGuard.get();
+                    final long toSend = amountPerOutput + overflow;
 
-                    final int received = output.insert(resource, toSend, tx);
+                    final long received = output.insert(resource, toSend, tx);
 
                     overflow = toSend - received;
                     total += received;
@@ -64,70 +86,66 @@ public abstract class ResourceHandlerP2PTunnelPart<P extends ResourceHandlerP2PT
             deductTransportCost(total, keyType, tx);
             return total;
         }
+
+        @Override
+        public Iterator<StorageView<T>> iterator() {
+            return Collections.emptyIterator();
+        }
     }
 
-    private class OutputStorage implements ResourceHandler<T> {
+    private class OutputStorage implements ExtractionOnlyStorage<T> {
         @Override
-        public int extract(T resource, int maxAmount, TransactionContext tx) {
+        public long extract(T resource, long maxAmount, TransactionContext tx) {
             try (CapabilityGuard input = getInputCapability()) {
-                int extracted = input.get().extract(resource, maxAmount, tx);
+                long extracted = input.get().extract(resource, maxAmount, tx);
                 deductTransportCost(extracted, keyType, tx);
                 return extracted;
             }
         }
 
         @Override
-        public int extract(int index, T resource, int amount, TransactionContext tx) {
+        public Iterator<StorageView<T>> iterator() {
             try (CapabilityGuard input = getInputCapability()) {
-                int extracted = input.get().extract(index, resource, amount, tx);
-                deductTransportCost(extracted, keyType, tx);
-                return extracted;
+                return Iterators.transform(input.get().iterator(), TransportCostView::new);
             }
         }
+    }
 
-        @Override
-        public int size() {
-            try (CapabilityGuard input = getInputCapability()) {
-                return input.get().size();
-            }
+    /**
+     * Deducts the transport cost when resources are extracted through a view of the input's storage.
+     */
+    private class TransportCostView implements StorageView<T> {
+        private final StorageView<T> delegate;
+
+        TransportCostView(StorageView<T> delegate) {
+            this.delegate = delegate;
         }
 
         @Override
-        public T getResource(int index) {
-            try (CapabilityGuard input = getInputCapability()) {
-                return input.get().getResource(index);
-            }
+        public long extract(T resource, long maxAmount, TransactionContext tx) {
+            long extracted = delegate.extract(resource, maxAmount, tx);
+            deductTransportCost(extracted, keyType, tx);
+            return extracted;
         }
 
         @Override
-        public long getAmountAsLong(int index) {
-            try (CapabilityGuard input = getInputCapability()) {
-                return input.get().getAmountAsLong(index);
-            }
+        public boolean isResourceBlank() {
+            return delegate.isResourceBlank();
         }
 
         @Override
-        public long getCapacityAsLong(int index, T resource) {
-            try (CapabilityGuard input = getInputCapability()) {
-                return input.get().getCapacityAsLong(index, resource);
-            }
+        public T getResource() {
+            return delegate.getResource();
         }
 
         @Override
-        public boolean isValid(int index, T resource) {
-            try (CapabilityGuard input = getInputCapability()) {
-                return input.get().isValid(index, resource);
-            }
+        public long getAmount() {
+            return delegate.getAmount();
         }
 
         @Override
-        public int insert(int index, T resource, int amount, TransactionContext transaction) {
-            return 0; // This only allows extraction
-        }
-
-        @Override
-        public int insert(T resource, int amount, TransactionContext transaction) {
-            return 0; // This only allows extraction
+        public long getCapacity() {
+            return delegate.getCapacity();
         }
     }
 }

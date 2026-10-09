@@ -26,9 +26,6 @@ package appeng.api.inventories;
 import com.google.common.base.Preconditions;
 
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.transfer.RangedResourceHandler;
-import net.neoforged.neoforge.transfer.ResourceHandler;
-import net.neoforged.neoforge.transfer.item.ItemResource;
 
 /**
  * Exposes a subset of an {@link InternalInventory}.
@@ -95,8 +92,4 @@ final class SubInventoryProxy extends BaseInternalInventory {
         delegate.sendChangeNotification(translateSlot(slot));
     }
 
-    @Override
-    protected ResourceHandler<ItemResource> createResourceHandler() {
-        return RangedResourceHandler.of(delegate.toResourceHandler(), fromSlot, toSlot);
-    }
 }

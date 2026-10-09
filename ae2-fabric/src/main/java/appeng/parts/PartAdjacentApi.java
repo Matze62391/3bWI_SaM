@@ -2,10 +2,10 @@ package appeng.parts;
 
 import org.jetbrains.annotations.Nullable;
 
+import net.fabricmc.fabric.api.lookup.v1.block.BlockApiCache;
+import net.fabricmc.fabric.api.lookup.v1.block.BlockApiLookup;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
-import net.neoforged.neoforge.capabilities.BlockCapability;
-import net.neoforged.neoforge.capabilities.BlockCapabilityCache;
 
 import appeng.api.parts.IPartHost;
 import appeng.util.Platform;
@@ -15,24 +15,21 @@ import appeng.util.Platform;
  */
 public class PartAdjacentApi<T> {
     private final AEBasePart part;
-    private final BlockCapability<T, Direction> capability;
-    private final Runnable invalidationListener;
-    private BlockCapabilityCache<T, Direction> cache;
+    private final BlockApiLookup<T, Direction> lookup;
+    private BlockApiCache<T, Direction> cache;
 
-    public PartAdjacentApi(AEBasePart part, BlockCapability<T, Direction> capability) {
-        this(part, capability, () -> {
-        });
-    }
-
-    public PartAdjacentApi(AEBasePart part, BlockCapability<T, Direction> capability, Runnable invalidationListener) {
-        this.capability = capability;
+    public PartAdjacentApi(AEBasePart part, BlockApiLookup<T, Direction> lookup) {
+        this.lookup = lookup;
         this.part = part;
-        this.invalidationListener = invalidationListener;
     }
 
     @Nullable
     public T find() {
         if (!(part.getLevel() instanceof ServerLevel serverLevel)) {
+            return null;
+        }
+
+        if (!isPartValid(part)) {
             return null;
         }
 
@@ -44,17 +41,11 @@ public class PartAdjacentApi<T> {
             return null;
         }
 
-        if (cache == null) {
-            cache = BlockCapabilityCache.create(
-                    capability,
-                    serverLevel,
-                    targetPos,
-                    attachedSide.getOpposite(),
-                    () -> isPartValid(part),
-                    invalidationListener);
+        if (cache == null || cache.getLevel() != serverLevel) {
+            cache = BlockApiCache.create(lookup, serverLevel, targetPos);
         }
 
-        return cache.getCapability();
+        return cache.find(attachedSide.getOpposite());
     }
 
     public static boolean isPartValid(AEBasePart part) {

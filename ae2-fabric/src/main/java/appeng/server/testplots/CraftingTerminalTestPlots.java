@@ -13,7 +13,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.neoforged.neoforge.common.util.FakePlayer;
+import net.fabricmc.fabric.api.entity.FakePlayer;
 
 import appeng.api.stacks.AEItemKey;
 import appeng.core.definitions.AEParts;
@@ -62,10 +62,10 @@ public final class CraftingTerminalTestPlots {
                         }
 
                         // Use a separate fake player, so we don't interfere with the shared one
-                        var player = new FakePlayer(helper.getLevel(),
+                        var player = FakePlayer.get(helper.getLevel(),
                                 new GameProfile(UUID.randomUUID(), "test-crafting-terminal"));
                         try {
-                            // NeoForge's FakePlayer ignores openMenu, so we have to set the menu ourselves
+                            // Fake players ignore openMenu, so we have to set the menu ourselves
                             var menu = new CraftingTermMenu(1, player.getInventory(), part);
                             menu.setLocator(MenuLocators.forPart(part));
                             player.containerMenu = menu;

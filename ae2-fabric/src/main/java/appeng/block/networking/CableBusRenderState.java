@@ -30,7 +30,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
-import net.neoforged.neoforge.model.data.ModelProperty;
+import appeng.api.model.ModelProperty;
 
 import appeng.api.util.AECableType;
 import appeng.api.util.AEColor;

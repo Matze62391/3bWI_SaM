@@ -3,8 +3,8 @@ package appeng.core.network;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
-import net.neoforged.neoforge.network.registration.PayloadRegistrar;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 
 import appeng.core.AppEng;
 import appeng.core.network.bidirectional.ConfigValuePacket;
@@ -42,8 +42,13 @@ import appeng.core.network.serverbound.SwitchGuisPacket;
 import appeng.core.network.serverbound.UpdateHoldingCtrlPacket;
 
 public class InitNetwork {
-    public static void init(RegisterPayloadHandlersEvent event) {
-        var registrar = event.registrar(AppEng.MOD_ID);
+    /**
+     * NeoForge splits large payloads automatically, Fabric only does it for payloads registered as "large".
+     */
+    private static final int MAX_CLIENTBOUND_PAYLOAD_SIZE = 64 * 1024 * 1024;
+
+    public static void init() {
+        var registrar = new Registrar();
 
         // Clientbound
         registrar.playToClient(MolecularAssemblerAnimationPacket.TYPE, MolecularAssemblerAnimationPacket.STREAM_CODEC);
@@ -85,15 +90,31 @@ public class InitNetwork {
         bidirectional(registrar, ConfigValuePacket.TYPE, ConfigValuePacket.STREAM_CODEC);
     }
 
-    private static <T extends ServerboundPacket> void serverbound(PayloadRegistrar registrar,
+    private static <T extends ServerboundPacket> void serverbound(Registrar registrar,
             CustomPacketPayload.Type<T> type,
             StreamCodec<RegistryFriendlyByteBuf, T> codec) {
-        registrar.playToServer(type, codec, ServerboundPacket::handleOnServer);
+        registrar.playToServer(type, codec);
     }
 
-    private static <T extends ServerboundPacket & ClientboundPacket> void bidirectional(PayloadRegistrar registrar,
+    private static <T extends ServerboundPacket & ClientboundPacket> void bidirectional(Registrar registrar,
             CustomPacketPayload.Type<T> type,
             StreamCodec<RegistryFriendlyByteBuf, T> codec) {
-        registrar.playBidirectional(type, codec, ServerboundPacket::handleOnServer);
+        registrar.playToClient(type, codec);
+        registrar.playToServer(type, codec);
+    }
+
+    private static final class Registrar {
+        <T extends CustomPacketPayload> void playToClient(CustomPacketPayload.Type<T> type,
+                StreamCodec<RegistryFriendlyByteBuf, T> codec) {
+            PayloadTypeRegistry.clientboundPlay().registerLarge(type, codec, MAX_CLIENTBOUND_PAYLOAD_SIZE);
+        }
+
+        <T extends ServerboundPacket> void playToServer(CustomPacketPayload.Type<T> type,
+                StreamCodec<RegistryFriendlyByteBuf, T> codec) {
+            PayloadTypeRegistry.serverboundPlay().register(type, codec);
+            // Fabric invokes play payload handlers on the server thread
+            ServerPlayNetworking.registerGlobalReceiver(type,
+                    (payload, context) -> payload.handleOnServer(context.player()));
+        }
     }
 }

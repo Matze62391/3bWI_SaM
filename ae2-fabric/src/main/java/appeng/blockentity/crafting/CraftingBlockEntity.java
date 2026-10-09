@@ -36,7 +36,7 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
-import net.neoforged.neoforge.model.data.ModelData;
+import appeng.api.model.ModelData;
 
 import appeng.api.implementations.IPowerChannelState;
 import appeng.api.networking.GridFlags;

@@ -18,6 +18,12 @@
 
 package appeng.menu.implementations;
 
+import io.netty.buffer.Unpooled;
+
+import net.fabricmc.fabric.api.menu.v1.ExtendedMenuProvider;
+import net.fabricmc.fabric.api.menu.v1.ExtendedMenuType;
+import net.minecraft.network.codec.ByteBufCodecs;
+
 import java.util.function.Function;
 
 import com.google.common.base.Preconditions;
@@ -36,7 +42,6 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.MenuType;
-import net.neoforged.neoforge.common.extensions.IMenuTypeExtension;
 
 import appeng.core.AppEng;
 import appeng.init.InitMenuTypes;
@@ -141,7 +146,7 @@ public final class MenuTypeBuilder<M extends AEBaseMenu, I> {
 
         Component title = menuTitleStrategy.apply(accessInterface);
 
-        class AppEngMenuProvider implements MenuProvider {
+        class AppEngMenuProvider implements ExtendedMenuProvider<byte[]> {
             @Override
             public Component getDisplayName() {
                 return title;
@@ -158,20 +163,33 @@ public final class MenuTypeBuilder<M extends AEBaseMenu, I> {
             }
 
             @Override
-            public boolean shouldTriggerClientSideContainerClosingOnOpen() {
+            public boolean shouldCloseCurrentScreen() {
                 // Do not send close packets when switching between AE menus
                 return !(player.containerMenu instanceof AEBaseMenu);
             }
+
+            @Override
+            public byte[] getScreenOpeningData(ServerPlayer player) {
+                // The initial data is written by AE2 as raw bytes, Fabric then sends it as a byte array.
+                var buffer = new RegistryFriendlyByteBuf(Unpooled.buffer(), player.registryAccess());
+                try {
+                    MenuLocators.writeToPacket(buffer, locator);
+                    buffer.writeBoolean(fromSubMenu);
+
+                    if (initialDataSerializer != null) {
+                        initialDataSerializer.serializeInitialData(accessInterface, buffer);
+                    }
+
+                    var data = new byte[buffer.readableBytes()];
+                    buffer.readBytes(data);
+                    return data;
+                } finally {
+                    buffer.release();
+                }
+            }
         }
 
-        player.openMenu(new AppEngMenuProvider(), buffer -> {
-            MenuLocators.writeToPacket(buffer, locator);
-            buffer.writeBoolean(fromSubMenu);
-
-            if (initialDataSerializer != null) {
-                initialDataSerializer.serializeInitialData(accessInterface, buffer);
-            }
-        });
+        player.openMenu(new AppEngMenuProvider());
 
         return true;
     }
@@ -188,7 +206,10 @@ public final class MenuTypeBuilder<M extends AEBaseMenu, I> {
         Preconditions.checkState(this.id == null, "id should not be set");
 
         this.id = id;
-        menuType = IMenuTypeExtension.create(this::fromNetwork);
+        menuType = new ExtendedMenuType<>((containerId, inv, data) -> {
+            var buffer = new RegistryFriendlyByteBuf(Unpooled.wrappedBuffer(data), inv.player.registryAccess());
+            return fromNetwork(containerId, inv, buffer);
+        }, ByteBufCodecs.BYTE_ARRAY);
         MenuOpener.addOpener(menuType, this::open);
         return menuType;
     }

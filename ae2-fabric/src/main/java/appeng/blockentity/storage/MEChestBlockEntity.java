@@ -37,10 +37,11 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
-import net.neoforged.neoforge.transfer.ResourceHandler;
-import net.neoforged.neoforge.transfer.TransferPreconditions;
-import net.neoforged.neoforge.transfer.fluid.FluidResource;
-import net.neoforged.neoforge.transfer.transaction.TransactionContext;
+import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
+import appeng.util.Platform;
+import appeng.util.transfer.TransferPreconditions;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant;
+import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
 
 import appeng.api.config.AccessRestriction;
 import appeng.api.config.Actionable;
@@ -123,7 +124,7 @@ public class MEChestBlockEntity extends AENetworkedPoweredBlockEntity
     private AEColor paintedColor = AEColor.TRANSPARENT;
     private boolean isCached = false;
     private ChestMonitorHandler cellHandler;
-    private ResourceHandler<FluidResource> fluidHandler;
+    private Storage<FluidVariant> fluidHandler;
     private double idlePowerUsage;
 
     public MEChestBlockEntity(BlockEntityType<?> blockEntityType, BlockPos pos, BlockState blockState) {
@@ -456,7 +457,7 @@ public class MEChestBlockEntity extends AENetworkedPoweredBlockEntity
 
             // update the neighbors
             if (this.level != null) {
-                invalidateCapabilities();
+                Platform.invalidateCapabilities(this);
                 this.markForUpdate();
             }
         }
@@ -607,7 +608,7 @@ public class MEChestBlockEntity extends AENetworkedPoweredBlockEntity
     }
 
     @Nullable
-    public ResourceHandler<FluidResource> getFluidHandler(Direction side) {
+    public Storage<FluidVariant> getFluidHandler(Direction side) {
         if (side != getFront()) {
             return fluidHandler;
         } else {
@@ -624,9 +625,9 @@ public class MEChestBlockEntity extends AENetworkedPoweredBlockEntity
         }
     }
 
-    private class FluidHandler extends InsertionOnlyResourceHandlerWithJournal<FluidResource, GenericStack> {
+    private class FluidHandler extends InsertionOnlyResourceHandlerWithJournal<FluidVariant, GenericStack> {
         public FluidHandler() {
-            super(FluidResource.EMPTY);
+            super(FluidVariant.blank());
         }
 
         private boolean canAcceptLiquids() {
@@ -634,7 +635,7 @@ public class MEChestBlockEntity extends AENetworkedPoweredBlockEntity
         }
 
         @Override
-        public int insert(FluidResource resource, int maxAmount, TransactionContext transaction) {
+        public long insert(FluidVariant resource, long maxAmount, TransactionContext transaction) {
             TransferPreconditions.checkNonEmptyNonNegative(resource, maxAmount);
 
             if (pendingSideEffect != null) {

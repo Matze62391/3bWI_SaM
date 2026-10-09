@@ -38,9 +38,9 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.neoforged.neoforge.capabilities.Capabilities;
-import net.neoforged.neoforge.transfer.ResourceHandler;
-import net.neoforged.neoforge.transfer.item.ItemResource;
+import net.fabricmc.fabric.api.transfer.v1.item.ItemStorage;
+import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
+import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
 
 import appeng.api.config.FuzzyMode;
 import appeng.util.helpers.ItemComparisonHelper;
@@ -49,9 +49,9 @@ public interface InternalInventory extends Iterable<ItemStack>, ItemTransfer {
 
     @Nullable
     static ItemTransfer wrapExternal(Level level, BlockPos pos, Direction side) {
-        var handler = level.getCapability(Capabilities.Item.BLOCK, pos, side);
-        if (handler != null) {
-            return new PlatformInventoryWrapper(handler);
+        var storage = ItemStorage.SIDED.find(level, pos, side);
+        if (storage != null) {
+            return new PlatformInventoryWrapper(storage);
         }
         return null;
     }
@@ -70,7 +70,12 @@ public interface InternalInventory extends Iterable<ItemStack>, ItemTransfer {
         return !iterator().hasNext();
     }
 
-    ResourceHandler<ItemResource> toResourceHandler();
+    /**
+     * @return This inventory exposed as a Fabric item storage.
+     */
+    default Storage<ItemVariant> toStorage() {
+        return new InternalInventoryStorage(this);
+    }
 
     default Container toContainer() {
         return new ContainerAdapter(this);

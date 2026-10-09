@@ -1,13 +1,15 @@
 
 package appeng.core.network.serverbound;
 
+import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.BlockHitResult;
-import net.neoforged.neoforge.common.CommonHooks;
-import net.neoforged.neoforge.common.NeoForge;
 
 import appeng.api.parts.IPartHost;
 import appeng.core.network.CustomAppEngPayload;
@@ -43,10 +45,9 @@ public record PartLeftClickPacket(BlockHitResult hitResult, boolean alternateUse
     @Override
     public void handleOnServer(ServerPlayer player) {
         // Fire event on the server to give protection mods a chance to cancel the interaction
-        var evt = CommonHooks.onLeftClickBlock(player, hitResult.getBlockPos(), hitResult.getDirection(),
-                ServerboundPlayerActionPacket.Action.START_DESTROY_BLOCK);
-        NeoForge.EVENT_BUS.post(evt);
-        if (evt.isCanceled()) {
+        var result = AttackBlockCallback.EVENT.invoker().interact(player, player.level(), InteractionHand.MAIN_HAND,
+                hitResult.getBlockPos(), hitResult.getDirection());
+        if (result != InteractionResult.PASS) {
             return;
         }
 

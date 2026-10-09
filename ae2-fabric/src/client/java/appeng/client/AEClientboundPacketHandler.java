@@ -32,8 +32,9 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.material.Fluid;
-import net.neoforged.neoforge.client.network.event.RegisterClientPayloadHandlersEvent;
-import net.neoforged.neoforge.common.SoundActions;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariantAttributes;
 
 import appeng.api.util.IConfigurableObject;
 import appeng.blockentity.crafting.MolecularAssemblerAnimationStatus;
@@ -141,14 +142,8 @@ public class AEClientboundPacketHandler {
         if (packet.soundMode() == BlockTransitionEffectPacket.SoundMode.FLUID) {
             // This code is based on what BucketItem does
             Fluid fluid = packet.blockState().getFluidState().getType();
-            soundEvent = fluid.getFluidType().getSound(SoundActions.BUCKET_FILL);
-            if (soundEvent == null) {
-                if (fluid.is(FluidTags.LAVA)) {
-                    soundEvent = SoundEvents.BUCKET_FILL_LAVA;
-                } else {
-                    soundEvent = SoundEvents.BUCKET_FILL;
-                }
-            }
+            // Fabric's fluid attributes already fall back to the vanilla bucket sounds
+            soundEvent = FluidVariantAttributes.getFillSound(FluidVariant.of(fluid));
             volume = 1;
             pitch = 1;
         } else if (packet.soundMode() == BlockTransitionEffectPacket.SoundMode.BLOCK) {
@@ -324,29 +319,31 @@ public class AEClientboundPacketHandler {
         }
     }
 
-    public void register(RegisterClientPayloadHandlersEvent event) {
-        register(event, GuiDataSyncPacket.TYPE, this::handleGuiDataSyncPacket);
-        register(event, MatterCannonPacket.TYPE, this::handleMatterCannonPacket);
-        register(event, SetLinkStatusPacket.TYPE, this::handleSetLinkStatusPacket);
-        register(event, PatternAccessTerminalPacket.TYPE, this::handlePatternAccessTerminalPacket);
-        register(event, BlockTransitionEffectPacket.TYPE, this::handleBlockTransitionEffectPacket);
-        register(event, CraftingStatusPacket.TYPE, this::handleCraftingStatusPacket);
-        register(event, CraftConfirmPlanPacket.TYPE, this::handleCraftConfirmPlanPacket);
-        register(event, NetworkStatusPacket.TYPE, this::handleNetworkStatusPacket);
-        register(event, MolecularAssemblerAnimationPacket.TYPE, this::handleMolecularAssemblerAnimationPacket);
-        register(event, MEInventoryUpdatePacket.TYPE, this::handleMEInventoryUpdatePacket);
-        register(event, CompassResponsePacket.TYPE, this::handleCompassResponsePacket);
-        register(event, ClearPatternAccessTerminalPacket.TYPE, this::handleClearPatternAccessTerminalPacket);
-        register(event, ItemTransitionEffectPacket.TYPE, this::handleItemTransitionEffectPacket);
-        register(event, MockExplosionPacket.TYPE, this::handleMockExplosionPacket);
-        register(event, ExportedGridContent.TYPE, this::handleExportedGridContent);
-        register(event, CraftingJobStatusPacket.TYPE, this::handleCraftingJobStatusPacket);
-        register(event, ConfigValuePacket.TYPE, this::handleConfigValuePacket);
+    public void register() {
+        register(GuiDataSyncPacket.TYPE, this::handleGuiDataSyncPacket);
+        register(MatterCannonPacket.TYPE, this::handleMatterCannonPacket);
+        register(SetLinkStatusPacket.TYPE, this::handleSetLinkStatusPacket);
+        register(PatternAccessTerminalPacket.TYPE, this::handlePatternAccessTerminalPacket);
+        register(BlockTransitionEffectPacket.TYPE, this::handleBlockTransitionEffectPacket);
+        register(CraftingStatusPacket.TYPE, this::handleCraftingStatusPacket);
+        register(CraftConfirmPlanPacket.TYPE, this::handleCraftConfirmPlanPacket);
+        register(NetworkStatusPacket.TYPE, this::handleNetworkStatusPacket);
+        register(MolecularAssemblerAnimationPacket.TYPE, this::handleMolecularAssemblerAnimationPacket);
+        register(MEInventoryUpdatePacket.TYPE, this::handleMEInventoryUpdatePacket);
+        register(CompassResponsePacket.TYPE, this::handleCompassResponsePacket);
+        register(ClearPatternAccessTerminalPacket.TYPE, this::handleClearPatternAccessTerminalPacket);
+        register(ItemTransitionEffectPacket.TYPE, this::handleItemTransitionEffectPacket);
+        register(MockExplosionPacket.TYPE, this::handleMockExplosionPacket);
+        register(ExportedGridContent.TYPE, this::handleExportedGridContent);
+        register(CraftingJobStatusPacket.TYPE, this::handleCraftingJobStatusPacket);
+        register(ConfigValuePacket.TYPE, this::handleConfigValuePacket);
     }
 
-    private static <T extends ClientboundPacket> void register(RegisterClientPayloadHandlersEvent event,
-            CustomPacketPayload.Type<T> type, ClientPacketHandler<T> handler) {
-        event.register(type, (payload, context) -> handler.handle(payload, Minecraft.getInstance(), context.player()));
+    private static <T extends ClientboundPacket> void register(CustomPacketPayload.Type<T> type,
+            ClientPacketHandler<T> handler) {
+        // Fabric invokes the handler on the render thread
+        ClientPlayNetworking.registerGlobalReceiver(type,
+                (payload, context) -> handler.handle(payload, context.client(), context.player()));
     }
 
     @FunctionalInterface

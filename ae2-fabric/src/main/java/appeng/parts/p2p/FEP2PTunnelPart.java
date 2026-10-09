@@ -18,110 +18,119 @@
 
 package appeng.parts.p2p;
 
-import net.neoforged.neoforge.capabilities.Capabilities;
-import net.neoforged.neoforge.transfer.TransferPreconditions;
-import net.neoforged.neoforge.transfer.energy.EmptyEnergyHandler;
-import net.neoforged.neoforge.transfer.energy.EnergyHandler;
-import net.neoforged.neoforge.transfer.transaction.TransactionContext;
+import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
+import team.reborn.energy.api.EnergyStorage;
+
+import appeng.util.transfer.TransferPreconditions;
 
 import appeng.api.config.PowerUnit;
 import appeng.api.parts.IPartItem;
 
-public class FEP2PTunnelPart extends CapabilityP2PTunnelPart<FEP2PTunnelPart, EnergyHandler> {
+public class FEP2PTunnelPart extends CapabilityP2PTunnelPart<FEP2PTunnelPart, EnergyStorage> {
     public FEP2PTunnelPart(IPartItem<?> partItem) {
-        super(partItem, Capabilities.Energy.BLOCK);
-        inputHandler = new InputEnergyHandler();
-        outputHandler = new OutputEnergyHandler();
-        emptyHandler = EmptyEnergyHandler.INSTANCE;
+        super(partItem, EnergyStorage.SIDED);
+        inputHandler = new InputEnergyStorage();
+        outputHandler = new OutputEnergyStorage();
+        emptyHandler = EnergyStorage.EMPTY;
     }
 
-    private class InputEnergyHandler implements EnergyHandler {
+    private class InputEnergyStorage implements EnergyStorage {
         @Override
-        public int insert(int maxAmount, TransactionContext tx) {
+        public long insert(long maxAmount, TransactionContext tx) {
             TransferPreconditions.checkNonNegative(maxAmount);
-            int total = 0;
+            long total = 0;
 
             int outputTunnels = getOutputs().size();
-            int amount = maxAmount;
+            long amount = maxAmount;
 
             if (outputTunnels == 0 || amount == 0) {
                 return 0;
             }
 
-            int amountPerOutput = amount / outputTunnels;
-            int overflow = amountPerOutput == 0 ? amount : amount % amountPerOutput;
+            long amountPerOutput = amount / outputTunnels;
+            long overflow = amountPerOutput == 0 ? amount : amount % amountPerOutput;
 
             for (var target : getOutputs()) {
                 try (CapabilityGuard capabilityGuard = target.getAdjacentCapability()) {
                     var output = capabilityGuard.get();
-                    int toSend = amountPerOutput + overflow;
+                    long toSend = amountPerOutput + overflow;
 
-                    int received = output.insert(toSend, tx);
+                    long received = output.insert(toSend, tx);
 
                     overflow = toSend - received;
                     total += received;
                 }
             }
 
-            deductEnergyCost(total, PowerUnit.FE, tx);
+            deductEnergyCost(total, PowerUnit.TR, tx);
 
             return total;
         }
 
         @Override
-        public int extract(int maxAmount, TransactionContext transaction) {
+        public boolean supportsExtraction() {
+            return false;
+        }
+
+        @Override
+        public long extract(long maxAmount, TransactionContext transaction) {
             return 0;
         }
 
         @Override
-        public long getAmountAsLong() {
+        public long getAmount() {
             long tot = 0;
             for (var output : getOutputs()) {
                 try (var capabilityGuard = output.getAdjacentCapability()) {
-                    tot += capabilityGuard.get().getAmountAsLong();
+                    tot += capabilityGuard.get().getAmount();
                 }
             }
             return tot;
         }
 
         @Override
-        public long getCapacityAsLong() {
+        public long getCapacity() {
             long tot = 0;
             for (var output : getOutputs()) {
                 try (var capabilityGuard = output.getAdjacentCapability()) {
-                    tot += capabilityGuard.get().getCapacityAsLong();
+                    tot += capabilityGuard.get().getCapacity();
                 }
             }
             return tot;
         }
     }
 
-    private class OutputEnergyHandler implements EnergyHandler {
+    private class OutputEnergyStorage implements EnergyStorage {
         @Override
-        public int insert(int maxAmount, TransactionContext tx) {
+        public boolean supportsInsertion() {
+            return false;
+        }
+
+        @Override
+        public long insert(long maxAmount, TransactionContext tx) {
             return 0;
         }
 
         @Override
-        public int extract(int maxAmount, TransactionContext tx) {
+        public long extract(long maxAmount, TransactionContext tx) {
             try (var input = getInputCapability()) {
-                int extracted = input.get().extract(maxAmount, tx);
-                deductEnergyCost(extracted, PowerUnit.FE, tx);
+                long extracted = input.get().extract(maxAmount, tx);
+                deductEnergyCost(extracted, PowerUnit.TR, tx);
                 return extracted;
             }
         }
 
         @Override
-        public long getAmountAsLong() {
+        public long getAmount() {
             try (var input = getInputCapability()) {
-                return input.get().getAmountAsLong();
+                return input.get().getAmount();
             }
         }
 
         @Override
-        public long getCapacityAsLong() {
+        public long getCapacity() {
             try (var input = getInputCapability()) {
-                return input.get().getCapacityAsLong();
+                return input.get().getCapacity();
             }
         }
     }

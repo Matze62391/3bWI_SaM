@@ -42,7 +42,7 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.client.model.DynamicBlockStateModel;
 import net.neoforged.neoforge.client.model.block.CustomUnbakedBlockStateModel;
-import net.neoforged.neoforge.model.data.ModelData;
+import appeng.api.model.ModelData;
 
 import appeng.block.paint.PaintSplotches;
 import appeng.blockentity.misc.PaintSplotchesBlockEntity;
@@ -79,7 +79,7 @@ public class PaintSplotchesModel implements DynamicBlockStateModel {
     @Override
     public void collectParts(BlockAndTintGetter blockAndTintGetter, BlockPos blockPos, BlockState blockState,
             RandomSource randomSource, List<BlockStateModelPart> list) {
-        var modelData = blockAndTintGetter.getModelData(blockPos);
+        var modelData = ModelData.of(blockAndTintGetter.getBlockEntityRenderData(blockPos));
         var quadListBuilder = new QuadCollection.Builder();
         getQuads(quadListBuilder, modelData);
         list.add(new SimpleModelWrapper(
@@ -101,7 +101,7 @@ public class PaintSplotchesModel implements DynamicBlockStateModel {
     @Override
     public @Nullable Object createGeometryKey(BlockAndTintGetter level, BlockPos pos, BlockState state,
             RandomSource random) {
-        return level.getModelData(pos);
+        return ModelData.of(level.getBlockEntityRenderData(pos));
     }
 
     public record Unbaked() implements CustomUnbakedBlockStateModel {

@@ -31,9 +31,9 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.model.data.ModelData;
-import net.neoforged.neoforge.transfer.transaction.SnapshotJournal;
-import net.neoforged.neoforge.transfer.transaction.TransactionContext;
+import appeng.api.model.ModelData;
+import appeng.util.transfer.SnapshotJournal;
+import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
 
 import appeng.api.config.Actionable;
 import appeng.api.config.PowerMultiplier;

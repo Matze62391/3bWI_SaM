@@ -8,52 +8,84 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 
+import org.jetbrains.annotations.Nullable;
+
+import net.fabricmc.fabric.api.event.Event;
+import net.fabricmc.fabric.api.event.EventFactory;
+import net.fabricmc.fabric.api.lookup.v1.block.BlockApiLookup;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
-import net.neoforged.bus.api.Event;
-import net.neoforged.fml.event.IModBusEvent;
-import net.neoforged.neoforge.capabilities.BlockCapability;
-import net.neoforged.neoforge.capabilities.ICapabilityProvider;
 
-public class RegisterPartCapabilitiesEvent extends Event implements IModBusEvent {
+/**
+ * Allows registering which APIs (block API lookups) parts expose through their host. Addons can listen to
+ * {@link #EVENT} to register APIs for their own parts.
+ */
+public class RegisterPartCapabilitiesEvent {
+
+    /**
+     * Fired once during AE2's initialization to collect API registrations for parts.
+     */
+    public static final Event<Listener> EVENT = EventFactory.createArrayBacked(Listener.class,
+            listeners -> event -> {
+                for (var listener : listeners) {
+                    listener.register(event);
+                }
+            });
+
+    @FunctionalInterface
+    public interface Listener {
+        void register(RegisterPartCapabilitiesEvent event);
+    }
+
+    /**
+     * Provides an API instance for a part.
+     */
+    @FunctionalInterface
+    public interface PartApiProvider<P, C, T> {
+        @Nullable
+        T getCapability(P part, C context);
+    }
 
     final Set<BlockEntityType<? extends IPartHost>> hostTypes = new HashSet<>();
 
-    final Map<BlockCapability<?, ?>, Function<?, Direction>> contextMappers = new HashMap<>();
+    final Map<BlockApiLookup<?, ?>, Function<?, Direction>> contextMappers = new HashMap<>();
 
-    final Map<BlockCapability<?, ?>, BlockCapabilityRegistration<?, ?>> capabilityRegistrations = new HashMap<>();
+    final Map<BlockApiLookup<?, ?>, BlockCapabilityRegistration<?, ?>> capabilityRegistrations = new HashMap<>();
 
     record BlockCapabilityRegistration<T, C>(
-            BlockCapability<T, C> capability,
+            BlockApiLookup<T, C> capability,
             Function<C, Direction> contextToSide,
-            Map<Class<? extends IPart>, ICapabilityProvider<?, C, T>> parts) {
-        public BlockCapabilityRegistration(BlockCapability<T, C> capability, Function<C, Direction> contextToSide) {
+            Map<Class<? extends IPart>, PartApiProvider<?, C, T>> parts) {
+        public BlockCapabilityRegistration(BlockApiLookup<T, C> capability, Function<C, Direction> contextToSide) {
             this(capability, contextToSide, new HashMap<>());
         }
 
-        <P extends IPart> void add(Class<P> partClass, ICapabilityProvider<P, C, T> provider) {
+        <P extends IPart> void add(Class<P> partClass, PartApiProvider<P, C, T> provider) {
             if (parts.putIfAbsent(partClass, provider) != null) {
                 throw new IllegalStateException("Cannot register an additional capability provider for part "
                         + partClass + " since there already is one for capability " + capability);
             }
         }
 
-        public ICapabilityProvider<IPartHost, C, T> buildProvider() {
-            return (partHost, context) -> {
-                // Get side from context
-                var side = contextToSide.apply(context);
-                var part = partHost.getPart(side);
-                if (part != null) {
-                    return handlePart(part, context);
-                }
+        @Nullable
+        public T find(IPartHost partHost, C context) {
+            // Get side from context
+            var side = contextToSide.apply(context);
+            if (side == null) {
                 return null;
-            };
+            }
+            var part = partHost.getPart(side);
+            if (part != null) {
+                return handlePart(part, context);
+            }
+            return null;
         }
 
         @SuppressWarnings("unchecked")
+        @Nullable
         private <P extends IPart> T handlePart(P part, C context) {
-            var partProvider = (ICapabilityProvider<P, C, T>) parts.get(part.getClass());
+            var partProvider = (PartApiProvider<P, C, T>) parts.get(part.getClass());
             if (partProvider != null) {
                 return partProvider.getCapability(part, context);
             }
@@ -62,27 +94,22 @@ public class RegisterPartCapabilitiesEvent extends Event implements IModBusEvent
     }
 
     /**
-     * When using capabilities with a context other than {@link Direction}, you need to register a mapping function for
-     * AE2 to get the side from the context. It cannot determine which part on a part host should handle the capability
-     * otherwise.
+     * When using APIs with a context other than {@link Direction}, you need to register a mapping function for AE2 to
+     * get the side from the context. It cannot determine which part on a part host should handle the API otherwise.
      */
-    public <T, C> void registerContext(BlockCapability<T, C> capability, Function<C, Direction> directionGetter) {
+    public <T, C> void registerContext(BlockApiLookup<T, C> capability, Function<C, Direction> directionGetter) {
         contextMappers.put(capability, directionGetter);
     }
 
     /**
-     * Expose a capability for a part class.
-     * <p>
-     * When looking for an API instance, providers are queried starting from the class of the part, and then moving up
-     * to its superclass, and so on, until a provider returning a nonnull API is found.
+     * Expose an API for a part class.
      * <p>
      * If the context of the lookup is not {@link Direction}, you need to register a mapping function for your custom
-     * context! That must be done before this function is called. Currently, the query will fail silently, but IT WILL
-     * throw an exception in the future!
+     * context! That must be done before this function is called.
      */
     @SuppressWarnings("unchecked")
-    public <T, C, P extends IPart> void register(BlockCapability<T, C> capability,
-            ICapabilityProvider<P, C, T> provider,
+    public <T, C, P extends IPart> void register(BlockApiLookup<T, C> capability,
+            PartApiProvider<P, C, T> provider,
             Class<P> partClass) {
         Objects.requireNonNull(capability, "capability");
         Objects.requireNonNull(partClass, "partClass");

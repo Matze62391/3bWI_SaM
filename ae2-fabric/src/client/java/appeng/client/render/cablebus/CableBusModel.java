@@ -51,6 +51,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.client.model.DynamicBlockStateModel;
 import net.neoforged.neoforge.client.model.block.CustomUnbakedBlockStateModel;
 
+import appeng.api.model.ModelData;
 import appeng.api.parts.IPart;
 import appeng.api.parts.IPartItem;
 import appeng.api.util.AECableType;
@@ -104,7 +105,7 @@ public class CableBusModel implements DynamicBlockStateModel {
     @Override
     public void collectParts(BlockAndTintGetter level, BlockPos pos, BlockState state, RandomSource random,
             List<BlockStateModelPart> parts) {
-        var data = level.getModelData(pos);
+        var data = ModelData.of(level.getBlockEntityRenderData(pos));
 
         var renderState = data.get(CableBusRenderState.PROPERTY);
         if (renderState == null) {

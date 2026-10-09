@@ -27,7 +27,7 @@ import net.minecraft.world.level.ItemLike;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
-import net.neoforged.neoforge.transfer.item.ItemResource;
+import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
 
 import appeng.api.storage.AEKeyFilter;
 import appeng.core.AELog;
@@ -80,8 +80,8 @@ public final class AEItemKey extends AEKey {
     }
 
     @Nullable
-    public static AEItemKey of(ItemResource resource) {
-        if (resource.isEmpty()) {
+    public static AEItemKey of(ItemVariant resource) {
+        if (resource.isBlank()) {
             return null;
         }
 
@@ -149,8 +149,8 @@ public final class AEItemKey extends AEKey {
         return stack;
     }
 
-    public ItemResource toResource() {
-        return ItemResource.of(stack);
+    public ItemVariant toVariant() {
+        return ItemVariant.of(stack);
     }
 
     public ItemStack toStack() {

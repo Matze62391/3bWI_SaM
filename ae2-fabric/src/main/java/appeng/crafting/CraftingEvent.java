@@ -22,8 +22,6 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.Container;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 
 import appeng.api.crafting.IPatternDetails;
 import appeng.util.Platform;
@@ -35,9 +33,11 @@ public class CraftingEvent {
             @SuppressWarnings("unused") IPatternDetails pattern,
             ItemStack craftedItem,
             Container container) {
+        // NeoForge fires its ItemCraftedEvent for a fake player here so that other mods can react to autocrafting.
+        // Fabric has no such event, but vanilla's crafting callback on the item still applies.
         var serverLevel = (ServerLevel) level;
         var fakePlayer = Platform.getFakePlayer(serverLevel, null);
-        NeoForge.EVENT_BUS.post(new PlayerEvent.ItemCraftedEvent(fakePlayer, craftedItem, container));
+        craftedItem.onCraftedBy(fakePlayer, craftedItem.getCount());
     }
 
 }

@@ -29,7 +29,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.client.network.ClientPacketDistributor;
+import appeng.core.network.NetworkHelper;
 
 import appeng.api.behaviors.ContainerItemStrategies;
 import appeng.api.behaviors.EmptyingAction;
@@ -108,7 +108,7 @@ public class PatternEncodingTermScreen<C extends PatternEncodingTermMenu> extend
                             ServerboundPacket message = new InventoryActionPacket(
                                     InventoryAction.SET_FILTER, slot.index,
                                     GenericStack.wrapInItemStack(newStack));
-                            ClientPacketDistributor.sendToServer(message);
+                            NetworkHelper.sendToServer(message);
                         });
                 switchToScreen(screen);
                 return true;

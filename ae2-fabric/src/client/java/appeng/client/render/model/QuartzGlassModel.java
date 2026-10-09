@@ -46,7 +46,7 @@ import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.client.model.DynamicBlockStateModel;
 import net.neoforged.neoforge.client.model.block.CustomUnbakedBlockStateModel;
 import net.neoforged.neoforge.client.model.pipeline.QuadBakingVertexConsumer;
-import net.neoforged.neoforge.model.data.ModelProperty;
+import appeng.api.model.ModelProperty;
 
 import appeng.core.AppEng;
 import appeng.decorative.solid.GlassState;

@@ -25,9 +25,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
-import net.neoforged.neoforge.fluids.FluidStack;
-import net.neoforged.neoforge.transfer.fluid.FluidResource;
-import net.neoforged.neoforge.transfer.item.ItemResource;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant;
+import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
 
 import appeng.api.ids.AEComponents;
 import appeng.core.definitions.AEItems;
@@ -176,22 +175,10 @@ public record GenericStack(AEKey what, long amount) {
     }
 
     /**
-     * Converts a given fluid stack into a generic stack. If the fluid stack is empty, null is returned.
-     */
-    @Nullable
-    public static GenericStack fromFluidStack(FluidStack stack) {
-        var key = AEFluidKey.of(stack);
-        if (key == null) {
-            return null;
-        }
-        return new GenericStack(key, stack.getAmount());
-    }
-
-    /**
      * Converts a given item resource and amount into a generic stack. If the resource is empty, null is returned.
      */
     @Nullable
-    public static GenericStack from(ItemResource resource, long amount) {
+    public static GenericStack from(ItemVariant resource, long amount) {
         var key = AEItemKey.of(resource);
         if (key == null) {
             return null;
@@ -203,7 +190,7 @@ public record GenericStack(AEKey what, long amount) {
      * Converts a given fluid resource and amount into a generic stack. If the resource is empty, null is returned.
      */
     @Nullable
-    public static GenericStack from(FluidResource resource, long amount) {
+    public static GenericStack from(FluidVariant resource, long amount) {
         var key = AEFluidKey.of(resource);
         if (key == null) {
             return null;

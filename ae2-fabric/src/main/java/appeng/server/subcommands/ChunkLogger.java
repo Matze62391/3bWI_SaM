@@ -18,6 +18,8 @@
 
 package appeng.server.subcommands;
 
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents;
+
 import com.mojang.brigadier.context.CommandContext;
 
 import net.minecraft.commands.CommandSourceStack;
@@ -26,9 +28,6 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.levelgen.Heightmap;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.level.ChunkEvent;
 
 import appeng.core.AEConfig;
 import appeng.core.AELog;
@@ -52,10 +51,10 @@ public class ChunkLogger implements ISubCommand {
         }
     }
 
-    @SubscribeEvent
-    public void onChunkLoadEvent(final ChunkEvent.Load event) {
-        if (event.getLevel() instanceof ServerLevel level) {
-            var chunk = event.getChunk();
+    private boolean listenersRegistered;
+
+    private void onChunkLoadEvent(ServerLevel level, ChunkAccess chunk) {
+        if (enabled) {
             var chunkPos = chunk.getPos();
             var center = getCenter(chunk);
             AELog.info("Loaded chunk " + chunkPos.x() + "," + chunkPos.z() + " [center: " + center + "] in "
@@ -64,10 +63,8 @@ public class ChunkLogger implements ISubCommand {
         }
     }
 
-    @SubscribeEvent
-    public void onChunkUnloadEvent(final ChunkEvent.Unload event) {
-        if (event.getLevel() instanceof ServerLevel level) {
-            var chunk = event.getChunk();
+    private void onChunkUnloadEvent(ServerLevel level, ChunkAccess chunk) {
+        if (enabled) {
             var chunkPos = chunk.getPos();
             var center = getCenter(chunk);
             AELog.info("Unloaded chunk " + chunkPos.x() + "," + chunkPos.z() + " [center: " + center + "] in "
@@ -90,10 +87,14 @@ public class ChunkLogger implements ISubCommand {
         this.enabled = !this.enabled;
 
         if (this.enabled) {
-            NeoForge.EVENT_BUS.register(this);
+            // Fabric events cannot be unregistered, so the listeners check the enabled flag instead
+            if (!listenersRegistered) {
+                listenersRegistered = true;
+                ServerChunkEvents.CHUNK_LOAD.register((level, chunk, generated) -> onChunkLoadEvent(level, chunk));
+                ServerChunkEvents.CHUNK_UNLOAD.register(this::onChunkUnloadEvent);
+            }
             sender.sendSuccess(() -> Component.translatable("commands.ae2.ChunkLoggerOn"), true);
         } else {
-            NeoForge.EVENT_BUS.unregister(this);
             sender.sendSuccess(() -> Component.translatable("commands.ae2.ChunkLoggerOff"), true);
         }
     }

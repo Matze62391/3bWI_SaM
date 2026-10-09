@@ -54,8 +54,7 @@ import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.neoforged.neoforge.client.network.ClientPacketDistributor;
-import net.neoforged.neoforge.network.connection.ConnectionType;
+import appeng.core.network.NetworkHelper;
 
 import it.unimi.dsi.fastutil.shorts.ShortOpenHashSet;
 import it.unimi.dsi.fastutil.shorts.ShortSet;
@@ -979,15 +978,14 @@ public abstract class AEBaseMenu extends AbstractContainerMenu {
             }
             var buffer = new RegistryFriendlyByteBuf(
                     Unpooled.buffer(),
-                    registryAccess(),
-                    ConnectionType.NEOFORGE);
+                    registryAccess());
             clientAction.argCodec.encode(buffer, arg);
             argumentPayload = new byte[buffer.readableBytes()];
             buffer.readBytes(argumentPayload);
         }
 
         ServerboundPacket message = new GuiActionPacket(containerId, clientAction.key().name(), argumentPayload);
-        ClientPacketDistributor.sendToServer(message);
+        NetworkHelper.sendToServer(message);
     }
 
     /**
@@ -1010,8 +1008,7 @@ public abstract class AEBaseMenu extends AbstractContainerMenu {
             if (argCodec != null) {
                 var buffer = new RegistryFriendlyByteBuf(
                         Unpooled.wrappedBuffer(payload),
-                        registryAccess,
-                        ConnectionType.NEOFORGE);
+                        registryAccess);
                 arg = argCodec.decode(buffer);
             } else {
                 if (payload.length > 0) {

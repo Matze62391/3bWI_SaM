@@ -27,7 +27,7 @@ import net.minecraft.network.chat.Component;
 
 public enum PowerUnit {
     AE("gui.ae2.units.appliedenergistics", "AE"), // Native Units - AE Energy
-    FE("gui.ae2.units.fe", "FE"); // Forge Energy
+    TR("gui.ae2.units.tr", "E"); // Team Reborn Energy (the standard energy API on Fabric)
 
     /**
      * unlocalized name for the power unit.

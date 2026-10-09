@@ -19,10 +19,12 @@
 package appeng.blockentity.inventory;
 
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.transfer.DelegatingResourceHandler;
-import net.neoforged.neoforge.transfer.ResourceHandler;
-import net.neoforged.neoforge.transfer.item.ItemResource;
-import net.neoforged.neoforge.transfer.transaction.TransactionContext;
+import java.util.Iterator;
+
+import net.fabricmc.fabric.api.transfer.v1.storage.StorageView;
+import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
+import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
+import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
 
 import appeng.api.inventories.BaseInternalInventory;
 import appeng.api.storage.cells.StorageCell;
@@ -105,47 +107,33 @@ public class AppEngCellInventory extends BaseInternalInventory {
     }
 
     @Override
-    protected ResourceHandler<ItemResource> createResourceHandler() {
+    protected Storage<ItemVariant> createStorage() {
         return new CellInventoryResourceHandler();
     }
 
     /**
-     * Just wraps the internal inventories resource handler and ensures any pending disk writes are persisted to
-     * itemstacks when they're viewed through the handler.
+     * Just wraps the internal inventories storage and ensures any pending disk writes are persisted to itemstacks when
+     * they're viewed through the storage.
      */
-    private class CellInventoryResourceHandler extends DelegatingResourceHandler<ItemResource> {
-        public CellInventoryResourceHandler() {
-            super(inv.toResourceHandler());
-        }
+    private class CellInventoryResourceHandler implements Storage<ItemVariant> {
+        private final Storage<ItemVariant> delegate = inv.toStorage();
 
         @Override
-        public ItemResource getResource(int index) {
-            persist(index);
-            return super.getResource(index);
-        }
-
-        @Override
-        public int insert(int index, ItemResource resource, int amount, TransactionContext transaction) {
-            persist(index);
-            return super.insert(index, resource, amount, transaction);
-        }
-
-        @Override
-        public int extract(int index, ItemResource resource, int amount, TransactionContext transaction) {
-            persist(index);
-            return super.extract(index, resource, amount, transaction);
-        }
-
-        @Override
-        public int insert(ItemResource resource, int amount, TransactionContext transaction) {
+        public long insert(ItemVariant resource, long amount, TransactionContext transaction) {
             persist();
-            return super.insert(resource, amount, transaction);
+            return delegate.insert(resource, amount, transaction);
         }
 
         @Override
-        public int extract(ItemResource resource, int amount, TransactionContext transaction) {
+        public long extract(ItemVariant resource, long amount, TransactionContext transaction) {
             persist();
-            return super.extract(resource, amount, transaction);
+            return delegate.extract(resource, amount, transaction);
+        }
+
+        @Override
+        public Iterator<StorageView<ItemVariant>> iterator() {
+            persist();
+            return delegate.iterator();
         }
     }
 }

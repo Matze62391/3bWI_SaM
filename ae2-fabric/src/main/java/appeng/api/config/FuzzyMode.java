@@ -28,7 +28,7 @@ import com.mojang.serialization.Codec;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.util.StringRepresentable;
-import net.neoforged.neoforge.network.codec.NeoForgeStreamCodecs;
+import appeng.core.network.AEStreamCodecs;
 
 public enum FuzzyMode implements StringRepresentable {
     /**

@@ -1,5 +1,7 @@
 package appeng.mixins;
 
+import net.fabricmc.loader.api.FabricLoader;
+
 import java.util.List;
 import java.util.Set;
 
@@ -7,9 +9,6 @@ import org.objectweb.asm.tree.ClassNode;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
 
-import net.neoforged.fml.ModList;
-import net.neoforged.fml.loading.FMLLoader;
-import net.neoforged.fml.loading.moddiscovery.ModInfo;
 
 /**
  * Disables the Create compatibility mixin if create isn't loaded.
@@ -50,10 +49,6 @@ public class ConfigPlugin implements IMixinConfigPlugin {
     }
 
     private static boolean isModLoaded(String modId) {
-        if (ModList.get() == null) {
-            return FMLLoader.getCurrent().getLoadingModList().getMods().stream().map(ModInfo::getModId)
-                    .anyMatch(modId::equals);
-        }
-        return ModList.get().isLoaded(modId);
+        return FabricLoader.getInstance().isModLoaded(modId);
     }
 }

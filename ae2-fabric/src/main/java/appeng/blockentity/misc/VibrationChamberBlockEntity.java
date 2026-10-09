@@ -46,7 +46,6 @@ import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.level.storage.loot.providers.number.ints.ResolvableInt;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.common.loot.NeoForgeLootContextParams;
 
 import appeng.api.config.Actionable;
 import appeng.api.inventories.ISegmentedInventory;
@@ -348,8 +347,6 @@ public class VibrationChamberBlockEntity extends AENetworkedInvBlockEntity
                         .withParameter(LootContextParams.BLOCK_ENTITY, this)
                         .withParameter(LootContextParams.ORIGIN, Vec3.atCenterOf(this.getBlockPos()))
                         .withParameter(LootContextParams.CONTAINER, container)
-                        .withOptionalParameter(NeoForgeLootContextParams.QUERIED_STACK,
-                                queriedStack.isEmpty() ? null : queriedStack)
                         .create(LootContextParamSets.CONTAINER_PROCESS))
                 .create(Optional.empty());
     }

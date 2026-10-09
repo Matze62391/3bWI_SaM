@@ -33,6 +33,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 
+import appeng.util.Platform;
 import appeng.api.config.Actionable;
 import appeng.api.config.FuzzyMode;
 import appeng.api.config.Settings;
@@ -222,7 +223,7 @@ public class InterfaceLogic implements ICraftingRequester, IUpgradeableObject, I
             });
         }
 
-        this.host.getBlockEntity().invalidateCapabilities();
+        Platform.invalidateCapabilities(this.host.getBlockEntity());
     }
 
     public void gridChanged() {

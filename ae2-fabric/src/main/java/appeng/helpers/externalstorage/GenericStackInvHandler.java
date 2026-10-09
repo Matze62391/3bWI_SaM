@@ -2,10 +2,11 @@ package appeng.helpers.externalstorage;
 
 import com.google.common.primitives.Ints;
 
-import net.neoforged.neoforge.transfer.ResourceHandler;
-import net.neoforged.neoforge.transfer.TransferPreconditions;
-import net.neoforged.neoforge.transfer.resource.Resource;
-import net.neoforged.neoforge.transfer.transaction.TransactionContext;
+import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
+import appeng.util.transfer.IndexedStorage;
+import appeng.util.transfer.TransferPreconditions;
+import net.fabricmc.fabric.api.transfer.v1.storage.TransferVariant;
+import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
 
 import appeng.api.behaviors.GenericInternalInventory;
 import appeng.api.stacks.AEKeyType;
@@ -15,7 +16,7 @@ import appeng.helpers.ResourceConversion;
 /**
  * Adapts a {@link GenericStackInv} as {@link ResourceHandler} of the appropriate type.
  */
-public class GenericStackInvHandler<V extends Resource> implements ResourceHandler<V> {
+public class GenericStackInvHandler<V extends TransferVariant<?>> implements IndexedStorage<V> {
     private final ResourceConversion<V> conversion;
     private final GenericInternalInventory inv;
     private final AEKeyType channel;
@@ -36,7 +37,7 @@ public class GenericStackInvHandler<V extends Resource> implements ResourceHandl
     }
 
     @Override
-    public int insert(V resource, int maxAmount, TransactionContext transaction) {
+    public long insert(V resource, long maxAmount, TransactionContext transaction) {
         TransferPreconditions.checkNonEmptyNonNegative(resource, maxAmount);
         if (!inv.canInsert()) {
             return 0;
@@ -67,12 +68,12 @@ public class GenericStackInvHandler<V extends Resource> implements ResourceHandl
     }
 
     @Override
-    public int extract(V resource, int maxAmount, TransactionContext transaction) {
+    public long extract(V resource, long maxAmount, TransactionContext transaction) {
         TransferPreconditions.checkNonEmptyNonNegative(resource, maxAmount);
         if (!inv.canExtract()) {
             return 0;
         }
-        return ResourceHandler.super.extract(resource, maxAmount, transaction);
+        return IndexedStorage.super.extract(resource, maxAmount, transaction);
     }
 
     @Override
@@ -98,7 +99,7 @@ public class GenericStackInvHandler<V extends Resource> implements ResourceHandl
         if (!isSupportedSlot(index)) {
             return 0;
         }
-        if (!resource.isEmpty()) {
+        if (!resource.isBlank()) {
             return inv.getMaxAmount(conversion.getKey(resource));
         }
         return inv.getCapacity(conversion.getKeyType());
@@ -111,7 +112,7 @@ public class GenericStackInvHandler<V extends Resource> implements ResourceHandl
     }
 
     @Override
-    public int insert(int index, V resource, int amount, TransactionContext transaction) {
+    public long insert(int index, V resource, long amount, TransactionContext transaction) {
         TransferPreconditions.checkNonEmptyNonNegative(resource, amount);
         if (!inv.canInsert()) {
             return 0;
@@ -120,7 +121,7 @@ public class GenericStackInvHandler<V extends Resource> implements ResourceHandl
         var currentKey = inv.getKey(index);
         var key = conversion.getKey(resource);
         if ((currentKey == null && inv.isAllowedIn(index, key)) || (currentKey != null && currentKey.equals(key))) {
-            int inserted = (int) Math.min(amount, inv.getMaxAmount(key) - getAmountAsLong(index));
+            long inserted = Math.min(amount, inv.getMaxAmount(key) - getAmountAsLong(index));
 
             if (inserted > 0) {
                 inv.updateSnapshots(transaction);
@@ -135,12 +136,12 @@ public class GenericStackInvHandler<V extends Resource> implements ResourceHandl
     }
 
     @Override
-    public int extract(int index, V resource, int maxAmount, TransactionContext transaction) {
+    public long extract(int index, V resource, long maxAmount, TransactionContext transaction) {
         TransferPreconditions.checkNonEmptyNonNegative(resource, maxAmount);
         if (!inv.canExtract() || !getResource(index).equals(resource))
             return 0;
 
-        int actuallyExtracted = Ints.saturatedCast(Math.min(inv.getAmount(index), maxAmount));
+        long actuallyExtracted = Math.min(inv.getAmount(index), maxAmount);
 
         if (actuallyExtracted > 0) {
             inv.updateSnapshots(transaction);

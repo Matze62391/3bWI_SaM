@@ -27,7 +27,8 @@ import com.google.common.collect.Multimap;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.CreativeModeTab;
-import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
+import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents;
+import net.fabricmc.fabric.api.creativetab.v1.FabricCreativeModeTab;
 
 import appeng.api.ids.AECreativeTabIds;
 import appeng.block.AEBaseBlock;
@@ -44,7 +45,7 @@ public final class MainCreativeTab {
     private static final List<ItemDefinition<?>> itemDefs = new ArrayList<>();
 
     public static void init(Registry<CreativeModeTab> registry) {
-        var tab = CreativeModeTab.builder()
+        var tab = FabricCreativeModeTab.builder()
                 .title(GuiText.CreativeTab.text())
                 .icon(() -> AEBlocks.CONTROLLER.stack(1))
                 .displayItems(MainCreativeTab::buildDisplayItems)
@@ -52,9 +53,16 @@ public final class MainCreativeTab {
         Registry.register(registry, AECreativeTabIds.MAIN, tab);
     }
 
-    public static void initExternal(BuildCreativeModeTabContentsEvent contents) {
-        for (var itemDefinition : externalItemDefs.get(contents.getTabKey())) {
-            contents.accept(itemDefinition);
+    /**
+     * Adds AE2 items to tabs of other mods or vanilla. Must be called after all items have been registered.
+     */
+    public static void initExternal() {
+        for (var tabKey : externalItemDefs.keySet()) {
+            CreativeModeTabEvents.modifyOutputEvent(tabKey).register(output -> {
+                for (var itemDefinition : externalItemDefs.get(tabKey)) {
+                    output.accept(itemDefinition);
+                }
+            });
         }
     }
 

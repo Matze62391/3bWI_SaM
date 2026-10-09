@@ -14,7 +14,7 @@ import net.minecraft.client.resources.model.sprite.Material;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.RandomSource;
-import net.neoforged.neoforge.model.data.ModelData;
+import appeng.api.model.ModelData;
 
 import appeng.api.util.AEColor;
 import appeng.core.AppEng;

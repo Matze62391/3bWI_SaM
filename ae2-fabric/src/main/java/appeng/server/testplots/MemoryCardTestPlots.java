@@ -13,7 +13,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.material.Fluids;
-import net.neoforged.neoforge.common.util.FakePlayer;
+import net.fabricmc.fabric.api.entity.FakePlayer;
 
 import appeng.api.config.FuzzyMode;
 import appeng.api.config.RedstoneMode;

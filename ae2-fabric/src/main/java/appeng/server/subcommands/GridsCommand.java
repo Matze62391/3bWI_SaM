@@ -42,7 +42,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.storage.SerializableChunkData;
-import net.neoforged.neoforge.network.PacketDistributor;
+import appeng.core.network.NetworkHelper;
 
 import appeng.api.networking.GridHelper;
 import appeng.core.network.clientbound.ExportedGridContent;
@@ -165,7 +165,7 @@ public class GridsCommand implements ISubCommand {
 
         if (source.isPlayer()) {
             var player = source.getPlayerOrException();
-            PacketDistributor.sendToPlayer(player,
+            NetworkHelper.sendToPlayer(player,
                     new ExportedGridContent(baseSerialNumber, ExportedGridContent.ContentType.FIRST_CHUNK,
                             new byte[0]));
 
@@ -251,7 +251,7 @@ public class GridsCommand implements ISubCommand {
             Preconditions.checkState(!closed, "stream already closed");
             bout.write(b);
             if (bout.size() > FLUSH_AFTER) {
-                PacketDistributor.sendToPlayer(player,
+                NetworkHelper.sendToPlayer(player,
                         new ExportedGridContent(baseSerialNumber, ExportedGridContent.ContentType.CHUNK,
                                 bout.toByteArray()));
                 bout.reset();
@@ -263,7 +263,7 @@ public class GridsCommand implements ISubCommand {
             Preconditions.checkState(!closed, "stream already closed");
             bout.write(b, off, len);
             if (bout.size() > FLUSH_AFTER) {
-                PacketDistributor.sendToPlayer(player,
+                NetworkHelper.sendToPlayer(player,
                         new ExportedGridContent(baseSerialNumber, ExportedGridContent.ContentType.CHUNK,
                                 bout.toByteArray()));
                 bout.reset();
@@ -274,7 +274,7 @@ public class GridsCommand implements ISubCommand {
         public void close() {
             if (!closed) {
                 closed = true;
-                PacketDistributor.sendToPlayer(player,
+                NetworkHelper.sendToPlayer(player,
                         new ExportedGridContent(baseSerialNumber, ExportedGridContent.ContentType.LAST_CHUNK,
                                 bout.toByteArray()));
                 bout.reset();

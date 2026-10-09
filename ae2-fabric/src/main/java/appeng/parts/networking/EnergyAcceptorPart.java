@@ -18,7 +18,7 @@
 
 package appeng.parts.networking;
 
-import net.neoforged.neoforge.transfer.energy.EnergyHandler;
+import team.reborn.energy.api.EnergyStorage;
 
 import appeng.api.config.AccessRestriction;
 import appeng.api.config.Actionable;
@@ -32,7 +32,7 @@ import appeng.helpers.ForgeEnergyAdapter;
 import appeng.parts.AEBasePart;
 
 public class EnergyAcceptorPart extends AEBasePart implements IExternalPowerSink {
-    private EnergyHandler forgeEnergyAdapter;
+    private EnergyStorage forgeEnergyAdapter;
 
     public EnergyAcceptorPart(IPartItem<?> partItem) {
         super(partItem);
@@ -40,7 +40,7 @@ public class EnergyAcceptorPart extends AEBasePart implements IExternalPowerSink
         this.forgeEnergyAdapter = new ForgeEnergyAdapter(this);
     }
 
-    public EnergyHandler getEnergyStorage() {
+    public EnergyStorage getEnergyStorage() {
         return forgeEnergyAdapter;
     }
 

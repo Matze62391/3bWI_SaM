@@ -50,6 +50,7 @@ import net.neoforged.neoforge.client.model.ComposedModelState;
 import net.neoforged.neoforge.client.model.DynamicBlockStateModel;
 import net.neoforged.neoforge.client.model.block.CustomUnbakedBlockStateModel;
 
+import appeng.api.model.ModelData;
 import appeng.api.client.StorageCellModels;
 import appeng.block.storage.DriveModelData;
 import appeng.client.model.SpinnableVariant;
@@ -111,7 +112,7 @@ public class DriveModel implements DynamicBlockStateModel {
             List<BlockStateModelPart> parts) {
         parts.add(baseModel);
 
-        var cells = level.getModelData(pos).get(DriveModelData.STATE);
+        var cells = ModelData.of(level.getBlockEntityRenderData(pos)).get(DriveModelData.STATE);
 
         // Add cell models on top of the base model, if possible
         if (cells != null) {

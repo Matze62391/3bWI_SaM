@@ -48,7 +48,7 @@ import net.minecraft.world.level.block.WallBlock;
 import net.minecraft.world.level.block.state.BlockBehaviour.Properties;
 import net.minecraft.world.level.block.state.BlockBehaviour.StateArgumentPredicate;
 import net.minecraft.world.level.material.MapColor;
-import net.neoforged.neoforge.registries.DeferredRegister;
+import appeng.core.registries.DeferredRegister;
 
 import appeng.api.ids.AEBlockIds;
 import appeng.block.AEBaseBlock;

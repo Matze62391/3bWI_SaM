@@ -18,20 +18,20 @@
 
 package appeng.helpers;
 
-import net.neoforged.neoforge.transfer.TransferPreconditions;
-import net.neoforged.neoforge.transfer.energy.EnergyHandler;
-import net.neoforged.neoforge.transfer.transaction.SnapshotJournal;
-import net.neoforged.neoforge.transfer.transaction.TransactionContext;
+import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
+import team.reborn.energy.api.EnergyStorage;
 
 import appeng.api.config.Actionable;
 import appeng.api.config.PowerUnit;
 import appeng.blockentity.powersink.IExternalPowerSink;
 import appeng.me.energy.StoredEnergyAmount;
+import appeng.util.transfer.SnapshotJournal;
+import appeng.util.transfer.TransferPreconditions;
 
 /**
- * Adapts an {@link IExternalPowerSink} to {@link EnergyHandler}, for accepting FE.
+ * Adapts an {@link IExternalPowerSink} to Team Reborn's {@link EnergyStorage}, for accepting energy from other mods.
  */
-public class ForgeEnergyAdapter extends SnapshotJournal<Double> implements EnergyHandler {
+public class ForgeEnergyAdapter extends SnapshotJournal<Double> implements EnergyStorage {
 
     private final IExternalPowerSink sink;
     private double buffer = 0;
@@ -52,7 +52,7 @@ public class ForgeEnergyAdapter extends SnapshotJournal<Double> implements Energ
 
     @Override
     protected void onRootCommit(Double originalState) {
-        buffer = sink.injectExternalPower(PowerUnit.FE, buffer, Actionable.MODULATE);
+        buffer = sink.injectExternalPower(PowerUnit.TR, buffer, Actionable.MODULATE);
         if (buffer < StoredEnergyAmount.MIN_AMOUNT) {
             // Prevent a small leftover amount from blocking further energy insertions.
             buffer = 0;
@@ -60,15 +60,15 @@ public class ForgeEnergyAdapter extends SnapshotJournal<Double> implements Energ
     }
 
     @Override
-    public int insert(int maxAmount, TransactionContext tx) {
+    public long insert(long maxAmount, TransactionContext tx) {
         TransferPreconditions.checkNonNegative(maxAmount);
         // Always schedule a push into the network at outer commit.
         updateSnapshots(tx);
 
         if (buffer == 0) {
             // Cap at the remaining capacity...
-            maxAmount = (int) Math
-                    .floor(Math.min(maxAmount, this.sink.getExternalPowerDemand(PowerUnit.FE, maxAmount)));
+            maxAmount = (long) Math
+                    .floor(Math.min(maxAmount, this.sink.getExternalPowerDemand(PowerUnit.TR, maxAmount)));
             buffer = maxAmount;
             return maxAmount;
         }
@@ -77,17 +77,22 @@ public class ForgeEnergyAdapter extends SnapshotJournal<Double> implements Energ
     }
 
     @Override
-    public final long getAmountAsLong() {
-        return (long) Math.floor(PowerUnit.AE.convertTo(PowerUnit.FE, this.sink.getAECurrentPower()));
+    public boolean supportsExtraction() {
+        return false;
     }
 
     @Override
-    public final long getCapacityAsLong() {
-        return (long) Math.floor(PowerUnit.AE.convertTo(PowerUnit.FE, this.sink.getAEMaxPower()));
-    }
-
-    @Override
-    public int extract(int maxAmount, TransactionContext transaction) {
+    public long extract(long maxAmount, TransactionContext transaction) {
         return 0;
+    }
+
+    @Override
+    public final long getAmount() {
+        return (long) Math.floor(PowerUnit.AE.convertTo(PowerUnit.TR, this.sink.getAECurrentPower()));
+    }
+
+    @Override
+    public final long getCapacity() {
+        return (long) Math.floor(PowerUnit.AE.convertTo(PowerUnit.TR, this.sink.getAEMaxPower()));
     }
 }

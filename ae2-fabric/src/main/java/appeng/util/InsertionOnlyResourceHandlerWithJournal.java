@@ -1,12 +1,12 @@
 package appeng.util;
 
-import net.neoforged.neoforge.transfer.ResourceHandler;
-import net.neoforged.neoforge.transfer.resource.Resource;
-import net.neoforged.neoforge.transfer.transaction.SnapshotJournal;
-import net.neoforged.neoforge.transfer.transaction.TransactionContext;
+import appeng.util.transfer.IndexedStorage;
+import net.fabricmc.fabric.api.transfer.v1.storage.TransferVariant;
+import appeng.util.transfer.SnapshotJournal;
+import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
 
-public abstract class InsertionOnlyResourceHandlerWithJournal<T extends Resource, S> extends SnapshotJournal<S>
-        implements ResourceHandler<T> {
+public abstract class InsertionOnlyResourceHandlerWithJournal<T extends TransferVariant<?>, S> extends SnapshotJournal<S>
+        implements IndexedStorage<T> {
     private final T emptyResource;
     protected S pendingSideEffect;
 
@@ -48,14 +48,15 @@ public abstract class InsertionOnlyResourceHandlerWithJournal<T extends Resource
     }
 
     @Override
-    public final int insert(int index, T resource, int amount, TransactionContext transaction) {
+    public final long insert(int index, T resource, long amount, TransactionContext transaction) {
         return insert(resource, amount, transaction);
     }
 
-    public abstract int insert(T resource, int amount, TransactionContext transaction);
+    @Override
+    public abstract long insert(T resource, long amount, TransactionContext transaction);
 
     @Override
-    public final int extract(int index, T resource, int amount, TransactionContext transaction) {
+    public final long extract(int index, T resource, long amount, TransactionContext transaction) {
         return 0;
     }
 

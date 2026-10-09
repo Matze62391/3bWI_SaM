@@ -20,8 +20,8 @@ package appeng.api;
 
 import org.jetbrains.annotations.Nullable;
 
+import net.fabricmc.fabric.api.lookup.v1.block.BlockApiLookup;
 import net.minecraft.core.Direction;
-import net.neoforged.neoforge.capabilities.BlockCapability;
 
 import appeng.api.behaviors.GenericInternalInventory;
 import appeng.api.implementations.blockentities.ICraftingMachine;
@@ -31,25 +31,24 @@ import appeng.api.storage.MEStorage;
 import appeng.core.AppEng;
 
 /**
- * Utility class that holds the capabilities provided by AE2.
+ * The block API lookups (the Fabric equivalent of NeoForge block capabilities) that AE2 provides.
  */
 public final class AECapabilities {
     private AECapabilities() {
     }
 
-    public static BlockCapability<MEStorage, @Nullable Direction> ME_STORAGE = BlockCapability
-            .createSided(AppEng.makeId("me_storage"), MEStorage.class);
+    public static final BlockApiLookup<MEStorage, @Nullable Direction> ME_STORAGE = BlockApiLookup
+            .get(AppEng.makeId("me_storage"), MEStorage.class, Direction.class);
 
-    public static BlockCapability<ICraftingMachine, @Nullable Direction> CRAFTING_MACHINE = BlockCapability
-            .createSided(AppEng.makeId("crafting_machine"), ICraftingMachine.class);
+    public static final BlockApiLookup<ICraftingMachine, @Nullable Direction> CRAFTING_MACHINE = BlockApiLookup
+            .get(AppEng.makeId("crafting_machine"), ICraftingMachine.class, Direction.class);
 
-    public static BlockCapability<GenericInternalInventory, @Nullable Direction> GENERIC_INTERNAL_INV = BlockCapability
-            .createSided(AppEng.makeId("generic_internal_inv"), GenericInternalInventory.class);
+    public static final BlockApiLookup<GenericInternalInventory, @Nullable Direction> GENERIC_INTERNAL_INV = BlockApiLookup
+            .get(AppEng.makeId("generic_internal_inv"), GenericInternalInventory.class, Direction.class);
 
-    public static BlockCapability<IInWorldGridNodeHost, Void> IN_WORLD_GRID_NODE_HOST = BlockCapability
-            .createVoid(AppEng.makeId("inworld_gridnode_host"), IInWorldGridNodeHost.class);
+    public static final BlockApiLookup<IInWorldGridNodeHost, @Nullable Void> IN_WORLD_GRID_NODE_HOST = BlockApiLookup
+            .get(AppEng.makeId("inworld_gridnode_host"), IInWorldGridNodeHost.class, Void.class);
 
-    public static BlockCapability<ICrankable, @Nullable Direction> CRANKABLE = BlockCapability
-            .createSided(AppEng.makeId("crankable"), ICrankable.class);
-
+    public static final BlockApiLookup<ICrankable, @Nullable Direction> CRANKABLE = BlockApiLookup
+            .get(AppEng.makeId("crankable"), ICrankable.class, Direction.class);
 }

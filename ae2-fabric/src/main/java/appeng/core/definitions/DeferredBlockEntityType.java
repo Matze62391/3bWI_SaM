@@ -8,7 +8,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
-import net.neoforged.neoforge.registries.DeferredHolder;
+import appeng.core.registries.DeferredHolder;
 
 public final class DeferredBlockEntityType<T extends BlockEntity> implements Supplier<BlockEntityType<T>> {
     private final Class<T> blockEntityClass;

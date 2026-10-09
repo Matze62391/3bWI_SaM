@@ -6,8 +6,8 @@ import net.minecraft.core.Direction;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.registries.GameData;
 
 import appeng.core.AELog;
 import appeng.core.network.ClientboundPacket;
@@ -41,7 +41,7 @@ public record BlockTransitionEffectPacket(BlockPos pos,
 
     public void write(RegistryFriendlyByteBuf data) {
         data.writeBlockPos(pos);
-        int blockStateId = GameData.getBlockStateIDMap().getId(blockState);
+        int blockStateId = Block.BLOCK_STATE_REGISTRY.getId(blockState);
         if (blockStateId == -1) {
             AELog.warn("Failed to find numeric id for block state %s", blockState);
         }
@@ -54,7 +54,7 @@ public record BlockTransitionEffectPacket(BlockPos pos,
 
         var pos = data.readBlockPos();
         int blockStateId = data.readInt();
-        BlockState blockState = GameData.getBlockStateIDMap().byId(blockStateId);
+        BlockState blockState = Block.BLOCK_STATE_REGISTRY.byId(blockStateId);
         if (blockState == null) {
             AELog.warn("Received invalid blockstate id %d from server", blockStateId);
             blockState = Blocks.AIR.defaultBlockState();

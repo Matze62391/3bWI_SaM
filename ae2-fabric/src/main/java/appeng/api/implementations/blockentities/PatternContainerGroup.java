@@ -15,7 +15,9 @@ import net.minecraft.world.Nameable;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
-import net.neoforged.neoforge.capabilities.Capabilities;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidStorage;
+import net.fabricmc.fabric.api.transfer.v1.item.ItemStorage;
+import team.reborn.energy.api.EnergyStorage;
 
 import appeng.api.parts.IPartHost;
 import appeng.api.stacks.AEItemKey;
@@ -84,12 +86,12 @@ public record PatternContainerGroup(
         }
 
         // Heuristic: If it doesn't allow item or fluid transfers, ignore it
-        var itemHandler = level.getCapability(Capabilities.Item.BLOCK, pos, target.getBlockState(), target,
+        var itemHandler = ItemStorage.SIDED.find(level, pos, target.getBlockState(), target,
                 side);
-        if (itemHandler == null || itemHandler.size() <= 0) {
-            var fluidHandler = level.getCapability(Capabilities.Fluid.BLOCK, pos, target.getBlockState(), target,
+        if (itemHandler == null || !itemHandler.supportsInsertion()) {
+            var fluidHandler = FluidStorage.SIDED.find(level, pos, target.getBlockState(), target,
                     side);
-            if (fluidHandler == null || fluidHandler.size() == 0) {
+            if (fluidHandler == null || !fluidHandler.supportsInsertion()) {
                 return null;
             }
         }

@@ -1,11 +1,8 @@
 {
-  "neoforge:conditions": [
+  "fabric:load_conditions": [
     {
-      "type": "neoforge:not",
-      "value": {
-        "type": "neoforge:tag_empty",
-        "tag": "c:nuggets/bromine"
-      }
+      "condition": "ae2:tag_not_empty",
+      "tag": "c:nuggets/bromine"
     }
   ],
   "type": "ae2:matter_cannon",

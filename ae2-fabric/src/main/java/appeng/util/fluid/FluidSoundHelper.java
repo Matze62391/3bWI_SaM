@@ -25,8 +25,8 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
-import net.neoforged.neoforge.common.SoundActions;
-import net.neoforged.neoforge.transfer.fluid.FluidResource;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariantAttributes;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant;
 
 import appeng.api.stacks.AEFluidKey;
 
@@ -43,12 +43,7 @@ public final class FluidSoundHelper {
             return;
         }
 
-        SoundEvent fillSound = fluid.getFluid().getFluidType().getSound(player, SoundActions.BUCKET_FILL);
-        if (fillSound == null) {
-            return;
-        }
-
-        playSound(player, fillSound);
+        playSound(player, FluidVariantAttributes.getFillSound(fluid.toVariant()));
     }
 
     public static void playEmptySound(Player player, @Nullable AEFluidKey fluid) {
@@ -56,17 +51,11 @@ public final class FluidSoundHelper {
             return;
         }
 
-        SoundEvent fillSound = fluid.getFluid().getFluidType().getSound(player, SoundActions.BUCKET_EMPTY);
-        if (fillSound == null) {
-            return;
-        }
-
-        playSound(player, fillSound);
+        playSound(player, FluidVariantAttributes.getEmptySound(fluid.toVariant()));
     }
 
     /**
-     * @see net.neoforged.neoforge.transfer.fluid.FluidUtil#tryPlaceFluid(FluidResource, Player, Level, InteractionHand,
-     *      BlockPos)
+     * Plays the given sound at the player's position.
      */
     private static void playSound(Player player, SoundEvent fillSound) {
         // TODO 1.21.11: This now plays it for everyone.

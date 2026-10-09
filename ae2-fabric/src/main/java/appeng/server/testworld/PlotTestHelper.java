@@ -17,7 +17,7 @@ import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.capabilities.BlockCapability;
+import net.fabricmc.fabric.api.lookup.v1.block.BlockApiLookup;
 
 import appeng.api.config.Actionable;
 import appeng.api.networking.GridHelper;
@@ -216,8 +216,8 @@ public class PlotTestHelper extends GameTestHelper {
         }
     }
 
-    public <T, C> T getCapability(BlockPos ref, BlockCapability<T, C> cap, C context) {
-        return getLevel().getCapability(cap, absolutePos(ref), context);
+    public <T, C> T getCapability(BlockPos ref, BlockApiLookup<T, C> cap, C context) {
+        return cap.find(getLevel(), absolutePos(ref), context);
     }
 
     public void assertEquals(BlockPos ref, Object expected, Object actual) {

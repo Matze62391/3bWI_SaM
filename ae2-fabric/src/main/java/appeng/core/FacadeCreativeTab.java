@@ -23,6 +23,7 @@ import java.util.Set;
 
 import net.minecraft.core.Registry;
 import net.minecraft.world.item.CreativeModeTab;
+import net.fabricmc.fabric.api.creativetab.v1.FabricCreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ItemStackLinkedSet;
@@ -37,9 +38,8 @@ public final class FacadeCreativeTab {
     private static CreativeModeTab group;
 
     public static void init(Registry<CreativeModeTab> registry) {
-        group = CreativeModeTab.builder()
+        group = FabricCreativeModeTab.builder()
                 .title(GuiText.CreativeTabFacades.text())
-                .withTabsBefore(AECreativeTabIds.MAIN)
                 .icon(() -> {
                     if (group == null) {
                         return ItemStack.EMPTY;

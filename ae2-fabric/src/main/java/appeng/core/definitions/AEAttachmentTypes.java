@@ -1,22 +1,21 @@
 package appeng.core.definitions;
 
-import java.util.function.Supplier;
-
-import net.neoforged.bus.api.IEventBus;
-import net.neoforged.neoforge.attachment.AttachmentType;
-import net.neoforged.neoforge.registries.DeferredRegister;
-import net.neoforged.neoforge.registries.NeoForgeRegistries;
+import net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry;
+import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
 
 import appeng.core.AppEng;
 
 public final class AEAttachmentTypes {
-    private static final DeferredRegister<AttachmentType<?>> ATTACHMENT_TYPES = DeferredRegister
-            .create(NeoForgeRegistries.ATTACHMENT_TYPES, AppEng.MOD_ID);
+    /**
+     * Whether the player is currently holding the CTRL key (synced from the client, not persisted).
+     */
+    public static final AttachmentType<Boolean> HOLDING_CTRL = AttachmentRegistry.createDefaulted(
+            AppEng.makeId("ctrl"), () -> false);
 
-    public static final Supplier<AttachmentType<Boolean>> HOLDING_CTRL = ATTACHMENT_TYPES.register("ctrl",
-            () -> AttachmentType.builder(() -> false).build());
+    private AEAttachmentTypes() {
+    }
 
-    public static void register(IEventBus modEventBus) {
-        ATTACHMENT_TYPES.register(modEventBus);
+    public static void register() {
+        // Attachment types are registered when this class is loaded
     }
 }

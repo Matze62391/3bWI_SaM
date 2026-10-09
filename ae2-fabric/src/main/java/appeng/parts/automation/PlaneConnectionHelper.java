@@ -25,6 +25,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 
+import appeng.util.Platform;
 import appeng.api.parts.IPart;
 import appeng.api.parts.IPartCollisionHelper;
 import appeng.api.parts.IPartHost;
@@ -150,7 +151,7 @@ public final class PlaneConnectionHelper {
     public void updateConnections() {
         BlockEntity host = getHostBlockEntity();
         if (host != null) {
-            host.requestModelDataUpdate();
+            Platform.requestModelDataUpdate(host);
         }
     }
 

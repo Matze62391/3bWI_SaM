@@ -20,7 +20,7 @@ package appeng.client.gui.implementations;
 
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
-import net.neoforged.neoforge.client.network.ClientPacketDistributor;
+import appeng.core.network.NetworkHelper;
 
 import appeng.api.config.LockCraftingMode;
 import appeng.api.config.Settings;
@@ -78,6 +78,6 @@ public class PatternProviderScreen<C extends PatternProviderMenu> extends AEBase
     private void selectNextPatternProviderMode() {
         final boolean backwards = isHandlingRightClick();
         ServerboundPacket message = new ConfigButtonPacket(Settings.PATTERN_ACCESS_TERMINAL, backwards);
-        ClientPacketDistributor.sendToServer(message);
+        NetworkHelper.sendToServer(message);
     }
 }

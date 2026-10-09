@@ -35,7 +35,6 @@ import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.capabilities.ICapabilityInvalidationListener;
 
 import appeng.api.AECapabilities;
 import appeng.api.behaviors.ExternalStorageStrategy;
@@ -110,17 +109,6 @@ public class StorageBusPart extends UpgradeablePart
     private PendingUpdateStatus updateStatus = PendingUpdateStatus.FAST_UPDATE;
     private ITickingMonitor monitor = null;
 
-    // Capability listener.
-    // Stored as a field because it will be stored in a WeakReference by the capability invalidation system.
-    private final ICapabilityInvalidationListener capabilityListener = () -> {
-        if (!PartAdjacentApi.isPartValid(this)) {
-            return false;
-        }
-
-        this.onCapabilityInvalidation();
-        return true;
-    };
-
     public StorageBusPart(IPartItem<?> partItem) {
         super(partItem);
         this.adjacentStorageAccessor = new PartAdjacentApi<>(this, AECapabilities.ME_STORAGE);
@@ -137,15 +125,6 @@ public class StorageBusPart extends UpgradeablePart
         builder.registerSetting(Settings.FUZZY_MODE, FuzzyMode.IGNORE_ALL);
         builder.registerSetting(Settings.STORAGE_FILTER, StorageFilter.EXTRACTABLE_ONLY);
         builder.registerSetting(Settings.FILTER_ON_EXTRACT, YesNo.YES);
-    }
-
-    @Override
-    public void addToWorld() {
-        super.addToWorld();
-        if (getLevel() instanceof ServerLevel serverLevel) {
-            var targetPos = getBlockEntity().getBlockPos().relative(getSide());
-            serverLevel.registerCapabilityListener(targetPos, this.capabilityListener);
-        }
     }
 
     @Override
@@ -248,8 +227,15 @@ public class StorageBusPart extends UpgradeablePart
     @Override
     public final void onNeighborChanged(BlockGetter level, BlockPos pos, BlockPos neighbor) {
         if (pos.relative(getSide()).equals(neighbor)) {
-            // Tick again to update the monitor.
             if (!isClientSide()) {
+                // Fabric has no capability invalidation listeners. Since the neighbor changed, its exposed storage
+                // might have changed too, so re-query it.
+                if (level.getBlockEntity(neighbor) == null) {
+                    this.onCapabilityInvalidation();
+                } else {
+                    this.scheduleUpdate();
+                }
+                // Tick again to update the monitor.
                 getMainNode().ifPresent((grid, node) -> {
                     grid.getTickManager().alertDevice(node);
                 });

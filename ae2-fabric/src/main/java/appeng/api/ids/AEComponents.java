@@ -20,7 +20,7 @@ import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.item.component.ItemContainerContents;
-import net.neoforged.neoforge.registries.DeferredRegister;
+import appeng.core.registries.DeferredRegister;
 
 import appeng.api.components.ExportedUpgrades;
 import appeng.api.config.FuzzyMode;

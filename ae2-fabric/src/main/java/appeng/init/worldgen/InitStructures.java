@@ -32,7 +32,7 @@ import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
 import net.minecraft.world.level.levelgen.structure.placement.RandomSpreadStructurePlacement;
 import net.minecraft.world.level.levelgen.structure.placement.RandomSpreadType;
 import net.neoforged.bus.api.IEventBus;
-import net.neoforged.neoforge.registries.DeferredRegister;
+import appeng.core.registries.DeferredRegister;
 
 import appeng.core.AppEng;
 import appeng.worldgen.meteorite.MeteoriteStructure;

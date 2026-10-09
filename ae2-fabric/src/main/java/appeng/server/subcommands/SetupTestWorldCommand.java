@@ -26,7 +26,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.entity.EntityTypeTest;
 import net.minecraft.world.level.gamerules.GameRules;
 import net.minecraft.world.level.levelgen.FlatLevelSource;
-import net.neoforged.neoforge.common.NeoForge;
 
 import appeng.core.definitions.AEItems;
 import appeng.core.localization.PlayerMessages;
@@ -123,7 +122,7 @@ public class SetupTestWorldCommand implements ISubCommand {
         if (!playerInv.hasAnyOf(Collections.singleton(AEItems.COLOR_APPLICATOR.asItem()))) {
             playerInv.placeItemBackInInventory(fullApplicator, Prediction.SERVER_ONLY);
         }
-        NeoForge.EVENT_BUS.post(new KitOutPlayerEvent(player));
+        KitOutPlayerEvent.EVENT.invoker().onKitOutPlayer(new KitOutPlayerEvent(player));
     }
 
     /**

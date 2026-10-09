@@ -23,91 +23,177 @@
 
 package appeng.api.inventories;
 
+import java.util.function.Predicate;
+
+import org.jetbrains.annotations.NotNull;
+
+import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
+import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
+import net.fabricmc.fabric.api.transfer.v1.transaction.Transaction;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.transfer.ResourceHandler;
-import net.neoforged.neoforge.transfer.item.ItemResource;
-import net.neoforged.neoforge.transfer.transaction.Transaction;
+
+import appeng.api.config.FuzzyMode;
+import appeng.util.Platform;
+import appeng.util.helpers.ItemComparisonHelper;
 
 /**
- * Wraps an inventory implementing ResourceHandler such that it can be used as an {@link InternalInventory}.
- * 
- * @deprecated We need to find a better abstraction of this since we use InternalInventory for UIs too, which still need
- *             direct mutable ItemStack access
+ * Wraps an inventory implementing the platforms standard inventory interface (i.e. IItemHandler on Forge) such that it
+ * can be used as an {@link InternalInventory}.
  */
-public class PlatformInventoryWrapper implements InternalInventory {
-    private final ResourceHandler<ItemResource> handler;
+class PlatformInventoryWrapper implements ItemTransfer {
+    private final Storage<ItemVariant> storage;
 
-    public PlatformInventoryWrapper(ResourceHandler<ItemResource> handler) {
-        this.handler = handler;
+    public PlatformInventoryWrapper(Storage<ItemVariant> storage) {
+        this.storage = storage;
     }
 
     @Override
-    public ResourceHandler<ItemResource> toResourceHandler() {
-        return handler;
-    }
-
-    @Override
-    public int size() {
-        return handler.size();
-    }
-
-    @Override
-    public int getSlotLimit(int slot) {
-        return handler.getCapacityAsInt(slot, ItemResource.EMPTY);
-    }
-
-    @Override
-    public ItemStack getStackInSlot(int slotIndex) {
-        // TODO 1.21.9: this is obviously not mutable
-        var resource = handler.getResource(slotIndex);
-        var amount = handler.getAmountAsInt(slotIndex);
-        if (!resource.isEmpty()) {
-            return resource.toStack(amount);
-        } else {
-            return ItemStack.EMPTY;
-        }
-    }
-
-    @Override
-    public void setItemDirect(int slotIndex, ItemStack stack) {
-        try (var tx = Transaction.open(null)) {
-            var current = handler.getResource(slotIndex);
-            if (!current.isEmpty()) {
-                handler.extract(slotIndex, current, handler.getAmountAsInt(slotIndex), tx);
-            }
-            handler.insert(slotIndex, ItemResource.of(stack), stack.getCount(), tx);
+    public ItemStack removeItems(int amount, ItemStack filter, Predicate<ItemStack> destination) {
+        ItemStack result;
+        try (var tx = Platform.openOrJoinTx()) {
+            result = innerRemoveItems(amount, filter, destination, tx);
             tx.commit();
         }
+        return result;
     }
 
     @Override
-    public boolean isItemValid(int slot, ItemStack stack) {
-        return handler.isValid(slot, ItemResource.of(stack));
-    }
-
-    @Override
-    public ItemStack insertItem(int slot, ItemStack stack, boolean simulate) {
-        try (var tx = Transaction.open(null)) {
-            var inserted = handler.insert(slot, ItemResource.of(stack), stack.getCount(), tx);
-            if (!simulate) {
-                tx.commit();
-            }
-            return stack.copyWithCount(stack.getCount() - inserted);
+    public ItemStack simulateRemove(int amount, ItemStack filter, Predicate<ItemStack> destination) {
+        ItemStack result;
+        try (var tx = Platform.openOrJoinTx()) {
+            result = innerRemoveItems(amount, filter, destination, tx);
         }
+        return result;
+    }
+
+    private ItemStack innerRemoveItems(int amount, ItemStack filter, Predicate<ItemStack> destination, Transaction tx) {
+        ItemVariant rv = ItemVariant.blank();
+        long extractedAmount = 0;
+
+        var it = this.storage.iterator();
+        while (it.hasNext() && extractedAmount < amount) {
+            var view = it.next();
+
+            var is = view.getResource();
+            if (is.isBlank()) {
+                continue;
+            }
+
+            // Haven't decided what to extract yet
+            if (rv.isBlank()) {
+                if (!filter.isEmpty() && !is.matches(filter)) {
+                    continue; // Doesn't match ItemStack template
+                }
+
+                if (destination != null && !destination.test(is.toStack())) {
+                    continue; // Doesn't match filter
+                }
+
+                long actualAmount = view.extract(is, amount - extractedAmount, tx);
+                if (actualAmount <= 0) {
+                    continue; // Apparently not extractable
+                }
+
+                rv = is; // we've decided what to extract
+                extractedAmount += actualAmount;
+            } else {
+                if (!rv.equals(is)) {
+                    continue; // Once we've decided what to extract, we need to stick to it
+                }
+
+                extractedAmount += view.extract(is, amount, tx);
+            }
+        }
+
+        // If any of the slots returned more than what we requested, it'll be voided here
+        if (extractedAmount > amount) {
+            // TODO
+//            AELog.warn(
+//                    "An inventory returned more (%d) than we requested (%d) during extraction. Excess will be voided.",
+//                    extractedAmount, amount);
+        }
+        return rv.toStack((int) Math.min(amount, extractedAmount));
+    }
+
+    /**
+     * For fuzzy extract, we will only ever extract one slot, since we're afraid of merging two item stacks with
+     * different damage values.
+     */
+    @Override
+    public ItemStack removeSimilarItems(int amount, ItemStack filter, FuzzyMode fuzzyMode,
+            Predicate<ItemStack> destination) {
+        ItemStack result;
+        try (var tx = Platform.openOrJoinTx()) {
+            result = innerRemoveSimilarItems(amount, filter, fuzzyMode, destination, tx);
+            tx.commit();
+        }
+        return result;
     }
 
     @Override
-    public ItemStack extractItem(int slot, int amount, boolean simulate) {
-        try (var tx = Transaction.open(null)) {
-            var resource = handler.getResource(slot);
-            if (resource.isEmpty()) {
-                return ItemStack.EMPTY;
+    public ItemStack simulateSimilarRemove(int amount, ItemStack filter, FuzzyMode fuzzyMode,
+            Predicate<ItemStack> destination) {
+        ItemStack result;
+        try (var tx = Platform.openOrJoinTx()) {
+            result = innerRemoveSimilarItems(amount, filter, fuzzyMode, destination, tx);
+        }
+        return result;
+    }
+
+    private ItemStack innerRemoveSimilarItems(int amount, ItemStack filter, FuzzyMode fuzzyMode,
+            Predicate<ItemStack> destination, Transaction tx) {
+
+        for (var view : this.storage) {
+            var is = view.getResource();
+            if (is.isBlank()) {
+                continue;
             }
-            var extracted = handler.extract(slot, resource, amount, tx);
+
+            if (!filter.isEmpty() && !ItemComparisonHelper.isFuzzyEqualItem(is.toStack(), filter, fuzzyMode)) {
+                continue; // Doesn't match ItemStack template
+            }
+
+            if (destination != null && !destination.test(is.toStack())) {
+                continue; // Doesn't match filter
+            }
+
+            long actualAmount = view.extract(is, amount, tx);
+            if (actualAmount <= 0) {
+                continue; // Apparently not extractable
+            }
+
+            // If any of the slots returned more than what we requested, it'll be voided here
+            if (actualAmount > amount) {
+                // TODO AELog.warn(
+                // "An inventory returned more (%d) than we requested (%d) during extraction. Excess will be voided.",
+//                        actualAmount, amount);
+                actualAmount = amount;
+            }
+
+            return is.toStack((int) actualAmount);
+        }
+
+        return ItemStack.EMPTY;
+    }
+
+    @NotNull
+    @Override
+    public ItemStack addItems(ItemStack itemsToAdd, boolean simulate) {
+        if (itemsToAdd.isEmpty()) {
+            return ItemStack.EMPTY;
+        }
+
+        try (var tx = Platform.openOrJoinTx()) {
+            ItemStack remainder = itemsToAdd.copy();
+
+            var inserted = storage.insert(ItemVariant.of(itemsToAdd), itemsToAdd.getCount(), tx);
+
             if (!simulate) {
                 tx.commit();
             }
-            return resource.toStack(extracted);
+
+            remainder.shrink((int) inserted);
+            return remainder.isEmpty() ? ItemStack.EMPTY : remainder;
         }
     }
 

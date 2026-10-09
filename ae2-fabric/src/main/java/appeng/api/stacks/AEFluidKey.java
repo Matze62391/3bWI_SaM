@@ -24,8 +24,9 @@ import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
-import net.neoforged.neoforge.fluids.FluidStack;
-import net.neoforged.neoforge.transfer.fluid.FluidResource;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidConstants;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariantAttributes;
 
 import appeng.api.storage.AEKeyFilter;
 import appeng.core.AELog;
@@ -37,46 +38,46 @@ public final class AEFluidKey extends AEKey {
                             holder -> holder.is(Fluids.EMPTY.builtInRegistryHolder())
                                     ? DataResult.error(() -> "Fluid must not be minecraft:empty")
                                     : DataResult.success(holder))
-                            .fieldOf("id").forGetter(key -> key.stack.typeHolder()),
+                            .fieldOf("id").forGetter(key -> key.variant.typeHolder()),
                     DataComponentPatch.CODEC.optionalFieldOf("components", DataComponentPatch.EMPTY)
-                            .forGetter(key -> key.stack.getComponentsPatch()))
+                            .forGetter(key -> key.variant.getComponentsPatch()))
                     .apply(instance, (fluidHolder,
-                            dataComponentPatch) -> new AEFluidKey(new FluidStack(fluidHolder, 1, dataComponentPatch))));
+                            dataComponentPatch) -> new AEFluidKey(
+                                    FluidVariant.of(fluidHolder.value(), dataComponentPatch))));
     public static final Codec<AEFluidKey> CODEC = MAP_CODEC.codec();
 
-    public static final int AMOUNT_BUCKET = 1000;
-    public static final int AMOUNT_BLOCK = 1000;
+    /**
+     * Fluid amounts use Fabric's units (droplets), i.e. 81000 per bucket.
+     */
+    public static final int AMOUNT_BUCKET = (int) FluidConstants.BUCKET;
+    public static final int AMOUNT_BLOCK = (int) FluidConstants.BLOCK;
 
-    private final FluidStack stack;
+    private final FluidVariant variant;
     private final int hashCode;
 
-    private AEFluidKey(FluidStack stack) {
-        Preconditions.checkArgument(!stack.isEmpty(), "stack was empty");
-        this.stack = stack;
-        this.hashCode = FluidStack.hashFluidAndComponents(stack);
+    private AEFluidKey(FluidVariant variant) {
+        Preconditions.checkArgument(!variant.isBlank(), "variant was blank");
+        this.variant = variant;
+        this.hashCode = variant.hashCode();
     }
 
     public static AEFluidKey of(Fluid fluid) {
-        return of(new FluidStack(fluid, 1));
+        return of(FluidVariant.of(fluid));
+    }
+
+    public static AEFluidKey of(Fluid fluid, DataComponentPatch components) {
+        return of(FluidVariant.of(fluid, components));
     }
 
     @Nullable
-    public static AEFluidKey of(FluidStack fluidVariant) {
-        if (fluidVariant.isEmpty()) {
+    public static AEFluidKey of(FluidVariant variant) {
+        if (variant.isBlank()) {
             return null;
         }
-        return new AEFluidKey(fluidVariant.copyWithAmount(1));
+        return new AEFluidKey(variant);
     }
 
-    @Nullable
-    public static AEFluidKey of(FluidResource resource) {
-        if (resource.isEmpty()) {
-            return null;
-        }
-        return new AEFluidKey(resource.toStack(1));
-    }
-
-    public static boolean matches(AEKey what, FluidStack fluid) {
+    public static boolean matches(AEKey what, FluidVariant fluid) {
         return what instanceof AEFluidKey fluidKey && fluidKey.matches(fluid);
     }
 
@@ -88,8 +89,8 @@ public final class AEFluidKey extends AEKey {
         return AEFluidKey::is;
     }
 
-    public boolean matches(FluidStack variant) {
-        return FluidStack.isSameFluidSameComponents(this.stack, variant);
+    public boolean matches(FluidVariant variant) {
+        return this.variant.equals(variant);
     }
 
     @Override
@@ -99,7 +100,7 @@ public final class AEFluidKey extends AEKey {
 
     @Override
     public AEFluidKey dropSecondary() {
-        return of(new FluidStack(getFluid(), 1));
+        return of(FluidVariant.of(getFluid()));
     }
 
     @Override
@@ -110,7 +111,7 @@ public final class AEFluidKey extends AEKey {
             return false;
         AEFluidKey aeFluidKey = (AEFluidKey) o;
         // The hash code comparison is a fast-fail cheap check
-        return hashCode == aeFluidKey.hashCode && FluidStack.isSameFluidSameComponents(this.stack, aeFluidKey.stack);
+        return hashCode == aeFluidKey.hashCode && variant.equals(aeFluidKey.variant);
     }
 
     @Override
@@ -149,46 +150,42 @@ public final class AEFluidKey extends AEKey {
 
     @Override
     protected Component computeDisplayName() {
-        return stack.getHoverName();
+        return FluidVariantAttributes.getName(variant);
     }
 
     @SuppressWarnings("unchecked")
     @Override
     public boolean isTagged(TagKey<?> tag) {
         // This will just return false for incorrectly cast tags
-        return stack.is((TagKey<Fluid>) tag);
+        return variant.getFluid().is((TagKey<Fluid>) tag);
     }
 
     @Override
     public <T> @Nullable T get(DataComponentType<T> type) {
-        return stack.get(type);
+        return variant.getComponents().get(type);
     }
 
     @Override
     public boolean hasComponents() {
-        return !stack.isComponentsPatchEmpty();
+        return variant.hasComponents();
     }
 
-    public FluidResource toResource() {
-        return FluidResource.of(stack);
-    }
-
-    public FluidStack toStack(int amount) {
-        return stack.copyWithAmount(amount);
+    public FluidVariant toVariant() {
+        return variant;
     }
 
     public Fluid getFluid() {
-        return stack.getFluid();
+        return variant.getFluid();
     }
 
     @Override
     public void writeToPacket(RegistryFriendlyByteBuf data) {
-        FluidStack.STREAM_CODEC.encode(data, stack);
+        FluidVariant.PACKET_CODEC.encode(data, variant);
     }
 
     public static AEFluidKey fromPacket(RegistryFriendlyByteBuf data) {
-        var stack = FluidStack.STREAM_CODEC.decode(data);
-        return new AEFluidKey(stack);
+        var variant = FluidVariant.PACKET_CODEC.decode(data);
+        return new AEFluidKey(variant);
     }
 
     public static boolean is(@Nullable GenericStack stack) {
@@ -200,6 +197,6 @@ public final class AEFluidKey extends AEKey {
         var id = BuiltInRegistries.FLUID.getKey(getFluid());
         String idString = id != BuiltInRegistries.FLUID.getDefaultKey() ? id.toString()
                 : getFluid().getClass().getName() + "(unregistered)";
-        return stack.getComponentsPatch().isEmpty() ? idString : idString + " (+components)";
+        return variant.getComponentsPatch().isEmpty() ? idString : idString + " (+components)";
     }
 }

@@ -8,7 +8,7 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.ChunkPos;
-import net.neoforged.neoforge.network.codec.NeoForgeStreamCodecs;
+import appeng.core.network.AEStreamCodecs;
 
 import appeng.core.network.CustomAppEngPayload;
 import appeng.core.network.ServerboundPacket;
@@ -20,7 +20,7 @@ public record RequestClosestMeteoritePacket(ChunkPos pos) implements Serverbound
 
     public static final StreamCodec<RegistryFriendlyByteBuf, RequestClosestMeteoritePacket> STREAM_CODEC = StreamCodec
             .composite(
-                    NeoForgeStreamCodecs.CHUNK_POS, RequestClosestMeteoritePacket::pos,
+                    ChunkPos.STREAM_CODEC, RequestClosestMeteoritePacket::pos,
                     RequestClosestMeteoritePacket::new);
 
     public static final Type<RequestClosestMeteoritePacket> TYPE = CustomAppEngPayload.createType("compass_request");

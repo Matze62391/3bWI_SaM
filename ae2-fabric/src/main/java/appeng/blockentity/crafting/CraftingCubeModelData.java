@@ -21,8 +21,8 @@ package appeng.blockentity.crafting;
 import java.util.EnumSet;
 
 import net.minecraft.core.Direction;
-import net.neoforged.neoforge.model.data.ModelData;
-import net.neoforged.neoforge.model.data.ModelProperty;
+import appeng.api.model.ModelData;
+import appeng.api.model.ModelProperty;
 
 import appeng.blockentity.AEModelData;
 

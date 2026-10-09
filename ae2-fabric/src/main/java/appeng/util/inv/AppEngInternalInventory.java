@@ -21,6 +21,7 @@ package appeng.util.inv;
 import java.util.Arrays;
 
 import com.google.common.base.Preconditions;
+import com.google.common.primitives.Ints;
 
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
@@ -30,12 +31,12 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.ItemContainerContents;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
-import net.neoforged.neoforge.transfer.IndexModifier;
-import net.neoforged.neoforge.transfer.ResourceHandler;
-import net.neoforged.neoforge.transfer.TransferPreconditions;
-import net.neoforged.neoforge.transfer.item.ItemResource;
-import net.neoforged.neoforge.transfer.transaction.SnapshotJournal;
-import net.neoforged.neoforge.transfer.transaction.TransactionContext;
+import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
+import appeng.util.transfer.IndexedStorage;
+import appeng.util.transfer.TransferPreconditions;
+import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
+import appeng.util.transfer.SnapshotJournal;
+import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
 
 import appeng.api.inventories.BaseInternalInventory;
 import appeng.core.definitions.AEItems;
@@ -211,26 +212,21 @@ public class AppEngInternalInventory extends BaseInternalInventory {
     }
 
     @Override
-    protected ResourceHandler<ItemResource> createResourceHandler() {
+    protected Storage<ItemVariant> createStorage() {
         return new AppEngInternalInventoryResourceHandler();
     }
 
     private class AppEngInternalInventoryResourceHandler
             extends SnapshotJournal<AppEngInternalInventoryResourceHandler.Snapshot>
-            implements ResourceHandler<ItemResource>, IndexModifier<ItemResource> {
+            implements IndexedStorage<ItemVariant> {
         @Nullable
         private Snapshot lastReleasedSnapshot;
 
         @Override
-        public void set(int index, ItemResource resource, int amount) {
-            setItemDirect(index, resource.toStack(amount));
-        }
-
-        @Override
-        public int insert(ItemResource resource, int maxAmount, TransactionContext transaction) {
+        public long insert(ItemVariant resource, long maxAmount, TransactionContext transaction) {
             TransferPreconditions.checkNonEmptyNonNegative(resource, maxAmount);
 
-            var stack = resource.toStack(maxAmount);
+            var stack = resource.toStack(Ints.saturatedCast(maxAmount));
 
             updateSnapshots(transaction);
 
@@ -238,14 +234,14 @@ public class AppEngInternalInventory extends BaseInternalInventory {
             inTransactionalCode = true;
             try {
                 var overflow = addItems(stack);
-                return maxAmount - overflow.getCount();
+                return stack.getCount() - overflow.getCount();
             } finally {
                 inTransactionalCode = prevInTransactionalCode;
             }
         }
 
         @Override
-        public int extract(ItemResource resource, int maxAmount, TransactionContext transaction) {
+        public long extract(ItemVariant resource, long maxAmount, TransactionContext transaction) {
             TransferPreconditions.checkNonEmptyNonNegative(resource, maxAmount);
 
             // Do not allow extraction of wrapped fluid stacks because they're an internal detail
@@ -258,7 +254,7 @@ public class AppEngInternalInventory extends BaseInternalInventory {
             var prevInTransactionalCode = inTransactionalCode;
             inTransactionalCode = true;
             try {
-                ItemStack extracted = removeItems(maxAmount, resource.toStack(), null);
+                ItemStack extracted = removeItems(Ints.saturatedCast(maxAmount), resource.toStack(), null);
 
                 return extracted.getCount();
             } finally {
@@ -267,14 +263,14 @@ public class AppEngInternalInventory extends BaseInternalInventory {
         }
 
         @Override
-        public int insert(int index, ItemResource resource, int maxAmount, TransactionContext transaction) {
+        public long insert(int index, ItemVariant resource, long maxAmount, TransactionContext transaction) {
             TransferPreconditions.checkNonEmptyNonNegative(resource, maxAmount);
 
-            var stack = resource.toStack(maxAmount);
+            var stack = resource.toStack(Ints.saturatedCast(maxAmount));
 
             // Cheaply check via simulation whether anything would actually be inserted before paying for an
             // O(size) snapshot of the whole inventory.
-            if (insertItem(index, stack, true).getCount() == maxAmount) {
+            if (insertItem(index, stack, true).getCount() == stack.getCount()) {
                 return 0;
             }
 
@@ -284,14 +280,14 @@ public class AppEngInternalInventory extends BaseInternalInventory {
             inTransactionalCode = true;
             try {
                 var overflow = insertItem(index, stack, false).getCount();
-                return maxAmount - overflow;
+                return stack.getCount() - overflow;
             } finally {
                 inTransactionalCode = prevInTransactionalCode;
             }
         }
 
         @Override
-        public int extract(int index, ItemResource resource, int maxAmount, TransactionContext transaction) {
+        public long extract(int index, ItemVariant resource, long maxAmount, TransactionContext transaction) {
             TransferPreconditions.checkNonEmptyNonNegative(resource, maxAmount);
 
             // Do not allow extraction of wrapped fluid stacks because they're an internal detail
@@ -311,7 +307,7 @@ public class AppEngInternalInventory extends BaseInternalInventory {
             var prevInTransactionalCode = inTransactionalCode;
             inTransactionalCode = true;
             try {
-                return extractItem(index, maxAmount, false).getCount();
+                return extractItem(index, Ints.saturatedCast(maxAmount), false).getCount();
             } finally {
                 inTransactionalCode = prevInTransactionalCode;
             }
@@ -323,13 +319,13 @@ public class AppEngInternalInventory extends BaseInternalInventory {
         }
 
         @Override
-        public boolean isValid(int index, ItemResource resource) {
+        public boolean isValid(int index, ItemVariant resource) {
             return AppEngInternalInventory.this.isItemValid(index, resource.toStack());
         }
 
         @Override
-        public ItemResource getResource(int index) {
-            return ItemResource.of(AppEngInternalInventory.this.getStackInSlot(index));
+        public ItemVariant getResource(int index) {
+            return ItemVariant.of(AppEngInternalInventory.this.getStackInSlot(index));
         }
 
         @Override
@@ -338,8 +334,8 @@ public class AppEngInternalInventory extends BaseInternalInventory {
         }
 
         @Override
-        public long getCapacityAsLong(int index, ItemResource resource) {
-            if (!resource.isEmpty() && !isValid(index, resource)) {
+        public long getCapacityAsLong(int index, ItemVariant resource) {
+            if (!resource.isBlank() && !isValid(index, resource)) {
                 return 0;
             }
             return AppEngInternalInventory.this.getSlotLimit(index);

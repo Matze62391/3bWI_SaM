@@ -1,10 +1,10 @@
 package appeng.util;
 
-import net.neoforged.neoforge.transfer.ResourceHandler;
-import net.neoforged.neoforge.transfer.resource.Resource;
-import net.neoforged.neoforge.transfer.transaction.TransactionContext;
+import appeng.util.transfer.IndexedStorage;
+import net.fabricmc.fabric.api.transfer.v1.storage.TransferVariant;
+import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
 
-public abstract class InsertionOnlyResourceHandler<T extends Resource> implements ResourceHandler<T> {
+public abstract class InsertionOnlyResourceHandler<T extends TransferVariant<?>> implements IndexedStorage<T> {
     private final T emptyResource;
 
     public InsertionOnlyResourceHandler(T emptyResource) {
@@ -45,14 +45,15 @@ public abstract class InsertionOnlyResourceHandler<T extends Resource> implement
     }
 
     @Override
-    public final int insert(int index, T resource, int amount, TransactionContext transaction) {
+    public final long insert(int index, T resource, long amount, TransactionContext transaction) {
         return insert(resource, amount, transaction);
     }
 
-    public abstract int insert(T resource, int amount, TransactionContext transaction);
+    @Override
+    public abstract long insert(T resource, long amount, TransactionContext transaction);
 
     @Override
-    public final int extract(int index, T resource, int amount, TransactionContext transaction) {
+    public final long extract(int index, T resource, long amount, TransactionContext transaction) {
         return 0;
     }
 }

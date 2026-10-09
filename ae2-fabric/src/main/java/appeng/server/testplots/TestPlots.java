@@ -47,7 +47,6 @@ import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import net.minecraft.world.level.block.state.properties.ChestType;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.material.Fluids;
-import net.neoforged.fml.ModList;
 
 import appeng.api.config.AccessRestriction;
 import appeng.api.config.Actionable;
@@ -197,23 +196,33 @@ public final class TestPlots {
         return plots;
     }
 
+    /**
+     * NeoForge finds these by scanning for {@link TestPlotClass}. Fabric has no annotation scan data, so the classes
+     * are listed explicitly.
+     */
     private static List<Class<?>> findAllTestPlotClasses() {
-        var result = new ArrayList<Class<?>>();
-
-        for (var data : ModList.get().getAllScanData()) {
-            for (var annotation : data.getAnnotations()) {
-                if (annotation.targetType() == ElementType.TYPE
-                        && annotation.annotationType().getClassName().equals(TestPlotClass.class.getName())) {
-                    try {
-                        result.add(Class.forName(annotation.memberName()));
-                    } catch (Throwable e) {
-                        LOG.error("Failed to load class {} annotated with @TestPlotClass", annotation.memberName(), e);
-                    }
-                }
-            }
-        }
-
-        return result;
+        return List.of(
+                MemoryCardTestPlots.class,
+                InternalInventoryTransactionTestPlots.class,
+                IOPortTestPlots.class,
+                AnnihilationPlaneTests.class,
+                CrystalResonanceGeneratorTestPlots.class,
+                ChannelTests.class,
+                TestPlots.class,
+                ExternalEnergyTestPlots.class,
+                InterfaceTestPlots.class,
+                SpatialTestPlots.class,
+                P2PTestPlots.class,
+                PatternProviderPlots.class,
+                QnbTestPlots.class,
+                PatternProviderLockModePlots.class,
+                CraftingTerminalTestPlots.class,
+                AutoCraftingTestPlots.class,
+                SubnetPlots.class,
+                InvalidPatternTestPlot.class,
+                SpawnExtraGridTestTools.class,
+                ItemP2PTestPlots.class,
+                InscriberTestPlots.class);
     }
 
     public static List<PlotInfo> getPlots() {
@@ -886,9 +895,9 @@ public final class TestPlots {
             helper.succeedWhen(() -> {
                 helper.assertBlockPresent(Blocks.CAULDRON, origin.east());
                 var tank = helper.getBlockEntity(origin.west(), SkyStoneTankBlockEntity.class);
-                helper.check(tank.getFluidHandler().getAmountAsLong(0) == AEFluidKey.AMOUNT_BUCKET,
+                helper.check(tank.getFluidHandler().getAmount() == AEFluidKey.AMOUNT_BUCKET,
                         "Less than a bucket stored");
-                helper.check(tank.getFluidHandler().getResource(0).is(Fluids.LAVA),
+                helper.check(tank.getFluidHandler().getResource().isOf(Fluids.LAVA),
                         "Something other than lava stored");
             });
         });

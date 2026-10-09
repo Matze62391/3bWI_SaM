@@ -31,7 +31,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.CraftingInput;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.RecipeType;
-import net.neoforged.neoforge.common.CommonHooks;
 
 import appeng.api.inventories.InternalInventory;
 import appeng.util.inv.AppEngInternalInventory;
@@ -87,7 +86,6 @@ public class AppEngCraftingSlot extends AppEngSlot implements RecipeCraftingHold
 
         if (amountCrafted > 0) {
             stack.onCraftedBy(this.player, this.amountCrafted);
-            net.neoforged.neoforge.event.EventHooks.firePlayerCraftingEvent(this.player, stack, craftContainer);
         }
 
         var ingredients = Lists.newArrayList(craftingGrid);
@@ -111,9 +109,7 @@ public class AppEngCraftingSlot extends AppEngSlot implements RecipeCraftingHold
         }
         var positioned = CraftingInput.ofPositioned(3, 3, items);
 
-        CommonHooks.setCraftingPlayer(player);
         var remainingItems = this.getRemainingItems(positioned.input(), serverLevel);
-        CommonHooks.setCraftingPlayer(null);
 
         for (var y = 0; y < 3; y++) {
             for (var x = 0; x < 3; x++) {

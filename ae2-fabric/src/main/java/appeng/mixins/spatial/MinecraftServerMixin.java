@@ -6,6 +6,8 @@ import java.util.concurrent.Executor;
 import com.google.common.collect.ImmutableList;
 
 import org.spongepowered.asm.mixin.Mixin;
+
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLevelEvents;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -24,8 +26,6 @@ import net.minecraft.world.level.levelgen.WorldGenSettings;
 import net.minecraft.world.level.storage.DerivedLevelData;
 import net.minecraft.world.level.storage.LevelStorageSource;
 import net.minecraft.world.level.storage.WorldData;
-import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.level.LevelEvent;
 
 import appeng.spatial.SpatialStorageChunkGenerator;
 import appeng.spatial.SpatialStorageDimensionIds;
@@ -87,7 +87,7 @@ public abstract class MinecraftServerMixin {
         // NOTE: We don't register the spatial dimension for the world-border. Players can't move freely in that
         // dimension anyway.
         this.levels.put(SpatialStorageDimensionIds.WORLD_ID, level);
-        // Emulate the Forge world load event
-        NeoForge.EVENT_BUS.post(new LevelEvent.Load(level));
+        // Fabric only fires its level load event for the levels created by vanilla
+        ServerLevelEvents.LOAD.invoker().onLevelLoad((MinecraftServer) (Object) this, level);
     }
 }

@@ -2,9 +2,9 @@ package appeng.helpers;
 
 import org.jetbrains.annotations.Nullable;
 
-import net.neoforged.neoforge.transfer.fluid.FluidResource;
-import net.neoforged.neoforge.transfer.item.ItemResource;
-import net.neoforged.neoforge.transfer.resource.Resource;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant;
+import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
+import net.fabricmc.fabric.api.transfer.v1.storage.TransferVariant;
 
 import appeng.api.stacks.AEFluidKey;
 import appeng.api.stacks.AEItemKey;
@@ -12,9 +12,9 @@ import appeng.api.stacks.AEKey;
 import appeng.api.stacks.AEKeyType;
 
 // Consider moving to API?
-public interface ResourceConversion<V extends Resource> {
-    ResourceConversion<ItemResource> ITEM = new Item();
-    ResourceConversion<FluidResource> FLUID = new Fluid();
+public interface ResourceConversion<V extends TransferVariant<?>> {
+    ResourceConversion<ItemVariant> ITEM = new Item();
+    ResourceConversion<FluidVariant> FLUID = new Fluid();
 
     AEKeyType getKeyType();
 
@@ -33,47 +33,47 @@ public interface ResourceConversion<V extends Resource> {
 
     long getBaseSlotSize(V variant);
 
-    class Fluid implements ResourceConversion<FluidResource> {
+    class Fluid implements ResourceConversion<FluidVariant> {
         @Override
         public AEKeyType getKeyType() {
             return AEKeyType.fluids();
         }
 
         @Override
-        public FluidResource getVariant(AEKey key) {
-            return key instanceof AEFluidKey fluidKey ? fluidKey.toResource() : FluidResource.EMPTY;
+        public FluidVariant getVariant(AEKey key) {
+            return key instanceof AEFluidKey fluidKey ? fluidKey.toVariant() : FluidVariant.blank();
         }
 
         @Override
-        public AEKey getKey(FluidResource variant) {
+        public AEKey getKey(FluidVariant variant) {
             return AEFluidKey.of(variant);
         }
 
         @Override
-        public long getBaseSlotSize(FluidResource variant) {
+        public long getBaseSlotSize(FluidVariant variant) {
             return 4 * AEFluidKey.AMOUNT_BUCKET;
         }
     }
 
-    class Item implements ResourceConversion<ItemResource> {
+    class Item implements ResourceConversion<ItemVariant> {
         @Override
         public AEKeyType getKeyType() {
             return AEKeyType.items();
         }
 
         @Override
-        public ItemResource getVariant(AEKey key) {
-            return key instanceof AEItemKey itemKey ? itemKey.toResource() : ItemResource.EMPTY;
+        public ItemVariant getVariant(AEKey key) {
+            return key instanceof AEItemKey itemKey ? itemKey.toVariant() : ItemVariant.blank();
         }
 
         @Nullable
         @Override
-        public AEItemKey getKey(ItemResource variant) {
+        public AEItemKey getKey(ItemVariant variant) {
             return AEItemKey.of(variant);
         }
 
         @Override
-        public long getBaseSlotSize(ItemResource variant) {
+        public long getBaseSlotSize(ItemVariant variant) {
             var stack = variant.toStack();
             return Math.min(64, stack.getMaxStackSize());
         }

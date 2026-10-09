@@ -26,8 +26,8 @@ package appeng.api.inventories;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import net.neoforged.neoforge.transfer.ResourceHandler;
-import net.neoforged.neoforge.transfer.item.ItemResource;
+import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
+import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
 
 /**
  * Implementation aid for {@link InternalInventory} that ensures the platorm adapter maintains its referential equality
@@ -37,20 +37,18 @@ public abstract class BaseInternalInventory implements InternalInventory {
 
     private static final Logger LOG = LoggerFactory.getLogger(BaseInternalInventory.class);
 
-    private ResourceHandler<ItemResource> platformWrapper;
+    private Storage<ItemVariant> platformWrapper;
 
     @Override
-    public final ResourceHandler<ItemResource> toResourceHandler() {
+    public final Storage<ItemVariant> toStorage() {
         if (platformWrapper == null) {
-            platformWrapper = createResourceHandler();
+            platformWrapper = createStorage();
         }
         return platformWrapper;
     }
 
-    protected ResourceHandler<ItemResource> createResourceHandler() {
-        LOG.error(
-                "'{}' does not override createResourceHandler() but should, since the default implementation is broken.",
-                getClass());
-        return new InternalInventoryResourceHandler(this);
+    protected Storage<ItemVariant> createStorage() {
+        return new InternalInventoryStorage(this);
     }
+
 }

@@ -11,7 +11,7 @@ import io.netty.buffer.ByteBuf;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
-import net.neoforged.neoforge.client.network.ClientPacketDistributor;
+import appeng.core.network.NetworkHelper;
 
 import appeng.api.stacks.AEKeyType;
 import appeng.api.util.KeyTypeSelection;
@@ -40,7 +40,7 @@ public interface KeyTypeSelectionMenu {
     default void selectKeyType(AEKeyType keyType, boolean enabled) {
         // Send to server
         ServerboundPacket message = new SelectKeyTypePacket(keyType, enabled);
-        ClientPacketDistributor.sendToServer(message);
+        NetworkHelper.sendToServer(message);
         // Update client
         getClientKeyTypeSelection().keyTypes().put(keyType, enabled);
     }

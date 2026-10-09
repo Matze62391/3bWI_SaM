@@ -35,7 +35,7 @@ import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.item.crafting.display.RecipeDisplay;
 import net.minecraft.world.item.crafting.display.SlotDisplay;
-import net.neoforged.neoforge.network.codec.NeoForgeStreamCodecs;
+import appeng.core.network.AEStreamCodecs;
 
 import appeng.core.definitions.AEBlocks;
 import appeng.recipes.AERecipeTypes;
@@ -67,7 +67,7 @@ public class InscriberRecipe extends MechanicsRecipe<RecipeInput> {
             InscriberRecipe::getSerializedIngredients,
             ItemStackTemplate.STREAM_CODEC,
             InscriberRecipe::result,
-            NeoForgeStreamCodecs.enumCodec(InscriberProcessType.class),
+            AEStreamCodecs.enumCodec(InscriberProcessType.class),
             InscriberRecipe::getProcessType,
             InscriberRecipe::new);
 

@@ -331,8 +331,8 @@ public record FillCraftingGridFromRecipePacket(
      */
     private List<AEItemKey> findBestMatchingItemStack(Ingredient ingredient, IPartitionList filter,
             KeyCounter storage) {
-        if (!ingredient.isCustom()) {
-            return ingredient.getValues().stream()
+        if (ingredient.getCustomIngredient() == null) {
+            return ingredient.items()
                     .map(Holder::value)
                     .map(AEItemKey::of)
                     .filter(r -> r != null && (filter == null || filter.isListed(r)))

@@ -2,7 +2,7 @@ package appeng.recipes;
 
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.item.crafting.RecipeSerializer;
-import net.neoforged.neoforge.registries.DeferredRegister;
+import appeng.core.registries.DeferredRegister;
 
 import appeng.core.AppEng;
 import appeng.recipes.entropy.EntropyRecipe;

@@ -24,7 +24,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.RandomSource;
 import net.neoforged.neoforge.client.model.quad.QuadTransforms;
-import net.neoforged.neoforge.model.data.ModelData;
+import appeng.api.model.ModelData;
 
 import appeng.api.util.AEColor;
 import appeng.client.api.model.parts.PartModel;

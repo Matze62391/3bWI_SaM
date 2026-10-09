@@ -38,8 +38,8 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ItemLike;
-import net.neoforged.neoforge.capabilities.ItemCapability;
-import net.neoforged.neoforge.transfer.access.ItemAccess;
+import net.fabricmc.fabric.api.lookup.v1.item.ItemApiLookup;
+import net.fabricmc.fabric.api.transfer.v1.context.ContainerItemContext;
 
 import appeng.core.definitions.AEParts;
 import appeng.items.parts.PartItem;
@@ -112,10 +112,10 @@ public final class P2PTunnelAttunement {
      * @param tunnelPart  The P2P-tunnel part item.
      * @param description Description for display in REI/JEI.
      */
-    public synchronized static void registerAttunementApi(ItemLike tunnelPart, ItemCapability<?, Void> cap,
+    public synchronized static void registerAttunementApi(ItemLike tunnelPart, ItemApiLookup<?, Void> cap,
             Component description) {
         Objects.requireNonNull(cap, "cap");
-        Predicate<ItemStack> test = stack -> stack.getCapability(cap) != null;
+        Predicate<ItemStack> test = stack -> cap.find(stack, null) != null;
         apiAttunements.add(new ApiAttunement(test, cap, validateTunnelPartItem(tunnelPart), description));
     }
 
@@ -126,10 +126,10 @@ public final class P2PTunnelAttunement {
      * @param description Description for display in REI/JEI.
      */
     public synchronized static void registerItemAccessAttunementApi(ItemLike tunnelPart,
-            ItemCapability<?, ItemAccess> cap,
+            ItemApiLookup<?, ContainerItemContext> cap,
             Component description) {
         Objects.requireNonNull(cap, "cap");
-        Predicate<ItemStack> test = stack -> stack.getCapability(cap, ItemAccess.forStack(stack)) != null;
+        Predicate<ItemStack> test = stack -> ContainerItemContext.withConstant(stack).find(cap) != null;
         apiAttunements.add(new ApiAttunement(test, cap, validateTunnelPartItem(tunnelPart), description));
     }
 
@@ -178,7 +178,7 @@ public final class P2PTunnelAttunement {
 
     record ApiAttunement(
             Predicate<ItemStack> capabilityTest,
-            ItemCapability<?, ?> capability,
+            ItemApiLookup<?, ?> capability,
             Item tunnelType,
             Component component) {
         public boolean hasApi(ItemStack stack) {

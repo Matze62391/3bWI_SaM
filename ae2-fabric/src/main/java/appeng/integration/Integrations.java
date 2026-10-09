@@ -18,13 +18,12 @@
 
 package appeng.integration;
 
-import net.neoforged.fml.event.lifecycle.InterModEnqueueEvent;
 
 // TODO 1.21.11: import appeng.integration.modules.theoneprobe.TOP;
 
 public class Integrations {
 
-    public static void enqueueIMC(InterModEnqueueEvent event) {
+    public static void enqueueIMC() {
         // TODO 1.21.11: TOP.enqueueIMC(event);
     }
 }

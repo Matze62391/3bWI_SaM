@@ -22,10 +22,8 @@ import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.phys.AABB;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.neoforge.event.AddServerReloadListenersEvent;
-import net.neoforged.neoforge.event.server.ServerStartedEvent;
-import net.neoforged.neoforge.registries.holdersets.OrHolderSet;
+
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
@@ -157,7 +155,7 @@ public final class TransformLogic {
             if (holderSets.size() == 1) {
                 return holderSets.getFirst();
             }
-            return new OrHolderSet<>(holderSets);
+            return union(holderSets);
         });
     }
 
@@ -177,7 +175,7 @@ public final class TransformLogic {
             if (holderSets.size() == 1) {
                 ret = holderSets.getFirst();
             } else {
-                ret = new OrHolderSet<>(holderSets);
+                ret = union(holderSets);
             }
             anyFluidCache = ret;
         }
@@ -193,8 +191,8 @@ public final class TransformLogic {
                 if (!recipe.circumstance.isExplosion())
                     continue;
                 for (var ingredient : recipe.ingredients) {
-                    if (!ingredient.isCustom()) {
-                        holderSets.add(ingredient.getValues());
+                    if (ingredient.getCustomIngredient() == null) {
+                        holderSets.add(HolderSet.direct(ingredient.items().toList()));
                     } else {
                         LOG.warn("Custom ingredient {} does not work in explosion transform recipe {}", ingredient,
                                 holder.id());
@@ -205,31 +203,24 @@ public final class TransformLogic {
             if (holderSets.size() == 1) {
                 ret = holderSets.getFirst();
             } else {
-                ret = new OrHolderSet<>(holderSets);
+                ret = union(holderSets);
             }
             explosionCache = ret;
         }
         return ret;
     }
 
-    @SubscribeEvent
-    public static void onServerStarted(ServerStartedEvent e) {
-        clearCache();
+    public static void init() {
+        ServerLifecycleEvents.SERVER_STARTED.register(server -> clearCache());
+        ServerLifecycleEvents.END_DATA_PACK_RELOAD.register((server, resourceManager, success) -> clearCache());
     }
 
-    @SubscribeEvent
-    public static void onReloadServerResources(AddServerReloadListenersEvent e) {
-        e.addListener(AppEng.makeId("transform_logic_cache_invalidation"), new SimplePreparableReloadListener<Void>() {
-            @Override
-            protected Void prepare(ResourceManager resourceManager, ProfilerFiller profiler) {
-                return null;
-            }
-
-            @Override
-            protected void apply(Void object, ResourceManager resourceManager, ProfilerFiller profiler) {
-                clearCache();
-            }
-        });
+    /**
+     * Combines holder sets. NeoForge has a dedicated OR holder set for this, but since the result is cached until the
+     * next reload, a direct holder set is equivalent.
+     */
+    private static HolderSet<Item> union(List<HolderSet<Item>> holderSets) {
+        return HolderSet.direct(holderSets.stream().flatMap(HolderSet::stream).distinct().toList());
     }
 
     private TransformLogic() {
@@ -238,8 +229,8 @@ public final class TransformLogic {
     private static boolean collectFirstNonCustomIngredient(TransformRecipe recipe, List<HolderSet<Item>> holderSets) {
         boolean hadAnyWorkingIngredient = false;
         for (var ingredient : recipe.ingredients) {
-            if (!ingredient.isCustom()) {
-                holderSets.add(ingredient.getValues());
+            if (ingredient.getCustomIngredient() == null) {
+                holderSets.add(HolderSet.direct(ingredient.items().toList()));
                 hadAnyWorkingIngredient = true;
                 break; // only process first ingredient (they're all required anyway)
             }

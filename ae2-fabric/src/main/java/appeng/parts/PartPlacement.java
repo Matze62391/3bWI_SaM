@@ -140,7 +140,7 @@ public class PartPlacement {
         }
 
         if (player != null) {
-            side = player.getData(AEAttachmentTypes.HOLDING_CTRL) ? side.getOpposite() : side;
+            side = player.getAttachedOrCreate(AEAttachmentTypes.HOLDING_CTRL) ? side.getOpposite() : side;
         }
 
         if (canPlacePartOnBlock(player, level, partStack, pos, side)) {

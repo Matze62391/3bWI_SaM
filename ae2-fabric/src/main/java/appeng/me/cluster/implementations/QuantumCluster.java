@@ -18,6 +18,14 @@
 
 package appeng.me.cluster.implementations;
 
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Set;
+
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLevelEvents;
+import net.minecraft.world.level.Level;
+
 import java.util.Iterator;
 
 import org.jetbrains.annotations.Nullable;
@@ -25,9 +33,6 @@ import org.jetbrains.annotations.Nullable;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.level.LevelEvent;
 
 import appeng.api.features.Locatables;
 import appeng.api.networking.GridHelper;
@@ -59,9 +64,22 @@ public class QuantumCluster implements IAECluster, IActionHost {
         this.setRing(new QuantumBridgeBlockEntity[8]);
     }
 
-    @SubscribeEvent
-    public void onUnload(final LevelEvent.Unload e) {
-        if (this.center != null && this.center.getLevel() == e.getLevel()) {
+    /**
+     * Clusters with a center, which need to be destroyed when their level unloads. NeoForge registers each cluster
+     * on the event bus instead.
+     */
+    private static final Set<QuantumCluster> REGISTERED = Collections.newSetFromMap(new IdentityHashMap<>());
+
+    static {
+        ServerLevelEvents.UNLOAD.register((server, level) -> {
+            for (var cluster : List.copyOf(REGISTERED)) {
+                cluster.onUnload(level);
+            }
+        });
+    }
+
+    private void onUnload(Level level) {
+        if (this.center != null && this.center.getLevel() == level) {
             this.setUpdateStatus(false);
             this.destroy();
         }
@@ -198,7 +216,7 @@ public class QuantumCluster implements IAECluster, IActionHost {
         MBCalculator.setModificationInProgress(this);
         try {
             if (this.registered) {
-                NeoForge.EVENT_BUS.unregister(this);
+                REGISTERED.remove(this);
                 this.registered = false;
             }
 
@@ -241,7 +259,7 @@ public class QuantumCluster implements IAECluster, IActionHost {
 
     void setCenter(QuantumBridgeBlockEntity c) {
         this.registered = true;
-        NeoForge.EVENT_BUS.register(this);
+        REGISTERED.add(this);
         this.center = c;
     }
 

@@ -40,6 +40,7 @@ import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
+import appeng.util.Platform;
 import appeng.block.AEBaseEntityBlock;
 import appeng.blockentity.qnb.QuantumBridgeBlockEntity;
 
@@ -104,7 +105,7 @@ public abstract class QuantumBaseBlock extends AEBaseEntityBlock<QuantumBridgeBl
         var bridge = this.getBlockEntity(level, pos);
         if (bridge != null) {
             bridge.updateMultiBlock(neighborPos);
-            bridge.requestModelDataUpdate(); // Adjacency is encoded in model data
+            Platform.requestModelDataUpdate(bridge); // Adjacency is encoded in model data
         }
 
         return super.updateShape(state, level, scheduledTickAccess, pos, direction, neighborPos, neighborState, random);

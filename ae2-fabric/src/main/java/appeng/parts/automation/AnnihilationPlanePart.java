@@ -33,7 +33,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
-import net.neoforged.neoforge.model.data.ModelData;
+import appeng.api.model.ModelData;
 
 import appeng.api.behaviors.PickupStrategy;
 import appeng.api.config.Actionable;

@@ -28,15 +28,16 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
-import net.neoforged.neoforge.capabilities.Capabilities;
-import net.neoforged.neoforge.transfer.energy.EnergyHandler;
-import net.neoforged.neoforge.transfer.transaction.Transaction;
-import net.neoforged.neoforge.transfer.transaction.TransactionContext;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidStorage;
+import net.fabricmc.fabric.api.transfer.v1.item.ItemStorage;
+import team.reborn.energy.api.EnergyStorage;
+import net.fabricmc.fabric.api.transfer.v1.transaction.Transaction;
+import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
 
 import appeng.blockentity.AEBaseBlockEntity;
 import appeng.blockentity.ServerTickingBlockEntity;
 
-public class EnergyGeneratorBlockEntity extends AEBaseBlockEntity implements ServerTickingBlockEntity, EnergyHandler {
+public class EnergyGeneratorBlockEntity extends AEBaseBlockEntity implements ServerTickingBlockEntity, EnergyStorage {
     /**
      * The base energy injected each tick. Adjacent energy generators will increase it to pow(base, #generators).
      */
@@ -62,10 +63,10 @@ public class EnergyGeneratorBlockEntity extends AEBaseBlockEntity implements Ser
         final int energyToInsert = IntMath.pow(generationRate, tier);
 
         for (Direction facing : Direction.values()) {
-            var consumer = getLevel().getCapability(Capabilities.Energy.BLOCK, getBlockPos().relative(facing),
+            var consumer = EnergyStorage.SIDED.find(getLevel(), getBlockPos().relative(facing),
                     facing.getOpposite());
             if (consumer != null) {
-                try (var tx = Transaction.open(null)) {
+                try (var tx = Transaction.openOuter()) {
                     consumer.insert(energyToInsert, tx);
                     tx.commit();
                 }
@@ -94,22 +95,22 @@ public class EnergyGeneratorBlockEntity extends AEBaseBlockEntity implements Ser
     }
 
     @Override
-    public long getAmountAsLong() {
+    public long getAmount() {
         return Long.MAX_VALUE;
     }
 
     @Override
-    public long getCapacityAsLong() {
+    public long getCapacity() {
         return Long.MAX_VALUE;
     }
 
     @Override
-    public int insert(int amount, TransactionContext transaction) {
+    public long insert(long amount, TransactionContext transaction) {
         return 0;
     }
 
     @Override
-    public int extract(int amount, TransactionContext transaction) {
+    public long extract(long amount, TransactionContext transaction) {
         return amount;
     }
 }

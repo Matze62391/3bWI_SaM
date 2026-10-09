@@ -35,7 +35,7 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.crafting.Recipe;
-import net.neoforged.neoforge.network.codec.NeoForgeStreamCodecs;
+import appeng.core.network.AEStreamCodecs;
 
 import appeng.api.stacks.GenericStack;
 import appeng.util.AECodecs;
@@ -140,7 +140,7 @@ public class SynchronizedField<T> {
                 codec = PACKET_WRITABLE_CODECS.computeIfAbsent(fieldType.asSubclass(PacketWritable.class),
                         PacketWritable::streamCodec);
             } else if (fieldType.isEnum()) {
-                codec = NeoForgeStreamCodecs.enumCodec(fieldType.asSubclass(Enum.class));
+                codec = AEStreamCodecs.enumCodec(fieldType.asSubclass(Enum.class));
             } else {
                 throw new IllegalArgumentException("Cannot synchronize field " + field);
             }

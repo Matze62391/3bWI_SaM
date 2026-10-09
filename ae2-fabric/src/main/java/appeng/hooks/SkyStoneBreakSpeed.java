@@ -18,9 +18,11 @@
 
 package appeng.hooks;
 
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.block.state.BlockState;
+
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ToolMaterial;
-import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 
 import appeng.core.definitions.AEBlocks;
 
@@ -35,13 +37,16 @@ public final class SkyStoneBreakSpeed {
     private SkyStoneBreakSpeed() {
     }
 
-    public static void handleBreakFaster(PlayerEvent.BreakSpeed event) {
-        var blockState = event.getState();
+    /**
+     * Called from a mixin into {@code Player#getDestroySpeed} (NeoForge fires the BreakSpeed event there).
+     */
+    public static float handleBreakFaster(Player player, BlockState blockState, float speed) {
         if (blockState.getBlock() == AEBlocks.SKY_STONE_BLOCK.block()) {
-            var tool = event.getEntity().getItemBySlot(EquipmentSlot.MAINHAND);
+            var tool = player.getItemBySlot(EquipmentSlot.MAINHAND);
             if (tool.getDestroySpeed(blockState) > ToolMaterial.IRON.speed()) {
-                event.setNewSpeed(event.getNewSpeed() * SPEEDUP_FACTOR);
+                return speed * SPEEDUP_FACTOR;
             }
         }
+        return speed;
     }
 }

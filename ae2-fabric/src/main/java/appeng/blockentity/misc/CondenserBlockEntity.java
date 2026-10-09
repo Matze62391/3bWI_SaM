@@ -24,11 +24,11 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
-import net.neoforged.neoforge.transfer.ResourceHandler;
-import net.neoforged.neoforge.transfer.fluid.FluidResource;
-import net.neoforged.neoforge.transfer.item.ItemResource;
-import net.neoforged.neoforge.transfer.resource.Resource;
-import net.neoforged.neoforge.transfer.transaction.TransactionContext;
+import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant;
+import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
+import net.fabricmc.fabric.api.transfer.v1.storage.TransferVariant;
+import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
 
 import appeng.api.config.CondenserOutput;
 import appeng.api.config.Settings;
@@ -62,8 +62,8 @@ public class CondenserBlockEntity extends AEBaseInvBlockEntity implements IConfi
     private final AppEngInternalInventory outputSlot = new AppEngInternalInventory(this, 1);
     private final AppEngInternalInventory storageSlot = new AppEngInternalInventory(this, 1);
     private final InternalInventory inputSlot = new CondenseItemHandler();
-    private final ResourceHandler<FluidResource> fluidHandler = new CondenseResourceHandler<>(
-            FluidResource.EMPTY,
+    private final Storage<FluidVariant> fluidHandler = new CondenseResourceHandler<>(
+            FluidVariant.blank(),
             1.0 / AEKeyType.fluids().getAmountPerOperation(),
             AEFluidKey.AMOUNT_BUCKET);
 
@@ -191,7 +191,7 @@ public class CondenserBlockEntity extends AEBaseInvBlockEntity implements IConfi
         return externalInv;
     }
 
-    public ResourceHandler<FluidResource> getFluidHandler() {
+    public Storage<FluidVariant> getFluidHandler() {
         return fluidHandler;
     }
 
@@ -241,13 +241,13 @@ public class CondenserBlockEntity extends AEBaseInvBlockEntity implements IConfi
         }
 
         @Override
-        protected ResourceHandler<ItemResource> createResourceHandler() {
+        protected Storage<ItemVariant> createStorage() {
             // Mirrors insertItem/isItemValid above: don't void items (i.e. convert them to power) while the
             // output slot can't accept the configured output item, otherwise items pushed in through the
             // Storage/Transfer capability would be destroyed for nothing.
-            return new CondenseResourceHandler<>(ItemResource.EMPTY, 1, Integer.MAX_VALUE) {
+            return new CondenseResourceHandler<>(ItemVariant.blank(), 1, Integer.MAX_VALUE) {
                 @Override
-                public int insert(ItemResource resource, int amount, TransactionContext transaction) {
+                public long insert(ItemVariant resource, long amount, TransactionContext transaction) {
                     if (!canAddOutput()) {
                         return 0;
                     }
@@ -257,7 +257,7 @@ public class CondenserBlockEntity extends AEBaseInvBlockEntity implements IConfi
         }
     }
 
-    private class CondenseResourceHandler<T extends Resource>
+    private class CondenseResourceHandler<T extends TransferVariant<?>>
             extends InsertionOnlyResourceHandlerWithJournal<T, Double> {
         private final double energyFactor;
         private final int maxAmountPerOperation;
@@ -270,7 +270,7 @@ public class CondenserBlockEntity extends AEBaseInvBlockEntity implements IConfi
         }
 
         @Override
-        public int insert(T resource, int maxAmount, TransactionContext transaction) {
+        public long insert(T resource, long maxAmount, TransactionContext transaction) {
             // Clamp the amount per operation
             var amount = Math.min(maxAmountPerOperation, maxAmount);
             updateSnapshots(transaction);

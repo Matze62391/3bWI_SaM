@@ -3,7 +3,7 @@ package appeng.api.behaviors;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
 
-import net.neoforged.neoforge.transfer.transaction.TransactionContext;
+import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
 
 import appeng.api.config.Actionable;
 import appeng.api.stacks.AEKey;

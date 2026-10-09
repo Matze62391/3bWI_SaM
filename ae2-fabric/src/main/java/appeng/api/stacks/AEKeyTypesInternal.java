@@ -9,7 +9,7 @@ import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
 
 import net.minecraft.core.Registry;
-import net.neoforged.neoforge.registries.callback.BakeCallback;
+import net.fabricmc.fabric.api.event.registry.RegistryEntryAddedCallback;
 
 /**
  * Manages the registry used to synchronize key spaces to the client.
@@ -33,18 +33,21 @@ public final class AEKeyTypesInternal {
     public static void setRegistry(Registry<AEKeyType> registry) {
         Preconditions.checkState(AEKeyTypesInternal.registry == null);
         AEKeyTypesInternal.registry = registry;
-        registry.addCallback((BakeCallback<AEKeyType>) (ignored -> {
+        // Recompute the set of all types whenever a type is added
+        RegistryEntryAddedCallback.event(registry).register((rawId, id, object) -> allTypes = null);
+    }
+
+    public static Set<AEKeyType> getAllTypes() {
+        Preconditions.checkState(registry != null, "AE2 isn't initialized yet.");
+        var result = allTypes;
+        if (result == null) {
             var types = new HashSet<AEKeyType>();
             for (var aeKeyType : registry) {
                 types.add(aeKeyType);
             }
-            allTypes = Set.copyOf(types);
-        }));
-    }
-
-    public static Set<AEKeyType> getAllTypes() {
-        Preconditions.checkState(allTypes != null, "AE2 isn't initialized yet.");
-        return allTypes;
+            allTypes = result = Set.copyOf(types);
+        }
+        return result;
     }
 
     public static void register(AEKeyType keyType) {

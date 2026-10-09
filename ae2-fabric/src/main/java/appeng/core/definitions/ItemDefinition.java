@@ -29,7 +29,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.world.level.ItemLike;
-import net.neoforged.neoforge.registries.DeferredItem;
+import appeng.core.registries.DeferredItem;
 
 import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKey;

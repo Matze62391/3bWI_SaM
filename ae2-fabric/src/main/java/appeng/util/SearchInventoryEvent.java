@@ -3,47 +3,34 @@ package appeng.util;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.fabricmc.fabric.api.event.Event;
+import net.fabricmc.fabric.api.event.EventFactory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.entity.player.PlayerEvent;
-
-import appeng.integration.modules.curios.CuriosIntegration;
 
 /**
- * Event fired when AE2 is looking for ItemStacks in a player inventory. By default, AE2 only looks at the 36 usual
- * slots of the player inventory, use this event to make AE2 consider more stacks. AE2 will check after the event if
- * they contain the item it is searching.
+ * Collects the item stacks a player carries, e.g. to find items for autocrafting notifications. Addons that add extra
+ * inventories (such as accessory slots) can contribute their stacks by listening to {@link #EVENT}.
  */
-public class SearchInventoryEvent extends PlayerEvent {
-    private final List<ItemStack> stacks;
+public final class SearchInventoryEvent {
+    public static final Event<Listener> EVENT = EventFactory.createArrayBacked(Listener.class,
+            listeners -> (player, stacks) -> {
+                for (var listener : listeners) {
+                    listener.collect(player, stacks);
+                }
+            });
 
-    public SearchInventoryEvent(Player player, List<ItemStack> stacks) {
-        super(player);
-        this.stacks = stacks;
+    @FunctionalInterface
+    public interface Listener {
+        void collect(Player player, List<ItemStack> stacks);
     }
 
-    public List<ItemStack> getStacks() {
-        return stacks;
-    }
-
-    static {
-        NeoForge.EVENT_BUS.addListener((SearchInventoryEvent event) -> {
-            event.getStacks().addAll(event.getEntity().getInventory().getNonEquipmentItems());
-        });
-        NeoForge.EVENT_BUS.addListener((SearchInventoryEvent event) -> {
-            var cap = event.getEntity().getCapability(CuriosIntegration.ITEM_HANDLER);
-            if (cap == null)
-                return;
-            for (int i = 0; i < cap.size(); i++) {
-                event.getStacks().add(cap.getResource(i).toStack());
-            }
-        });
+    private SearchInventoryEvent() {
     }
 
     public static List<ItemStack> getItems(Player player) {
-        List<ItemStack> items = new ArrayList<>();
-        NeoForge.EVENT_BUS.post(new SearchInventoryEvent(player, items));
+        List<ItemStack> items = new ArrayList<>(player.getInventory().getNonEquipmentItems());
+        EVENT.invoker().collect(player, items);
         return items;
     }
 }

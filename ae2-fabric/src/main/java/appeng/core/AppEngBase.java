@@ -39,22 +39,13 @@ import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.crafting.RecipeMap;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
-import net.neoforged.bus.api.EventPriority;
-import net.neoforged.bus.api.IEventBus;
-import net.neoforged.fml.ModContainer;
-import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
-import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.OnDatapackSyncEvent;
-import net.neoforged.neoforge.event.RegisterCommandsEvent;
-import net.neoforged.neoforge.event.RegisterGameTestsEvent;
-import net.neoforged.neoforge.event.server.ServerAboutToStartEvent;
-import net.neoforged.neoforge.event.server.ServerStoppedEvent;
-import net.neoforged.neoforge.event.server.ServerStoppingEvent;
-import net.neoforged.neoforge.network.PacketDistributor;
-import net.neoforged.neoforge.registries.NewRegistryEvent;
-import net.neoforged.neoforge.registries.RegisterEvent;
-import net.neoforged.neoforge.registries.RegistryBuilder;
-import net.neoforged.neoforge.server.ServerLifecycleHooks;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.fabric.api.event.player.UseBlockCallback;
+import net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder;
+import net.fabricmc.fabric.api.event.registry.RegistryAttribute;
+import net.fabricmc.fabric.api.recipe.v1.sync.RecipeSynchronization;
+import appeng.core.network.NetworkHelper;
 
 import appeng.api.ids.AEComponents;
 import appeng.api.parts.CableRenderMode;
@@ -90,6 +81,8 @@ import appeng.init.worldgen.InitStructures;
 import appeng.integration.Integrations;
 import appeng.recipes.AERecipeSerializers;
 import appeng.recipes.AERecipeTypes;
+import appeng.recipes.conditions.TagNotEmptyCondition;
+import appeng.recipes.transform.TransformLogic;
 import appeng.server.AECommand;
 import appeng.server.services.ChunkLoadingService;
 import appeng.server.testworld.GameTestPlotAdapter;
@@ -118,103 +111,82 @@ public abstract class AppEngBase implements AppEng {
 
     static AppEngBase INSTANCE;
 
-    public AppEngBase(IEventBus modEventBus, ModContainer container) {
+    @Nullable
+    private MinecraftServer currentServer;
+
+    public AppEngBase() {
         if (INSTANCE != null) {
             throw new IllegalStateException();
         }
         INSTANCE = this;
 
-        AEConfig.register(container);
+        AEConfig.register();
 
         InitGridServices.init();
         InitBlockEntityMoveStrategies.init();
 
+        // On NeoForge, these registrations are driven by the RegisterEvent of each registry.
+        // Fabric registers directly, so the order matters: registries that are referenced by
+        // later registrations (i.e. data components by items) have to come first.
+        registerRegistries();
+        registerKeyTypes(AEKeyTypesInternal.getRegistry());
+        registerSounds(BuiltInRegistries.SOUND_EVENT);
+        AEAttachmentTypes.register();
+        AEComponents.DR.register();
         AEParts.init();
-        AEBlocks.DR.register(modEventBus);
-        AEItems.DR.register(modEventBus);
-        AEBlockEntities.DR.register(modEventBus);
-        AEComponents.DR.register(modEventBus);
-        AEEntities.DR.register(modEventBus);
-        AERecipeTypes.DR.register(modEventBus);
-        AERecipeSerializers.DR.register(modEventBus);
-        InitStructures.register(modEventBus);
-        AEAttachmentTypes.register(modEventBus);
+        AEBlocks.DR.register();
+        AEItems.DR.register();
+        AEBlockEntities.DR.register();
+        AEEntities.DR.register();
+        AERecipeTypes.DR.register();
+        AERecipeSerializers.DR.register();
+        InitStructures.register();
+        InitStats.init(BuiltInRegistries.CUSTOM_STAT);
+        InitAdvancementTriggers.init(BuiltInRegistries.TRIGGER_TYPES);
+        InitParticleTypes.init(BuiltInRegistries.PARTICLE_TYPE);
+        InitMenuTypes.init(BuiltInRegistries.MENU);
+        Registry.register(BuiltInRegistries.CHUNK_GENERATOR, SpatialStorageDimensionIds.CHUNK_GENERATOR_ID,
+                SpatialStorageChunkGenerator.CODEC);
+        InitVillager.initProfession(BuiltInRegistries.VILLAGER_PROFESSION);
+        InitVillager.initPointOfInterestType(BuiltInRegistries.POINT_OF_INTEREST_TYPE);
+        Registry.register(BuiltInRegistries.TEST_INSTANCE_TYPE, AppEng.makeId("plot_adapter"),
+                GameTestPlotAdapter.CODEC);
+        registerCreativeTabs(BuiltInRegistries.CREATIVE_MODE_TAB);
+        MainCreativeTab.initExternal();
 
-        modEventBus.addListener(this::registerRegistries);
-        modEventBus.addListener(MainCreativeTab::initExternal);
-        modEventBus.addListener(InitNetwork::init);
-        modEventBus.addListener(ChunkLoadingService.getInstance()::register);
-        modEventBus.addListener(EventPriority.HIGH, InitCapabilityProviders::markProxyableCapabilities);
-        modEventBus.addListener(InitCapabilityProviders::register);
-        modEventBus.addListener(EventPriority.LOWEST, InitCapabilityProviders::registerGenericAdapters);
-        modEventBus.addListener((RegisterEvent event) -> {
-            if (event.getRegistryKey() == Registries.SOUND_EVENT) {
-                registerSounds(BuiltInRegistries.SOUND_EVENT);
-            } else if (event.getRegistryKey() == Registries.CREATIVE_MODE_TAB) {
-                registerCreativeTabs(BuiltInRegistries.CREATIVE_MODE_TAB);
-            } else if (event.getRegistryKey() == Registries.CUSTOM_STAT) {
-                InitStats.init(event.getRegistry(Registries.CUSTOM_STAT));
-            } else if (event.getRegistryKey() == Registries.TRIGGER_TYPE) {
-                InitAdvancementTriggers.init(event.getRegistry(Registries.TRIGGER_TYPE));
-            } else if (event.getRegistryKey() == Registries.PARTICLE_TYPE) {
-                InitParticleTypes.init(event.getRegistry(Registries.PARTICLE_TYPE));
-            } else if (event.getRegistryKey() == Registries.MENU) {
-                InitMenuTypes.init(event.getRegistry(Registries.MENU));
-            } else if (event.getRegistryKey() == Registries.CHUNK_GENERATOR) {
-                Registry.register(BuiltInRegistries.CHUNK_GENERATOR, SpatialStorageDimensionIds.CHUNK_GENERATOR_ID,
-                        SpatialStorageChunkGenerator.CODEC);
-            } else if (event.getRegistryKey() == Registries.VILLAGER_PROFESSION) {
-                InitVillager.initProfession(event.getRegistry(Registries.VILLAGER_PROFESSION));
-            } else if (event.getRegistryKey() == Registries.POINT_OF_INTEREST_TYPE) {
-                InitVillager.initPointOfInterestType(event.getRegistry(Registries.POINT_OF_INTEREST_TYPE));
-            } else if (event.getRegistryKey() == AEKeyType.REGISTRY_KEY) {
-                registerKeyTypes(event.getRegistry(AEKeyType.REGISTRY_KEY));
-            } else if (event.getRegistryKey() == Registries.TEST_INSTANCE_TYPE) {
-                event.register(Registries.TEST_INSTANCE_TYPE, AppEng.makeId("plot_adapter"),
-                        () -> GameTestPlotAdapter.CODEC);
-            }
-        });
-
-        modEventBus.addListener(Integrations::enqueueIMC);
-        modEventBus.addListener(this::commonSetup);
-
-        modEventBus.addListener(this::registerTests);
+        TagNotEmptyCondition.register();
+        TransformLogic.init();
+        InitNetwork.init();
+        ChunkLoadingService.getInstance().register();
+        InitCapabilityProviders.register();
+        registerSynchronizedRecipes();
 
         TickHandler.instance().init();
 
-        NeoForge.EVENT_BUS.addListener(this::onServerAboutToStart);
-        NeoForge.EVENT_BUS.addListener(this::serverStopped);
-        NeoForge.EVENT_BUS.addListener(this::serverStopping);
-        NeoForge.EVENT_BUS.addListener(this::registerCommands);
+        ServerLifecycleEvents.SERVER_STARTING.register(server -> this.currentServer = server);
+        ServerLifecycleEvents.SERVER_STOPPED.register(this::serverStopped);
+        CommandRegistrationCallback.EVENT
+                .register((dispatcher, registryAccess, environment) -> new AECommand().register(dispatcher));
 
-        NeoForge.EVENT_BUS.addListener(WrenchHook::onPlayerUseBlockEvent);
-        NeoForge.EVENT_BUS.addListener(SkyStoneBreakSpeed::handleBreakFaster);
-        NeoForge.EVENT_BUS.addListener(this::registerSynchronizedRecipes);
+        UseBlockCallback.EVENT.register(WrenchHook::onPlayerUseBlock);
 
         HotkeyActions.init();
+
+        // NeoForge runs this in the common setup event, after all mods have registered their content.
+        // On Fabric, all registrations of AE2 are done at this point.
+        postRegistrationInitialization();
     }
 
-    private void registerSynchronizedRecipes(OnDatapackSyncEvent event) {
-        event.sendRecipes(
-                RecipeType.CRAFTING,
-                RecipeType.STONECUTTING,
-                RecipeType.SMITHING,
-                RecipeType.SMELTING,
-                // For GuideME
-                AERecipeTypes.INSCRIBER,
-                AERecipeTypes.TRANSFORM,
-                AERecipeTypes.CHARGER,
-                AERecipeTypes.ENTROPY,
-                AERecipeTypes.MATTER_CANNON_AMMO,
-                AERecipeTypes.QUARTZ_CUTTING);
-    }
-
-    private void commonSetup(FMLCommonSetupEvent event) {
-        event.enqueueWork(this::postRegistrationInitialization).whenComplete((res, err) -> {
-            if (err != null) {
-                LOG.error("Common setup failed", err);
+    /**
+     * Vanilla no longer sends recipes to the client. AE2 needs them for its UI (and GuideME on NeoForge).
+     */
+    private void registerSynchronizedRecipes() {
+        for (var serializer : BuiltInRegistries.RECIPE_SERIALIZER) {
+            var id = BuiltInRegistries.RECIPE_SERIALIZER.getKey(serializer);
+            if (id != null && (id.getNamespace().equals("minecraft") || id.getNamespace().equals(AppEng.MOD_ID))) {
+                RecipeSynchronization.synchronizeRecipeSerializer(serializer);
             }
-        });
+        }
     }
 
     /**
@@ -238,31 +210,22 @@ public abstract class AppEngBase implements AppEng {
         Registry.register(registry, AEKeyType.fluids().getId(), AEKeyType.fluids());
     }
 
-    public void registerCommands(RegisterCommandsEvent evt) {
-        new AECommand().register(evt.getDispatcher());
-    }
-
     public void registerSounds(Registry<SoundEvent> registry) {
         AppEngSounds.register(registry);
     }
 
-    public void registerRegistries(NewRegistryEvent e) {
-        var registry = e.create(new RegistryBuilder<>(AEKeyType.REGISTRY_KEY)
-                .sync(true)
-                .maxId(127));
+    public void registerRegistries() {
+        var registry = FabricRegistryBuilder.create(AEKeyType.REGISTRY_KEY)
+                .attribute(RegistryAttribute.SYNCED)
+                .buildAndRegister();
         AEKeyTypesInternal.setRegistry(registry);
     }
 
-    private void onServerAboutToStart(final ServerAboutToStartEvent evt) {
-        ChunkLoadingService.getInstance().onServerAboutToStart(evt);
-    }
-
-    private void serverStopping(final ServerStoppingEvent event) {
-        ChunkLoadingService.getInstance().onServerStopping(event);
-    }
-
-    private void serverStopped(final ServerStoppedEvent event) {
+    private void serverStopped(MinecraftServer server) {
         TickHandler.instance().shutdown();
+        if (this.currentServer == server) {
+            this.currentServer = null;
+        }
     }
 
     public void registerCreativeTabs(Registry<CreativeModeTab> registry) {
@@ -289,7 +252,7 @@ public abstract class AppEngBase implements AppEng {
             if (p instanceof ServerPlayer) {
                 except = (ServerPlayer) p;
             }
-            PacketDistributor.sendToPlayersNear(serverLevel, except, x, y, z, dist, packet);
+            NetworkHelper.sendToPlayersNear(serverLevel, except, x, y, z, dist, packet);
         }
     }
 
@@ -306,7 +269,7 @@ public abstract class AppEngBase implements AppEng {
     @Nullable
     @Override
     public MinecraftServer getCurrentServer() {
-        return ServerLifecycleHooks.getCurrentServer();
+        return currentServer;
     }
 
     @Override
@@ -325,12 +288,6 @@ public abstract class AppEngBase implements AppEng {
         }
 
         return CableRenderMode.STANDARD;
-    }
-
-    private void registerTests(RegisterGameTestsEvent e) {
-        if (Boolean.getBoolean("appeng.tests")) {
-            GameTestPlotAdapter.registerAll(e::registerTest);
-        }
     }
 
     @Override

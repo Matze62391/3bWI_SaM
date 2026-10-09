@@ -1,6 +1,6 @@
 package appeng.parts.automation;
 
-import net.neoforged.neoforge.model.data.ModelProperty;
+import appeng.api.model.ModelProperty;
 
 public final class PartModelData {
     private PartModelData() {

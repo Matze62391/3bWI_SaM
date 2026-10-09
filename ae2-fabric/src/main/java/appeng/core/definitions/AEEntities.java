@@ -30,8 +30,8 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EntityType.Builder;
 import net.minecraft.world.entity.EntityType.EntityFactory;
 import net.minecraft.world.entity.MobCategory;
-import net.neoforged.neoforge.registries.DeferredHolder;
-import net.neoforged.neoforge.registries.DeferredRegister;
+import appeng.core.registries.DeferredHolder;
+import appeng.core.registries.DeferredRegister;
 
 import appeng.core.AppEng;
 import appeng.entity.TinyTNTPrimedEntity;

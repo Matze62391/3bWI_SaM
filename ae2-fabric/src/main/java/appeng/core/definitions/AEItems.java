@@ -38,7 +38,7 @@ import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Rarity;
 import net.minecraft.world.item.ToolMaterial;
-import net.neoforged.neoforge.registries.DeferredRegister;
+import appeng.core.registries.DeferredRegister;
 
 import appeng.api.crafting.PatternDetailsHelper;
 import appeng.api.ids.AECreativeTabIds;

@@ -22,9 +22,9 @@ import com.google.common.base.Preconditions;
 
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.transfer.ResourceHandler;
-import net.neoforged.neoforge.transfer.item.CarriedSlotWrapper;
-import net.neoforged.neoforge.transfer.item.ItemResource;
+import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
+import net.fabricmc.fabric.api.transfer.v1.item.PlayerInventoryStorage;
+import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
 
 import appeng.api.inventories.InternalInventory;
 
@@ -56,7 +56,7 @@ public class CarriedItemInventory implements InternalInventory {
     }
 
     @Override
-    public ResourceHandler<ItemResource> toResourceHandler() {
-        return CarriedSlotWrapper.of(menu);
+    public Storage<ItemVariant> toStorage() {
+        return PlayerInventoryStorage.getCursorStorage(menu);
     }
 }

@@ -40,6 +40,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 
+import appeng.util.Platform;
 import appeng.api.config.Actionable;
 import appeng.api.config.InscriberInputCapacity;
 import appeng.api.config.PowerMultiplier;
@@ -463,7 +464,7 @@ public class InscriberBlockEntity extends AENetworkedPoweredBlockEntity
 
         if (setting == Settings.INSCRIBER_SEPARATE_SIDES) {
             // Our exposed inventory changed, invalidate caps!
-            invalidateCapabilities();
+            Platform.invalidateCapabilities(this);
         }
 
         if (setting == Settings.INSCRIBER_INPUT_CAPACITY) {

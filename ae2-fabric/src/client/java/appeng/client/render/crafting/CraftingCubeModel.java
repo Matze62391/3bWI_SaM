@@ -40,7 +40,7 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.client.model.DynamicBlockStateModel;
 import net.neoforged.neoforge.client.model.block.CustomUnbakedBlockStateModel;
-import net.neoforged.neoforge.model.data.ModelData;
+import appeng.api.model.ModelData;
 
 import appeng.block.crafting.CraftingUnitType;
 import appeng.blockentity.crafting.CraftingCubeModelData;
@@ -74,7 +74,7 @@ public abstract class CraftingCubeModel implements DynamicBlockStateModel {
     public void collectParts(BlockAndTintGetter level, BlockPos pos, BlockState state, RandomSource random,
             List<BlockStateModelPart> parts) {
 
-        var extraData = level.getModelData(pos);
+        var extraData = ModelData.of(level.getBlockEntityRenderData(pos));
 
         EnumSet<Direction> connections = getConnections(extraData);
 

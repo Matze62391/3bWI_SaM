@@ -3,9 +3,10 @@ package appeng.parts.automation;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
-import net.neoforged.neoforge.capabilities.BlockCapability;
-import net.neoforged.neoforge.capabilities.BlockCapabilityCache;
-import net.neoforged.neoforge.capabilities.Capabilities;
+import net.fabricmc.fabric.api.lookup.v1.block.BlockApiLookup;
+import net.fabricmc.fabric.api.lookup.v1.block.BlockApiCache;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidStorage;
+import net.fabricmc.fabric.api.transfer.v1.item.ItemStorage;
 
 import appeng.api.behaviors.StackImportStrategy;
 import appeng.api.behaviors.StackTransferContext;
@@ -17,15 +18,17 @@ import appeng.core.AELog;
  * {@link appeng.api.storage.MEStorage}.
  */
 public class StorageImportStrategy<T, S> implements StackImportStrategy {
-    private final BlockCapabilityCache<T, Direction> cache;
+    private final BlockApiCache<T, Direction> cache;
+    private final Direction side;
     private final HandlerStrategy<T, S> conversion;
 
-    public StorageImportStrategy(BlockCapability<T, Direction> capability,
+    public StorageImportStrategy(BlockApiLookup<T, Direction> capability,
             HandlerStrategy<T, S> conversion,
             ServerLevel level,
             BlockPos fromPos,
             Direction fromSide) {
-        this.cache = BlockCapabilityCache.create(capability, level, fromPos, fromSide);
+        this.cache = BlockApiCache.create(capability, level, fromPos);
+        this.side = fromSide;
         this.conversion = conversion;
     }
 
@@ -35,7 +38,7 @@ public class StorageImportStrategy<T, S> implements StackImportStrategy {
             return false;
         }
 
-        var adjacentHandler = cache.getCapability();
+        var adjacentHandler = cache.find(side);
         if (adjacentHandler == null) {
             return false;
         }
@@ -48,7 +51,8 @@ public class StorageImportStrategy<T, S> implements StackImportStrategy {
         var inv = context.getInternalStorage();
 
         // Try to find an extractable resource that fits our filter
-        for (int i = 0; i < adjacentStorage.getSlots() && remainingTransferAmount > 0; i++) {
+        int slots = adjacentStorage.getSlots();
+        for (int i = 0; i < slots && remainingTransferAmount > 0; i++) {
             var resource = adjacentStorage.getStackInSlot(i);
             if (resource == null
                     // Regard a filter that is set on the bus
@@ -91,7 +95,7 @@ public class StorageImportStrategy<T, S> implements StackImportStrategy {
 
     public static StackImportStrategy createItem(ServerLevel level, BlockPos fromPos, Direction fromSide) {
         return new StorageImportStrategy<>(
-                Capabilities.Item.BLOCK,
+                ItemStorage.SIDED,
                 HandlerStrategy.ITEMS,
                 level,
                 fromPos,
@@ -100,7 +104,7 @@ public class StorageImportStrategy<T, S> implements StackImportStrategy {
 
     public static StackImportStrategy createFluid(ServerLevel level, BlockPos fromPos, Direction fromSide) {
         return new StorageImportStrategy<>(
-                Capabilities.Fluid.BLOCK,
+                FluidStorage.SIDED,
                 HandlerStrategy.FLUIDS,
                 level,
                 fromPos,

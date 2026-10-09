@@ -54,12 +54,12 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.material.Fluid;
-import net.neoforged.fml.ModList;
-import net.neoforged.fml.loading.FMLEnvironment;
-import net.neoforged.fml.loading.FMLLoader;
-import net.neoforged.fml.util.thread.SidedThreadGroups;
-import net.neoforged.neoforge.common.util.FakePlayerFactory;
-import net.neoforged.neoforge.fluids.FluidStack;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.fabric.api.entity.FakePlayer;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariantAttributes;
+import net.fabricmc.fabric.api.transfer.v1.transaction.Transaction;
+import net.fabricmc.loader.api.FabricLoader;
 
 import appeng.api.config.AccessRestriction;
 import appeng.api.config.PowerUnit;
@@ -67,6 +67,7 @@ import appeng.api.config.SortOrder;
 import appeng.api.implementations.items.IAEItemPowerStorage;
 import appeng.api.util.DimensionalBlockPos;
 import appeng.core.AEConfig;
+import appeng.core.AppEng;
 import appeng.hooks.VisualStateSaving;
 import appeng.hooks.ticking.TickHandler;
 import appeng.util.helpers.P2PHelper;
@@ -77,9 +78,6 @@ public class Platform {
 
     public static final Direction[] CULL_FACES = Stream.concat(Direction.stream(), Stream.of((Direction) null))
             .toArray(Direction[]::new);
-
-    @VisibleForTesting
-    public static ThreadGroup serverThreadGroup = SidedThreadGroups.SERVER;
 
     private static final P2PHelper P2P_HELPER = new P2PHelper();
 
@@ -99,14 +97,14 @@ public class Platform {
             return null; // Don't attempt this on a dedicated server
         }
 
-        if (!ModList.get().isLoaded("ponder")) {
+        if (!FabricLoader.getInstance().isModLoaded("ponder")) {
             return null;
         }
 
         try {
             return Class.forName(className);
         } catch (ClassNotFoundException ignored) {
-            LOG.atLevel(FMLEnvironment.isProduction() ? org.slf4j.event.Level.DEBUG : org.slf4j.event.Level.WARN)
+            LOG.atLevel(!FabricLoader.getInstance().isDevelopmentEnvironment() ? org.slf4j.event.Level.DEBUG : org.slf4j.event.Level.WARN)
                     .log("Unable to find class {}. Integration with PonderJS disabled.", className);
             return null;
         }
@@ -184,16 +182,14 @@ public class Platform {
      * @return True if client-side classes (such as Renderers) are available.
      */
     public static boolean hasClientClasses() {
-        // The null check is for tests
-        var loader = FMLLoader.getCurrentOrNull();
-        return loader == null || loader.getDist().isClient();
+        return FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT;
     }
 
     /*
      * returns true if the code is on the client.
      */
     public static boolean isClient() {
-        return Thread.currentThread().getThreadGroup() != SidedThreadGroups.SERVER;
+        return !isServer();
     }
 
     public static boolean hasPermissions(DimensionalBlockPos dc, Player player) {
@@ -218,14 +214,19 @@ public class Platform {
      * returns true if the code is on the server.
      */
     public static boolean isServer() {
-        return Thread.currentThread().getThreadGroup() == SidedThreadGroups.SERVER;
+        var appEng = AppEng.instance();
+        if (appEng == null) {
+            return false; // Unit tests
+        }
+        var currentServer = appEng.getCurrentServer();
+        return currentServer != null && currentServer.isSameThread();
     }
 
     /**
      * Throws an exception if the current thread is not one of the server threads.
      */
     public static void assertServerThread() {
-        if (Thread.currentThread().getThreadGroup() != serverThreadGroup) {
+        if (!isServer()) {
             throw new UnsupportedOperationException(
                     "This code can only be called server-side and this is most likely a bug.");
         }
@@ -237,13 +238,12 @@ public class Platform {
 
     @Nullable
     public static String getModName(String modId) {
-        return ModList.get().getModContainerById(modId).map(mc -> mc.getModInfo().getDisplayName())
+        return FabricLoader.getInstance().getModContainer(modId).map(mc -> mc.getMetadata().getName())
                 .orElse(modId);
     }
 
     public static Component getFluidDisplayName(Fluid fluid) {
-        var fluidStack = new FluidStack(fluid, 1);
-        return fluidStack.getHoverName();
+        return FluidVariantAttributes.getName(FluidVariant.of(fluid));
     }
 
     public static boolean isChargeable(ItemStack i) {
@@ -266,7 +266,7 @@ public class Platform {
             playerUuid = DEFAULT_FAKE_PLAYER_UUID;
         }
 
-        return FakePlayerFactory.get(level, new GameProfile(playerUuid, "[AE2]"));
+        return FakePlayer.get(level, new GameProfile(playerUuid, "[AE2]"));
     }
 
     public static Direction rotateAround(Direction forward, Direction axis) {
@@ -299,6 +299,27 @@ public class Platform {
     public static void notifyBlocksOfNeighbors(Level level, BlockPos pos) {
         if (level != null && !level.isClientSide()) {
             TickHandler.instance().addCallable(level, new BlockUpdate(pos));
+        }
+    }
+
+    /**
+     * Replacement for NeoForge's BlockEntity#invalidateCapabilities. Fabric's API lookups are not cached, but neighbors
+     * that watch an API (e.g. storage buses) need a block update to re-query it.
+     */
+    public static void invalidateCapabilities(@Nullable BlockEntity blockEntity) {
+        if (blockEntity != null && blockEntity.getLevel() != null) {
+            notifyBlocksOfNeighbors(blockEntity.getLevel(), blockEntity.getBlockPos());
+        }
+    }
+
+    /**
+     * Marks the chunk section of the given block entity for re-rendering on the client, so that its model picks up
+     * changed render data. Does nothing on the server.
+     */
+    public static void requestModelDataUpdate(@Nullable BlockEntity blockEntity) {
+        if (blockEntity != null && blockEntity.getLevel() != null && blockEntity.getLevel().isClientSide()) {
+            var state = blockEntity.getBlockState();
+            blockEntity.getLevel().sendBlockUpdated(blockEntity.getBlockPos(), state, state, 0);
         }
     }
 
@@ -385,8 +406,14 @@ public class Platform {
      * @return True if AE2 is being run within a dev environment.
      */
     public static boolean isDevelopmentEnvironment() {
-        var loader = FMLLoader.getCurrentOrNull();
-        return loader == null || !loader.isProduction();
+        return FabricLoader.getInstance().isDevelopmentEnvironment();
+    }
+
+    /**
+     * Opens a nested transaction if a transaction is already open, or a new outer transaction otherwise.
+     */
+    public static Transaction openOrJoinTx() {
+        return Transaction.openNested(Transaction.getCurrentUnsafe());
     }
 
     /**

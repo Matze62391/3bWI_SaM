@@ -3,8 +3,8 @@ package appeng.server.testplots;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.item.Items;
-import net.neoforged.neoforge.transfer.item.ItemResource;
-import net.neoforged.neoforge.transfer.transaction.Transaction;
+import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
+import net.fabricmc.fabric.api.transfer.v1.transaction.Transaction;
 
 import appeng.api.config.Actionable;
 import appeng.api.networking.security.IActionSource;
@@ -60,13 +60,13 @@ public final class InternalInventoryTransactionTestPlots {
                         // Create matching singularities
                         var singularities = AEItems.QUANTUM_ENTANGLED_SINGULARITY.stack();
                         QuantumBridgeBlockEntity.assignFrequency(singularities);
-                        var resource = ItemResource.of(singularities);
+                        var resource = ItemVariant.of(singularities);
 
                         // Get handlers for both QNBs
                         var handlerA = coreA.getExposedItemHandler(Direction.NORTH);
                         var handlerB = coreB.getExposedItemHandler(Direction.NORTH);
 
-                        try (var tx = Transaction.open(null)) {
+                        try (var tx = Transaction.openNested(null)) {
                             // Insert singularities into both QNBs
                             helper.check(handlerA.insert(resource, 1, tx) == 1, "Should insert singularity A", qnbA);
                             helper.check(handlerB.insert(resource, 1, tx) == 1, "Should insert singularity B", qnbB);
@@ -124,8 +124,8 @@ public final class InternalInventoryTransactionTestPlots {
                         var handler = condenser.getExposedItemHandler(null);
                         var initialPower = condenser.getStoredPower();
 
-                        try (var tx = Transaction.open(null)) {
-                            handler.insert(ItemResource.of(Items.DIAMOND), 1, tx);
+                        try (var tx = Transaction.openNested(null)) {
+                            handler.insert(ItemVariant.of(Items.DIAMOND), 1, tx);
 
                             // Power should not change during transaction
                             var duringPower = condenser.getStoredPower();
@@ -162,13 +162,13 @@ public final class InternalInventoryTransactionTestPlots {
                         helper.check(handler != null, "handler should not be null", BlockPos.ZERO);
 
                         // Set up a valid recipe (press + matching material) so the inscriber starts processing
-                        try (var tx = Transaction.open(null)) {
+                        try (var tx = Transaction.openNested(null)) {
                             var press = AEItems.CALCULATION_PROCESSOR_PRESS.stack();
-                            helper.check(handler.insert(ItemResource.of(press), 1, tx) == 1,
+                            helper.check(handler.insert(ItemVariant.of(press), 1, tx) == 1,
                                     "Should insert press", BlockPos.ZERO);
 
                             var crystal = AEItems.CERTUS_QUARTZ_CRYSTAL.stack();
-                            helper.check(handler.insert(ItemResource.of(crystal), 1, tx) == 1,
+                            helper.check(handler.insert(ItemVariant.of(crystal), 1, tx) == 1,
                                     "Should insert crystal", BlockPos.ZERO);
 
                             tx.commit();
@@ -187,10 +187,10 @@ public final class InternalInventoryTransactionTestPlots {
                         var handler = inscriber.getExposedItemHandler(Direction.UP);
                         var processingTimeBeforeChange = inscriber.getProcessingTime();
 
-                        try (var tx = Transaction.open(null)) {
+                        try (var tx = Transaction.openNested(null)) {
                             // Filling the (still empty) bottom plate slot changes the recipe inputs
                             var namePress = AEItems.NAME_PRESS.stack();
-                            helper.check(handler.insert(ItemResource.of(namePress), 1, tx) == 1,
+                            helper.check(handler.insert(ItemVariant.of(namePress), 1, tx) == 1,
                                     "Should insert name press", BlockPos.ZERO);
 
                             // Processing time should not be reset yet
@@ -236,13 +236,13 @@ public final class InternalInventoryTransactionTestPlots {
                         var handler = chest.getExposedItemHandler(chest.getFront());
                         helper.check(handler != null, "handler should not be null", BlockPos.ZERO);
 
-                        try (var tx = Transaction.open(null)) {
+                        try (var tx = Transaction.openNested(null)) {
                             // Swap out the cell for a different, empty one
-                            var extracted = handler.extract(ItemResource.of(chest.getCell()), 1, tx);
+                            var extracted = handler.extract(ItemVariant.of(chest.getCell()), 1, tx);
                             helper.check(extracted == 1, "Should extract old cell", BlockPos.ZERO);
 
                             var newCell = AEItems.ITEM_CELL_4K.stack();
-                            var inserted = handler.insert(ItemResource.of(newCell), 1, tx);
+                            var inserted = handler.insert(ItemVariant.of(newCell), 1, tx);
                             helper.check(inserted == 1, "Should insert new cell", BlockPos.ZERO);
 
                             // The cache is only invalidated on commit, so the chest should still report the
@@ -287,8 +287,8 @@ public final class InternalInventoryTransactionTestPlots {
                         var inputHandler = chest.getExposedItemHandler(inputSide);
                         helper.check(inputHandler != null, "input handler should not be null", BlockPos.ZERO);
 
-                        try (var tx = Transaction.open(null)) {
-                            var inserted = inputHandler.insert(ItemResource.of(Items.EMERALD), 1, tx);
+                        try (var tx = Transaction.openNested(null)) {
+                            var inserted = inputHandler.insert(ItemVariant.of(Items.EMERALD), 1, tx);
                             helper.check(inserted == 1, "Should insert emerald into input slot", BlockPos.ZERO);
 
                             // The item should sit in the raw input slot, but not yet be moved into the cell
@@ -342,14 +342,14 @@ public final class InternalInventoryTransactionTestPlots {
                         var handler = drive.getExposedItemHandler(Direction.UP);
                         helper.check(handler != null, "handler should not be null", BlockPos.ZERO);
 
-                        try (var tx = Transaction.open(null)) {
+                        try (var tx = Transaction.openNested(null)) {
                             // Swap out the cell for a different, empty one
                             var oldCellStack = drive.getInternalInventory().getStackInSlot(0);
-                            var extracted = handler.extract(ItemResource.of(oldCellStack), 1, tx);
+                            var extracted = handler.extract(ItemVariant.of(oldCellStack), 1, tx);
                             helper.check(extracted == 1, "Should extract old cell", BlockPos.ZERO);
 
                             var newCell = AEItems.ITEM_CELL_4K.stack();
-                            var inserted = handler.insert(ItemResource.of(newCell), 1, tx);
+                            var inserted = handler.insert(ItemVariant.of(newCell), 1, tx);
                             helper.check(inserted == 1, "Should insert new cell", BlockPos.ZERO);
 
                             // The cache is only invalidated on commit, so the drive should still report the
