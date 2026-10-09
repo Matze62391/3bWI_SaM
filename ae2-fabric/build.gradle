@@ -10,10 +10,14 @@ base {
 }
 
 repositories {
-    maven {
-        name = "Modrinth"
-        url = "https://api.modrinth.com/maven"
-        content {
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = "Modrinth"
+                url = "https://api.modrinth.com/maven"
+            }
+        }
+        filter {
             includeGroup "maven.modrinth"
         }
     }
@@ -137,6 +141,17 @@ dependencies {
     // Optional: Mod Menu opens AE2's config screen
     compileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
     localRuntime "com.terraformersmc:modmenu:${project.modmenu_version}"
+
+    // Other popular mods, to check that AE2 works together with them: ./gradlew runClientGameTest -PcompatMods
+    if (project.hasProperty("compatMods")) {
+        localRuntime "maven.modrinth:sodium:${project.sodium_version}"
+        localRuntime "maven.modrinth:iris:${project.iris_version}"
+        localRuntime "maven.modrinth:techreborn:${project.techreborn_version}"
+        localRuntime "maven.modrinth:reborncore:${project.techreborn_version}"
+        localRuntime "maven.modrinth:rei:${project.rei_version}"
+        localRuntime "maven.modrinth:architectury-api:${project.architectury_version}"
+        localRuntime "maven.modrinth:cloth-config:${project.cloth_config_version}"
+    }
 
     // De-facto standard energy API on Fabric (replaces NeoForge's EnergyHandler capability)
     implementation "teamreborn:energy:${project.tr_energy_version}"

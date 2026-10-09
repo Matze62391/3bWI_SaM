@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.gui.screens.worldselection.WorldCreationUiState;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -38,6 +39,7 @@ import appeng.api.ids.AEComponents;
 import appeng.api.implementations.items.IAEItemPowerStorage;
 import appeng.api.parts.IPartHost;
 import appeng.api.parts.PartHelper;
+import appeng.blockentity.networking.EnergyCellBlockEntity;
 import appeng.client.gui.config.AEConfigScreen;
 import appeng.core.AppEng;
 import appeng.core.definitions.AEBlocks;
@@ -210,6 +212,20 @@ public class AE2ClientGameTest implements FabricClientGameTest {
             context.setScreen(() -> null);
             context.waitTicks(5);
 
+            // Tech Reborn (only in the compatibility run): its creative solar panel powers an AE2 network
+            if (FabricLoader.getInstance().isModLoaded("techreborn")) {
+                var panelPos = origin.offset(5, 0, 0);
+                setBlock(server, panelPos, "techreborn:creative_solar_panel");
+                setBlock(server, panelPos.east(), "ae2:energy_acceptor");
+                setBlock(server, panelPos.east(2), "ae2:energy_cell");
+                context.waitTicks(100);
+                var stored = server.computeOnServer(s -> s.overworld()
+                        .getBlockEntity(panelPos.east(2)) instanceof EnergyCellBlockEntity cell
+                                ? cell.getAECurrentPower()
+                                : -1);
+                LOG.info("AE stored in the energy cell powered by Tech Reborn: {}", stored);
+            }
+
             // Jade: look at a drive without opening it
             setBlock(server, target, "ae2:drive");
             context.getInput().lookAt(target);
@@ -246,8 +262,11 @@ public class AE2ClientGameTest implements FabricClientGameTest {
         }
 
         // World generation: meteorites generate in a normal world
-        try (var world = context.worldBuilder().adjustSettings(settings -> settings
-                .setGameMode(WorldCreationUiState.SelectedGameMode.CREATIVE)).create()) {
+        try (var world = context.worldBuilder().setUseConsistentSettings(false).adjustSettings(settings -> {
+            settings.setGameMode(WorldCreationUiState.SelectedGameMode.CREATIVE);
+            settings.setSeed("ae2");
+            settings.setGenerateStructures(true);
+        }).create()) {
             var server = world.getServer();
             var meteorite = server.computeOnServer(s -> {
                 var level = s.overworld();

@@ -224,7 +224,8 @@ public final class TestPlots {
                 ItemP2PTestPlots.class,
                 InscriberTestPlots.class,
                 GuidebookPlot.class,
-                VillagerTestPlots.class);
+                VillagerTestPlots.class,
+                SurvivalTestPlots.class);
     }
 
     public static List<PlotInfo> getPlots() {
