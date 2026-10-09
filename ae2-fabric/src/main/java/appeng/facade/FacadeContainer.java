@@ -23,6 +23,9 @@ import java.util.function.Consumer;
 
 import org.apache.commons.lang3.StringUtils;
 
+import com.mojang.datafixers.util.Either;
+import com.mojang.serialization.Codec;
+
 import io.netty.buffer.ByteBuf;
 
 import org.jetbrains.annotations.Nullable;
@@ -110,19 +113,20 @@ public class FacadeContainer implements IFacadeContainer {
      * Before Minecraft 26.1, block states were stored as {@code {Name: ..., Properties: {...}}}. Structures in the
      * guidebook (and older worlds) still use that format, which the current block state codec can't read.
      */
+    private static final Codec<BlockState> FACADE_STATE_CODEC = Codec.either(BlockState.CODEC, CompoundTag.CODEC)
+            .xmap(either -> either.map(state -> state, FacadeContainer::readLegacyState), Either::left);
+
     @Nullable
     private static BlockState readFacadeState(ValueInput input, String key) {
-        var legacy = input.child(key).flatMap(child -> child.getString("Name").map(name -> {
-            var tag = new CompoundTag();
-            tag.putString("id", name);
-            child.read("Properties", CompoundTag.CODEC).ifPresent(properties -> tag.put("properties", properties));
-            return tag;
-        }));
-        if (legacy.isPresent()) {
-            var state = NbtUtils.readBlockState(BuiltInRegistries.BLOCK, legacy.get());
-            return state.isAir() ? null : state;
-        }
-        return input.read(key, BlockState.CODEC).orElse(null);
+        var state = input.read(key, FACADE_STATE_CODEC).orElse(null);
+        return state == null || state.isAir() ? null : state;
+    }
+
+    private static BlockState readLegacyState(CompoundTag legacy) {
+        var tag = new CompoundTag();
+        tag.putString("id", legacy.getStringOr("Name", "minecraft:air"));
+        legacy.getCompound("Properties").ifPresent(properties -> tag.put("properties", properties));
+        return NbtUtils.readBlockState(BuiltInRegistries.BLOCK, tag);
     }
 
     @Override

@@ -13,6 +13,12 @@ import net.minecraft.client.gui.screens.worldselection.WorldCreationUiState;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.GlobalPos;
+import net.minecraft.core.HolderSet;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.levelgen.presets.WorldPresets;
@@ -22,13 +28,27 @@ import mezz.jei.api.recipe.RecipeIngredientRole;
 
 import guideme.Guides;
 import guideme.PageAnchor;
+import guideme.compiler.ParsedGuidePage;
+import guideme.internal.GuideMEClient;
 import guideme.internal.screen.GuideScreen;
+import guideme.internal.screen.GuideSearchScreen;
 
+import appeng.api.config.Actionable;
+import appeng.api.ids.AEComponents;
+import appeng.api.implementations.items.IAEItemPowerStorage;
 import appeng.api.parts.IPartHost;
+import appeng.api.parts.PartHelper;
 import appeng.client.gui.config.AEConfigScreen;
 import appeng.core.AppEng;
 import appeng.core.definitions.AEBlocks;
 import appeng.core.definitions.AEItems;
+import appeng.core.definitions.AEParts;
+import appeng.core.definitions.ItemDefinition;
+import appeng.items.parts.PartItem;
+import appeng.items.tools.powered.WirelessTerminalItem;
+import appeng.menu.MenuOpener;
+import appeng.menu.implementations.PriorityMenu;
+import appeng.menu.locator.MenuLocators;
 
 /**
  * Opens the user interfaces of AE2's machines and terminals in a real client and takes screenshots of them. The
@@ -50,7 +70,29 @@ public class AE2ClientGameTest implements FabricClientGameTest {
             "vibration_chamber",
             "spatial_io_port",
             "cell_workbench",
-            "wireless_access_point");
+            "wireless_access_point",
+            "controller",
+            "spatial_anchor",
+            // A single crafting storage forms a crafting CPU
+            "1k_crafting_storage");
+
+    private static final List<ItemDefinition<? extends PartItem<?>>> PARTS = List.of(
+            AEParts.STORAGE_BUS,
+            AEParts.IMPORT_BUS,
+            AEParts.EXPORT_BUS,
+            AEParts.LEVEL_EMITTER,
+            AEParts.ENERGY_LEVEL_EMITTER,
+            AEParts.FORMATION_PLANE,
+            AEParts.INTERFACE,
+            AEParts.PATTERN_PROVIDER);
+
+    private static final List<ItemDefinition<?>> ITEMS = List.of(
+            AEItems.NETWORK_TOOL,
+            AEItems.CERTUS_QUARTZ_KNIFE,
+            AEItems.PORTABLE_ITEM_CELL1K,
+            AEItems.PORTABLE_FLUID_CELL1K,
+            AEItems.WIRELESS_TERMINAL,
+            AEItems.WIRELESS_CRAFTING_TERMINAL);
 
     private static final List<String> TERMINALS = List.of(
             "terminal",
@@ -82,6 +124,8 @@ public class AE2ClientGameTest implements FabricClientGameTest {
 
             // Machines: place each one in front of the player and open it
             var target = origin.offset(0, 0, 3);
+            // Crafting CPUs only open when they are powered
+            setBlock(server, target.below(), "ae2:creative_energy_cell");
             for (var machine : MACHINES) {
                 setBlock(server, target, "ae2:" + machine);
                 context.waitTicks(5);
@@ -89,21 +133,82 @@ public class AE2ClientGameTest implements FabricClientGameTest {
                 setBlock(server, target, "minecraft:air");
             }
 
-            // Guidebook: the start page and pages with 3D scenes of blocks and cables
-            for (var page : List.of("index.md", "items-blocks-machines/controller.md", "items-blocks-machines/cables.md",
-                    "items-blocks-machines/facades.md", "getting-started.md", "index.md")) {
-                var guide = Guides.getById(AppEng.makeId("guide"));
-                context.runOnClient(mc -> mc.gui.setScreen(GuideScreen.openNew(guide,
-                        PageAnchor.page(AppEng.makeId(page)))));
-                String screenNow = context.computeOnClient(mc -> String.valueOf(mc.gui.screen()));
-                LOG.info("Screen after opening guide page {}: {}", page, screenNow);
-                context.waitTicks(40);
-                String screenLater = context.computeOnClient(mc -> String.valueOf(mc.gui.screen()));
-                LOG.info("Screen 40 ticks later: {}", screenLater);
-                context.takeScreenshot("ae2-guide-" + page.replace('/', '-').replace(".md", ""));
-                context.setScreen(() -> null);
+            // Parts: attach each one to a cable bus in front of the player, facing the player, and open it
+            // (at eye level, so the player looks straight at small parts like level emitters)
+            var partPos = target.above();
+            for (var part : PARTS) {
+                server.runOnServer(s -> PartHelper.setPart(s.overworld(), partPos, Direction.NORTH, null, part.get()));
                 context.waitTicks(5);
+                openAndScreenshot(context, partPos, "ae2-part-" + part.id().getPath());
+                if (part == AEParts.STORAGE_BUS) {
+                    // Opened through a button in the storage bus screen
+                    server.runOnServer(s -> {
+                        var bus = PartHelper.getPart(AEParts.STORAGE_BUS.get(), s.overworld(), partPos,
+                                Direction.NORTH);
+                        MenuOpener.open(PriorityMenu.TYPE, firstPlayer(s), MenuLocators.forPart(bus));
+                    });
+                    screenshotOpenedScreen(context, "ae2-priority");
+                }
+                setBlock(server, partPos, "minecraft:air");
             }
+
+            // Quantum network bridge: a ring standing upright with the link chamber in front of the player
+            for (var x = -1; x <= 1; x++) {
+                for (var y = -1; y <= 1; y++) {
+                    setBlock(server, target.offset(x, y, 0),
+                            x == 0 && y == 0 ? "ae2:quantum_link" : "ae2:quantum_ring");
+                }
+            }
+            context.waitTicks(20);
+            openAndScreenshot(context, target, "ae2-quantum_link");
+            server.runCommand("fill %d %d %d %d %d %d minecraft:air".formatted(target.getX() - 1,
+                    target.getY() - 1, target.getZ(), target.getX() + 1, target.getY() + 1, target.getZ()));
+
+            // Items that open a screen when used in the air. The wireless terminals are linked to an access point.
+            var accessPointPos = origin.offset(-3, 0, 0);
+            setBlock(server, accessPointPos.below(), "ae2:creative_energy_cell");
+            setBlock(server, accessPointPos, "ae2:wireless_access_point[facing=up]");
+            context.waitTicks(20);
+            for (var item : ITEMS) {
+                server.runOnServer(s -> {
+                    var player = firstPlayer(s);
+                    var stack = item.stack();
+                    if (stack.getItem() instanceof IAEItemPowerStorage powered) {
+                        powered.injectAEPower(stack, powered.getAEMaxPower(stack), Actionable.MODULATE);
+                    }
+                    if (stack.getItem() instanceof WirelessTerminalItem) {
+                        stack.set(AEComponents.WIRELESS_LINK_TARGET,
+                                GlobalPos.of(player.level().dimension(), accessPointPos));
+                    }
+                    player.setItemInHand(InteractionHand.MAIN_HAND, stack);
+                });
+                context.waitTicks(5);
+                openAndScreenshot(context, origin.above(30), "ae2-item-" + item.id().getPath());
+            }
+            server.runOnServer(s -> firstPlayer(s).setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY));
+
+            // Guidebook: every page, with screenshots of a few pages with 3D scenes
+            var guide = Guides.getById(AppEng.makeId("guide"));
+            var pageIds = guide.getPages().stream().map(ParsedGuidePage::getId).sorted().toList();
+            LOG.info("Opening {} guide pages", pageIds.size());
+            for (var pageId : pageIds) {
+                context.runOnClient(mc -> mc.gui.setScreen(GuideScreen.openNew(guide, PageAnchor.page(pageId))));
+                context.waitTicks(3);
+                if (!context.computeOnClient(mc -> mc.gui.screen() instanceof GuideScreen)) {
+                    LOG.warn("Guide page {} did not stay open", pageId);
+                }
+                context.takeScreenshot("ae2-guide-" + pageId.getPath().replace('/', '-').replace(".md", ""));
+            }
+
+            // Guidebook search (the index is built in the background)
+            context.runOnClient(mc -> mc.gui.setScreen(GuideSearchScreen.open(guide, null)));
+            context.waitFor(mc -> !GuideMEClient.instance().getSearch().searchGuide("controller", guide).isEmpty(),
+                    1200);
+            context.runOnClient(mc -> mc.gui.setScreen(GuideSearchScreen.open(guide, "controller")));
+            context.waitTicks(5);
+            context.takeScreenshot("ae2-guide-search");
+            context.setScreen(() -> null);
+            context.waitTicks(5);
 
             // Jade: look at a drive without opening it
             setBlock(server, target, "ae2:drive");
@@ -137,6 +242,40 @@ public class AE2ClientGameTest implements FabricClientGameTest {
                         terminalPos.getZ() - 2));
                 context.waitTicks(10);
                 openAndScreenshot(context, terminalPos, "ae2-" + terminal);
+            }
+        }
+
+        // World generation: meteorites generate in a normal world
+        try (var world = context.worldBuilder().adjustSettings(settings -> settings
+                .setGameMode(WorldCreationUiState.SelectedGameMode.CREATIVE)).create()) {
+            var server = world.getServer();
+            var meteorite = server.computeOnServer(s -> {
+                var level = s.overworld();
+                var structure = s.registryAccess().lookupOrThrow(Registries.STRUCTURE)
+                        .getOrThrow(ResourceKey.create(Registries.STRUCTURE, AppEng.makeId("meteorite")));
+                var found = level.getChunkSource().getGenerator().findNearestMapStructure(level,
+                        HolderSet.direct(structure), BlockPos.ZERO, 100, false);
+                return found == null ? null : found.getFirst();
+            });
+            LOG.info("Nearest meteorite: {}", meteorite);
+            if (meteorite != null) {
+                server.runCommand("tp @p %d 200 %d".formatted(meteorite.getX(), meteorite.getZ()));
+                context.waitTicks(200);
+                var skyStone = server.computeOnServer(s -> {
+                    var level = s.overworld();
+                    var count = 0;
+                    for (var pos : BlockPos.betweenClosed(meteorite.offset(-16, 0, -16).atY(level.getMinY()),
+                            meteorite.offset(16, 0, 16).atY(level.getMaxY()))) {
+                        if (level.getBlockState(pos).is(AEBlocks.SKY_STONE_BLOCK.block())) {
+                            count++;
+                        }
+                    }
+                    return count;
+                });
+                LOG.info("Sky stone blocks around the meteorite: {}", skyStone);
+                context.getInput().lookAt(meteorite.atY(60));
+                context.waitTicks(20);
+                context.takeScreenshot("ae2-meteorite");
             }
         }
     }
@@ -176,9 +315,20 @@ public class AE2ClientGameTest implements FabricClientGameTest {
         server.runCommand("setblock %d %d %d %s".formatted(pos.getX(), pos.getY(), pos.getZ(), block));
     }
 
+    private static ServerPlayer firstPlayer(MinecraftServer server) {
+        return server.getPlayerList().getPlayers().getFirst();
+    }
+
     private static void openAndScreenshot(ClientGameTestContext context, BlockPos pos, String name) {
         context.getInput().lookAt(pos);
         context.getInput().pressKey(options -> options.keyUse);
+        screenshotOpenedScreen(context, name);
+    }
+
+    /**
+     * Waits for a screen to open, takes a screenshot and closes it again.
+     */
+    private static void screenshotOpenedScreen(ClientGameTestContext context, String name) {
         try {
             context.waitFor(mc -> mc.gui.screen() != null, 60);
             context.waitTicks(10);

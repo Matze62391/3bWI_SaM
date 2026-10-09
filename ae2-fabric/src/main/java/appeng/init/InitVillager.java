@@ -1,10 +1,10 @@
 package appeng.init;
 
 import java.util.Optional;
-import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
 
+import net.fabricmc.fabric.api.object.builder.v1.world.poi.PoiHelper;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
@@ -77,8 +77,6 @@ public class InitVillager {
             "fluix_researcher/4/buy_silicon_press");
     public static final ResourceKey<VillagerTrade> L5_BUY_SLIME_BALL = tradeKey("fluix_researcher/5/buy_slime_ball");
 
-    public static PoiType POI_TYPE = new PoiType(
-            Set.copyOf(AEBlocks.CHARGER.block().getStateDefinition().getPossibleStates()), 1, 1);
     public static final ResourceKey<PoiType> POI_KEY = ResourceKey.create(Registries.POINT_OF_INTEREST_TYPE, ID);
 
     public static final VillagerProfession PROFESSION = new VillagerProfession(
@@ -103,7 +101,8 @@ public class InitVillager {
     }
 
     public static void initPointOfInterestType(Registry<PoiType> registry) {
-        Registry.register(registry, ID, POI_TYPE);
+        // Unlike NeoForge, Fabric doesn't link the block states to the registered type automatically
+        PoiHelper.register(ID, 1, 1, AEBlocks.CHARGER.block());
     }
 
     public static Holder<TradeSet> bootstrapTradeSets(BootstrapContext<TradeSet> context) {

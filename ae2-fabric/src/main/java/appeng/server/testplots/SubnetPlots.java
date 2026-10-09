@@ -45,8 +45,14 @@ public final class SubnetPlots {
 
         plot.test(helper -> {
             helper.startSequence()
-                    .thenWaitUntil(() -> helper.getGrid(subNetPos))
-                    .thenWaitUntil(() -> helper.getGrid(mainNetPos))
+                    .thenWaitUntil(() -> helper.assertGridOnline(subNetPos))
+                    .thenWaitUntil(() -> helper.assertGridOnline(mainNetPos))
+                    // The storage bus mounts the subnet's storage shortly after the grids have booted
+                    .thenWaitUntil(() -> {
+                        var storage = helper.getGrid(mainNetPos).getStorageService().getInventory();
+                        var insertable = storage.insert(STICK, 1, Actionable.SIMULATE, null);
+                        helper.check(insertable == 1, "subnet storage is not mounted yet", mainNetPos);
+                    })
                     .thenExecute(() -> {
                         var mainGrid = helper.getGrid(mainNetPos);
                         var storageService = mainGrid.getStorageService();

@@ -223,7 +223,8 @@ public final class TestPlots {
                 SpawnExtraGridTestTools.class,
                 ItemP2PTestPlots.class,
                 InscriberTestPlots.class,
-                GuidebookPlot.class);
+                GuidebookPlot.class,
+                VillagerTestPlots.class);
     }
 
     public static List<PlotInfo> getPlots() {

@@ -62,7 +62,7 @@ sourceSets {
             srcDir "src/generated/resources"
             exclude "META-INF/accesstransformer.cfg"
             exclude "META-INF/neoforge.mods.toml"
-            exclude "data/neoforge/**"
+            exclude "data/neoforge/**" // the raid hero gifts data map is replaced by GiveGiftToHeroMixin
             exclude "data/curios/**"
         }
     }

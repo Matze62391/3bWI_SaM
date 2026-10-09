@@ -17,7 +17,8 @@
     "PlayerDestroySpeedMixin",
     "LivingEntityClimbableMixin",
     "LevelOutputSignalMixin",
-    "FireBlockMixin"
+    "FireBlockMixin",
+    "GiveGiftToHeroMixin"
   ],
   "client": [
     "client.AbstractContainerScreenMixin",
