@@ -13,7 +13,7 @@ import mezz.jei.api.gui.drawable.IDrawable;
 import mezz.jei.api.helpers.IGuiHelper;
 import mezz.jei.api.helpers.IJeiHelpers;
 import mezz.jei.api.helpers.IPlatformFluidHelper;
-import mezz.jei.api.neoforge.NeoForgeTypes;
+import mezz.jei.api.fabric.constants.FabricTypes;
 import mezz.jei.api.recipe.RecipeIngredientRole;
 import mezz.jei.api.recipe.types.IRecipeType;
 
@@ -131,7 +131,7 @@ public class TransformCategory extends ViewBasedCategory<RecipeHolder<TransformR
                         slot.add(fluid, fluidHelper.bucketVolume());
                     }
 
-                    slot.setCustomRenderer(NeoForgeTypes.FLUID_STACK, fluidRenderer);
+                    slot.setCustomRenderer(FabricTypes.FLUID_STACK, fluidRenderer);
                 } else if (recipe.circumstance.isExplosion()) {
                     builder.addSlot(RecipeIngredientRole.CRAFTING_STATION, 55 + 1, yOffset + 1)
                             .setSlotName("explosion")

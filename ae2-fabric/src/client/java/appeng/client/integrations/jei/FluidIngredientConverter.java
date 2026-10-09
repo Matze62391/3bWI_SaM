@@ -1,29 +1,29 @@
 package appeng.client.integrations.jei;
 
-import com.google.common.primitives.Ints;
 
 import org.jetbrains.annotations.Nullable;
 
-import net.neoforged.neoforge.fluids.FluidStack;
 
 import mezz.jei.api.ingredients.IIngredientType;
-import mezz.jei.api.neoforge.NeoForgeTypes;
+import mezz.jei.api.fabric.constants.FabricTypes;
+import mezz.jei.api.fabric.ingredients.fluids.IJeiFluidIngredient;
+import mezz.jei.api.fabric.ingredients.fluids.JeiFluidIngredient;
 
 import appeng.api.stacks.AEFluidKey;
 import appeng.api.stacks.GenericStack;
 import appeng.client.api.integrations.jei.IngredientConverter;
 
-public class FluidIngredientConverter implements IngredientConverter<FluidStack> {
+public class FluidIngredientConverter implements IngredientConverter<IJeiFluidIngredient> {
     @Override
-    public IIngredientType<FluidStack> getIngredientType() {
-        return NeoForgeTypes.FLUID_STACK;
+    public IIngredientType<IJeiFluidIngredient> getIngredientType() {
+        return FabricTypes.FLUID_STACK;
     }
 
     @Nullable
     @Override
-    public FluidStack getIngredientFromStack(GenericStack stack) {
+    public IJeiFluidIngredient getIngredientFromStack(GenericStack stack) {
         if (stack.what() instanceof AEFluidKey fluidKey) {
-            return fluidKey.toStack(Math.max(1, Ints.saturatedCast(stack.amount())));
+            return new JeiFluidIngredient(fluidKey.toVariant(), Math.max(1, stack.amount()));
         } else {
             return null;
         }
@@ -31,7 +31,7 @@ public class FluidIngredientConverter implements IngredientConverter<FluidStack>
 
     @Nullable
     @Override
-    public GenericStack getStackFromIngredient(FluidStack ingredient) {
-        return GenericStack.fromFluidStack(ingredient);
+    public GenericStack getStackFromIngredient(IJeiFluidIngredient ingredient) {
+        return GenericStack.from(ingredient.getFluidVariant(), ingredient.getAmount());
     }
 }

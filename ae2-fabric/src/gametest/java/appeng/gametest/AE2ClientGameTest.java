@@ -14,10 +14,16 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.levelgen.presets.WorldPresets;
+
+import mezz.jei.api.constants.VanillaTypes;
+import mezz.jei.api.recipe.RecipeIngredientRole;
 
 import appeng.api.parts.IPartHost;
 import appeng.client.gui.config.AEConfigScreen;
+import appeng.core.definitions.AEBlocks;
+import appeng.core.definitions.AEItems;
 
 /**
  * Opens the user interfaces of AE2's machines and terminals in a real client and takes screenshots of them. The
@@ -78,6 +84,24 @@ public class AE2ClientGameTest implements FabricClientGameTest {
                 setBlock(server, target, "minecraft:air");
             }
 
+            // Jade: look at a drive without opening it
+            setBlock(server, target, "ae2:drive");
+            context.getInput().lookAt(target);
+            context.waitTicks(20);
+            context.takeScreenshot("ae2-jade-drive");
+            setBlock(server, target, "minecraft:air");
+
+            // JEI: show the recipes for some of AE2's items
+            for (var item : List.of(AEItems.LOGIC_PROCESSOR, AEItems.CERTUS_QUARTZ_CRYSTAL)) {
+                showJeiRecipes(context, item.stack());
+                context.takeScreenshot("ae2-jei-" + item.id().getPath());
+                context.setScreen(() -> null);
+                context.waitTicks(5);
+            }
+            showJeiRecipes(context, AEBlocks.CONTROLLER.stack());
+            context.takeScreenshot("ae2-jei-controller");
+            context.setScreen(() -> null);
+
             // Terminals: build AE2's terminal test plot and open the terminals of its first line, which face north
             server.runCommand("execute as @p at @p run ae2 setuptestworld all_terminals");
             context.waitTicks(100);
@@ -114,6 +138,17 @@ public class AE2ClientGameTest implements FabricClientGameTest {
             }
         }
         return null;
+    }
+
+    private static void showJeiRecipes(ClientGameTestContext context, ItemStack stack) {
+        var runtime = TestJeiPlugin.runtime;
+        if (runtime == null) {
+            LOG.warn("JEI runtime is not available");
+            return;
+        }
+        context.runOnClient(mc -> runtime.getRecipesGui().show(runtime.getJeiHelpers().getFocusFactory()
+                .createFocus(RecipeIngredientRole.OUTPUT, VanillaTypes.ITEM_STACK, stack)));
+        context.waitTicks(20);
     }
 
     private static void setBlock(TestServerContext server, BlockPos pos, String block) {

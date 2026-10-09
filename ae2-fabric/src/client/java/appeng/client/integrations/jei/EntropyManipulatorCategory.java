@@ -6,6 +6,8 @@ import com.mojang.datafixers.util.Either;
 
 import org.jspecify.annotations.Nullable;
 
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariantAttributes;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.crafting.RecipeHolder;
@@ -160,7 +162,7 @@ public class EntropyManipulatorCategory extends ViewBasedCategory<RecipeHolder<E
                 slot.addRichTooltipCallback((recipeSlotView, tooltip) -> {
                     tooltip.getLines().set(
                             0,
-                            Either.left(ItemModText.FLOWING_FLUID_NAME.text(fluid.getFluidType().getDescription())));
+                            Either.left(ItemModText.FLOWING_FLUID_NAME.text(FluidVariantAttributes.getName(FluidVariant.of(fluid)))));
                 });
             } else {
                 slot.add(fluid, fluidHelper.bucketVolume());

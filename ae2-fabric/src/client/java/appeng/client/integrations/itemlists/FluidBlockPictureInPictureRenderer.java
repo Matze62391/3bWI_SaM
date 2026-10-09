@@ -23,7 +23,6 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.biome.Biomes;
 import net.minecraft.world.level.material.Fluid;
-import net.neoforged.neoforge.client.model.pipeline.VertexConsumerWrapper;
 
 public class FluidBlockPictureInPictureRenderer
         extends PictureInPictureRenderer<FluidBlockPictureInPictureRenderer.State> {
@@ -117,17 +116,67 @@ public class FluidBlockPictureInPictureRenderer
      * tessellating a chunk section (16x16x16) and emits corresponding coordinates, while we batch all visible chunks in
      * the guidebook together.
      */
-    private static class LiquidVertexConsumer extends VertexConsumerWrapper {
+    private static class LiquidVertexConsumer implements VertexConsumer {
+        private final VertexConsumer parent;
         private final PoseStack.Pose pose;
 
-        public LiquidVertexConsumer(VertexConsumer delegate, PoseStack.Pose pose) {
-            super(delegate);
+        public LiquidVertexConsumer(VertexConsumer parent, PoseStack.Pose pose) {
+            this.parent = parent;
             this.pose = pose;
         }
 
         @Override
         public VertexConsumer addVertex(float x, float y, float z) {
-            return parent.addVertex(pose, x, y, z);
+            parent.addVertex(pose, x, y, z);
+            return this;
+        }
+
+        @Override
+        public VertexConsumer setColor(int r, int g, int b, int a) {
+            parent.setColor(r, g, b, a);
+            return this;
+        }
+
+        @Override
+        public VertexConsumer setColor(int color) {
+            parent.setColor(color);
+            return this;
+        }
+
+        @Override
+        public VertexConsumer setUv(float u, float v) {
+            parent.setUv(u, v);
+            return this;
+        }
+
+        @Override
+        public VertexConsumer setUv1(int u, int v) {
+            parent.setUv1(u, v);
+            return this;
+        }
+
+        @Override
+        public VertexConsumer setUv2(int u, int v) {
+            parent.setUv2(u, v);
+            return this;
+        }
+
+        @Override
+        public VertexConsumer setUv3(float u, float v) {
+            parent.setUv3(u, v);
+            return this;
+        }
+
+        @Override
+        public VertexConsumer setNormal(float x, float y, float z) {
+            parent.setNormal(x, y, z);
+            return this;
+        }
+
+        @Override
+        public VertexConsumer setLineWidth(float width) {
+            parent.setLineWidth(width);
+            return this;
         }
     }
 }

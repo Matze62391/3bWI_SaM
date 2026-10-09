@@ -23,6 +23,12 @@
     ],
     "modmenu": [
       "appeng.client.integrations.modmenu.ModMenuIntegration"
+    ],
+    "jade": [
+      "appeng.integration.modules.jade.JadeModule"
+    ],
+    "jei_mod_plugin": [
+      "appeng.client.integrations.jei.JEIPlugin"
     ]
   },
   "mixins": [
@@ -38,5 +44,10 @@
   },
   "conflicts": {
     "appliedenergistics2": "*"
+  },
+  "suggests": {
+    "jei": "*",
+    "jade": "*",
+    "modmenu": "*"
   }
 }

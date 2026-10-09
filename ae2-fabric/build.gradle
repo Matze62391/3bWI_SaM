@@ -20,6 +20,18 @@ repositories {
     exclusiveContent {
         forRepository {
             maven {
+                name = "BlameJared"
+                url = "https://maven.blamejared.com"
+            }
+        }
+        filter {
+            includeGroup "mezz.jei"
+            includeGroup "net.mezzdev.config"
+        }
+    }
+    exclusiveContent {
+        forRepository {
+            maven {
                 name = "TerraformersMC"
                 url = "https://maven.terraformersmc.com/releases"
             }
@@ -42,12 +54,10 @@ sourceSets {
             exclude "appeng/datagen/**"
             exclude "appeng/client/guidebook/**"
             exclude "appeng/server/testplots/GuidebookPlot.java"
-            exclude "appeng/integration/modules/**"
-            exclude "appeng/client/integrations/jei/**"
-            exclude "appeng/client/integrations/itemlists/**"
-            exclude "appeng/client/api/integrations/**"
+            exclude "appeng/integration/modules/curios/**"
+            exclude "appeng/integration/modules/wthit/**"
+            exclude "appeng/client/api/integrations/emi/**"
             exclude "appeng/api/integrations/rei/**"
-            exclude "appeng/api/integrations/igtooltip/**"
         }
         resources {
             srcDir "src/client/resources"
@@ -106,6 +116,18 @@ dependencies {
 
     // NeoForge ships these annotation libraries, AE2 uses them
     compileOnly "com.google.code.findbugs:jsr305:3.0.2"
+
+    // Optional: JEI shows AE2's recipes and lets players transfer recipes into AE2's terminals
+    compileOnly "mezz.jei:jei-${project.minecraft_version}-common-api:${project.jei_version}"
+    compileOnly "mezz.jei:jei-${project.minecraft_version}-fabric-api:${project.jei_version}"
+    localRuntime "mezz.jei:jei-${project.minecraft_version}-fabric:${project.jei_version}"
+
+    // The client game test opens JEI's recipe screens
+    gametestCompileOnly "mezz.jei:jei-${project.minecraft_version}-common-api:${project.jei_version}"
+
+    // Optional: Jade shows information about AE2 blocks and parts in its in-world tooltip
+    compileOnly "maven.modrinth:jade:${project.jade_version}"
+    localRuntime "maven.modrinth:jade:${project.jade_version}"
 
     // Optional: Mod Menu opens AE2's config screen
     compileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"

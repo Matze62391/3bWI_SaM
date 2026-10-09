@@ -364,7 +364,7 @@ public class JEIPlugin implements IModPlugin {
     // Copy-pasted from JEI since it doesn't seem to expose these
     public static void drawHoveringText(GuiGraphicsExtractor guiGraphics, List<Component> textLines, int x, int y) {
         var font = Minecraft.getInstance().font;
-        guiGraphics.setTooltipForNextFrame(font, textLines, Optional.empty(), ItemStack.EMPTY, x, y);
+        guiGraphics.setTooltipForNextFrame(font, textLines, Optional.empty(), x, y);
     }
 
     public static IJeiRuntime instance() {

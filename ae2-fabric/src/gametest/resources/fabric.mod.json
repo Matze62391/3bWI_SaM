@@ -9,6 +9,9 @@
   "entrypoints": {
     "fabric-client-gametest": [
       "appeng.gametest.AE2ClientGameTest"
+    ],
+    "jei_mod_plugin": [
+      "appeng.gametest.TestJeiPlugin"
     ]
   },
   "depends": {
