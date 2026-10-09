@@ -1,0 +1,188 @@
+package guideme.internal;
+
+import com.mojang.serialization.JsonOps;
+import guideme.Guide;
+import guideme.color.SymbolicColorResolver;
+import guideme.compiler.PageCompiler;
+import guideme.compiler.ParsedGuidePage;
+import guideme.internal.datadriven.DataDrivenGuide;
+import guideme.internal.util.LangUtil;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.Map;
+import java.util.Set;
+import net.minecraft.client.resources.metadata.language.LanguageMetadataSection;
+import net.minecraft.resources.FileToIdConverter;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.packs.resources.ResourceManager;
+import net.minecraft.util.StrictJsonParser;
+import net.minecraft.server.packs.resources.SimplePreparableReloadListener;
+import net.minecraft.util.profiling.ProfilerFiller;
+import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+class GuideReloadListener extends SimplePreparableReloadListener<GuideReloadListener.Result> {
+    public static final Identifier ID = GuideME.makeId("guides");
+
+    private static final Logger LOG = LoggerFactory.getLogger(GuideReloadListener.class);
+
+    @Override
+    protected Result prepare(ResourceManager resourceManager, ProfilerFiller profiler) {
+        profiler.startTick();
+        var guidePages = new IdentityHashMap<Identifier, Map<Identifier, ParsedGuidePage>>();
+
+        String language = LangUtil.getCurrentLanguage();
+        if (GuideMEClient.instance().isIgnoreTranslatedGuides()) {
+            language = null;
+        }
+
+        // Load available languages to know which can be ignored
+        var languages = getAllLanguages(resourceManager);
+
+        // Discover data driven guides now
+        var dataDrivenGuides = loadDataDrivenGuides(resourceManager);
+
+        // Reload pages for data-driven guides first
+        for (var guide : dataDrivenGuides.values()) {
+            guidePages.put(guide.getId(), loadPages(resourceManager, guide.getContentRootFolder(),
+                    guide.getDefaultLanguage(), language, languages));
+        }
+        for (var guide : GuideRegistry.getStaticGuides()) {
+            if (!guidePages.containsKey(guide.getId())) {
+                guidePages.put(guide.getId(), loadPages(resourceManager, guide.getContentRootFolder(),
+                        guide.getDefaultLanguage(), language, languages));
+            }
+        }
+
+        profiler.endTick();
+        return new Result(dataDrivenGuides, guidePages, languages);
+    }
+
+    /**
+     * This code is copied from the MC language manager to retrieve the list of all supported languages.
+     */
+    private static Set<String> getAllLanguages(ResourceManager resourceManager) {
+        var result = new HashSet<String>();
+        var it = resourceManager.listPacks().iterator();
+        while (it.hasNext()) {
+            try {
+                var section = it.next().getMetadataSection(LanguageMetadataSection.TYPE);
+                if (section != null) {
+                    result.addAll(section.languages().keySet());
+                }
+            } catch (Exception ignored) {
+                // Minecraft itself will already warn about this
+            }
+        }
+        return result;
+    }
+
+    @Override
+    protected void apply(Result result, ResourceManager resourceManager, ProfilerFiller profiler) {
+        profiler.startTick();
+
+        LOG.info("Data driven guides: {}", result.dataDrivenGuides.keySet());
+
+        GuideRegistry.setDataDriven(result.dataDrivenGuides);
+
+        for (var guide : GuideRegistry.getAll()) {
+            var pagesForGuide = result.guidePages.getOrDefault(guide.getId(), Map.of());
+            profiler.push(guide.getId().toString());
+            guide.setPages(pagesForGuide);
+            profiler.pop();
+        }
+        profiler.endTick();
+    }
+
+    @Override
+    public String getName() {
+        return "GuideME Reload Listener";
+    }
+
+    private static Map<Identifier, MutableGuide> loadDataDrivenGuides(ResourceManager resourceManager) {
+        var dataDrivenGuideJsons = new HashMap<Identifier, DataDrivenGuide>();
+        var guideJsonIds = new FileToIdConverter("guideme_guides", ".json");
+        for (var entry : guideJsonIds.listMatchingResources(resourceManager).entrySet()) {
+            var location = entry.getKey();
+            var id = guideJsonIds.fileToId(location);
+            try (var reader = entry.getValue().openAsReader()) {
+                DataDrivenGuide.CODEC.parse(JsonOps.INSTANCE, StrictJsonParser.parse(reader))
+                        .ifSuccess(guide -> dataDrivenGuideJsons.putIfAbsent(id, guide))
+                        .ifError(error -> LOG.error("Couldn't parse guide '{}' from '{}': {}", id, location, error));
+            } catch (Exception e) {
+                LOG.error("Couldn't parse guide '{}' from '{}'", id, location, e);
+            }
+        }
+
+        // Load the data driven guides
+        Map<Identifier, MutableGuide> dataDrivenGuides = new HashMap<>();
+        for (var entry : dataDrivenGuideJsons.entrySet()) {
+            var guideId = entry.getKey();
+            var guideSpec = entry.getValue();
+
+            var builder = Guide.builder(guideId)
+                    .register(false)
+                    .itemSettings(guideSpec.itemSettings())
+                    .defaultLanguage(guideSpec.defaultLanguage());
+
+            if (!guideSpec.customColors().isEmpty()) {
+                builder.extension(SymbolicColorResolver.EXTENSION_POINT, guideSpec.customColors()::get);
+            }
+
+            var guide = (MutableGuide) builder
+                    .build();
+            dataDrivenGuides.put(guideId, guide);
+        }
+        return dataDrivenGuides;
+    }
+
+    private static Map<Identifier, ParsedGuidePage> loadPages(ResourceManager resourceManager,
+            String contentRoot,
+            String defaultLanguage,
+            @Nullable String currentLanguage,
+            Set<String> languages) {
+        var pagesForGuide = new HashMap<Identifier, ParsedGuidePage>();
+
+        var resources = resourceManager.listResources(contentRoot, location -> location.getPath().endsWith(".md"));
+
+        for (var entry : resources.entrySet()) {
+            var pageId = Identifier.fromNamespaceAndPath(
+                    entry.getKey().getNamespace(),
+                    entry.getKey().getPath().substring((contentRoot + "/").length()));
+            var resource = entry.getValue();
+
+            if (LangUtil.getLangFromPageId(pageId, languages) != null) {
+                continue; // Skip translated pages
+            }
+
+            // Check for translated versions of this page
+            String language = defaultLanguage;
+            if (currentLanguage != null) {
+                var translatedResourceId = LangUtil.getTranslatedAsset(pageId, currentLanguage)
+                        .withPrefix(contentRoot + "/");
+                var translatedPage = resources.get(translatedResourceId);
+                if (translatedPage != null) {
+                    language = currentLanguage;
+                    resource = translatedPage;
+                }
+            }
+
+            String sourcePackId = resource.sourcePackId();
+            try (var in = resource.open()) {
+                pagesForGuide.put(pageId, PageCompiler.parse(sourcePackId, language, pageId, in));
+            } catch (IOException e) {
+                LOG.error("Failed to load guidebook page {} from pack {}", pageId, sourcePackId, e);
+            }
+        }
+
+        return pagesForGuide;
+    }
+
+    protected record Result(
+            Map<Identifier, MutableGuide> dataDrivenGuides,
+            Map<Identifier, Map<Identifier, ParsedGuidePage>> guidePages, Set<String> languages) {
+    }
+}

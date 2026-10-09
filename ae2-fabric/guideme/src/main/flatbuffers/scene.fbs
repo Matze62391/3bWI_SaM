@@ -1,0 +1,159 @@
+
+/**********************************************************************
+
+When you change this, run gradlew updateFlatbufferSources...
+
+**********************************************************************/
+
+namespace scene;
+
+struct ExpVec3 {
+  x:float;
+  y:float;
+  z:float;
+}
+
+struct ExpCameraSettings {
+    yaw: float;
+    pitch: float;
+    roll: float;
+    zoom: float;
+}
+
+// Pre-Defined versions of TransparencyShard in RenderStateShard
+enum ExpTransparency : ubyte {
+    DISABLED,
+    ADDITIVE,
+    LIGHTNING,
+    GLINT,
+    CRUMBLING,
+    TRANSLUCENT
+}
+
+// Pre-Defined versions of DepthTestShard in RenderStateShard
+enum ExpDepthTest : ubyte {
+    DISABLED,
+    EQUAL,
+    LEQUAL,
+    GREATER
+}
+
+struct ExpAnimatedTexturePartFrame {
+    index: ushort;
+    time: ushort;
+}
+
+table ExpAnimatedTexturePart {
+    texture_id: string;
+    x: int;
+    y: int;
+    width: uint;
+    height: uint;
+    frames_path: string;
+    frame_count: uint;
+    frames_per_row: uint;
+    frames: [ExpAnimatedTexturePartFrame];
+}
+
+table ExpSampler {
+    texture_id: string;
+    texture: string;
+    linear_filtering: bool;
+    use_mipmaps: bool;
+}
+
+table ExpMaterial {
+  name:string;
+  shader_name: string;
+  disable_culling:bool;
+  transparency: ExpTransparency;
+  depth_test: ExpDepthTest;
+  samplers: [ExpSampler];
+}
+
+enum ExpShaderLighting : ubyte {
+    LIGHTMAP,
+    DIFFUSE,
+    NONE
+}
+
+// Describes how the shader used by a material processes geometry. Materials reference
+// this by their shader_name, which matches ExpShaderInfo.name.
+// "lightmap" means the lighting is already pre-baked into the vertex colors.
+// This has the same effect as "none", since both will not apply additional
+// diffuse lighting.
+table ExpShaderInfo {
+  name: string;
+  lighting: ExpShaderLighting;
+  // Fragments with an alpha value below this are discarded. 0 disables the alpha test.
+  alpha_test: float = 0;
+  vertex_color: bool;
+  textured: bool;
+}
+
+enum ExpPrimitiveType : ubyte {
+    LINES,
+    LINE_STRIP,
+    DEBUG_LINES,
+    DEBUG_LINE_STRIP,
+    TRIANGLES,
+    TRIANGLE_STRIP,
+    TRIANGLE_FAN,
+    POINTS
+}
+
+enum ExpVertexElementType : ubyte {
+    FLOAT,
+    UBYTE,
+    BYTE,
+    USHORT,
+    SHORT,
+    UINT,
+    INT
+}
+
+enum ExpIndexElementType : ubyte {
+    UINT,
+    USHORT
+}
+
+enum ExpVertexElementUsage : ubyte {
+    POSITION,
+    NORMAL,
+    COLOR,
+    UV
+}
+
+struct ExpVertexFormatElement {
+    index: ubyte;
+    type: ExpVertexElementType;
+    usage: ExpVertexElementUsage;
+    count: ubyte;
+    offset: ubyte;
+    byte_size: ubyte;
+    normalized: bool;
+}
+
+table ExpVertexFormat {
+    elements: [ExpVertexFormatElement];
+    vertex_size: ubyte;
+}
+
+table ExpMesh {
+    material: ExpMaterial;
+    vertex_format: ExpVertexFormat;
+    primitive_type: ExpPrimitiveType;
+    index_buffer: [ubyte];
+    index_type: ExpIndexElementType;
+    index_count: uint;
+    vertex_buffer: [ubyte];
+}
+
+table ExpScene {
+  camera:ExpCameraSettings;
+  meshes:[ExpMesh];
+  animated_textures: [ExpAnimatedTexturePart];
+  shaders:[ExpShaderInfo];
+}
+
+root_type ExpScene;
