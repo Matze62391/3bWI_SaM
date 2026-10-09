@@ -154,20 +154,45 @@ public final class Upgrades {
     /**
      * Gets a list of lines describing where an upgrade card can be used.
      */
-    public static synchronized List<Component> getTooltipLinesForCard(ItemLike card) {
-        return UPGRADE_CARD_TOOLTIP_LINES.computeIfAbsent(card.asItem(), Upgrades::createTooltipLinesForCard);
+    public static List<Component> getTooltipLinesForCard(ItemLike card) {
+        var item = card.asItem();
+        List<Association> associations;
+        synchronized (Upgrades.class) {
+            var lines = UPGRADE_CARD_TOOLTIP_LINES.get(item);
+            if (lines != null) {
+                return lines;
+            }
+            associations = new ArrayList<>(ASSOCIATIONS.getOrDefault(item, Collections.emptyList()));
+        }
+
+        // Building the lines asks other items for their names, which must not happen while holding our lock: those
+        // items might need other locks, and tooltips may be built on several threads at once.
+        var lines = createTooltipLinesForCard(associations);
+        synchronized (Upgrades.class) {
+            UPGRADE_CARD_TOOLTIP_LINES.putIfAbsent(item, lines);
+        }
+        return lines;
     }
 
     /**
      * Gets a list of tooltip lines describing which upgrades and how many of each are supported by a given upgradable
      * item. Returns an empty list if there are no upgrades available for this item.
      */
-    public static synchronized List<Component> getTooltipLinesForMachine(ItemLike upgradableItemLike) {
+    public static List<Component> getTooltipLinesForMachine(ItemLike upgradableItemLike) {
         var upgradableItem = upgradableItemLike.asItem();
+
+        // See getTooltipLinesForCard for why the lock isn't held while building the lines
+        List<List<Association>> allAssociations;
+        synchronized (Upgrades.class) {
+            allAssociations = new ArrayList<>();
+            for (var cardAssociations : ASSOCIATIONS.values()) {
+                allAssociations.add(List.copyOf(cardAssociations));
+            }
+        }
 
         var result = new ArrayList<Component>();
 
-        for (var cardAssociations : ASSOCIATIONS.values()) {
+        for (var cardAssociations : allAssociations) {
             for (var association : cardAssociations) {
                 if (association.upgradableItem() == upgradableItem) {
                     result.add(GuiText.CompatibleUpgrade
@@ -188,8 +213,7 @@ public final class Upgrades {
             @Nullable Component tooltipGroup) {
     }
 
-    private static List<Component> createTooltipLinesForCard(Item card) {
-        var associations = new ArrayList<>(ASSOCIATIONS.getOrDefault(card, Collections.emptyList()));
+    private static List<Component> createTooltipLinesForCard(List<Association> associations) {
         associations.sort(Comparator.comparingInt(o -> o.maxCount));
         var supportedTooltipLines = new ArrayList<Component>(associations.size());
 

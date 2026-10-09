@@ -23,9 +23,9 @@
 
 package appeng.api.storage;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.google.common.base.Preconditions;
 
@@ -44,7 +44,9 @@ import appeng.api.storage.cells.StorageCell;
  */
 public final class StorageCells {
 
-    private static final List<ICellHandler> handlers = new ArrayList<>();
+    // Lookups run while rendering tooltips, possibly on several threads at once (e.g. by item list mods). They must
+    // not hold a lock while calling the handlers, which may need other locks.
+    private static final List<ICellHandler> handlers = new CopyOnWriteArrayList<>();
 
     private StorageCells() {
     }
@@ -72,7 +74,7 @@ public final class StorageCells {
      * @return true if the provided item, can be handled by a handler in AE, ( AE May choose to skip this and just get
      *         the handler instead. )
      */
-    public static synchronized boolean isCellHandled(ItemStack is) {
+    public static boolean isCellHandled(ItemStack is) {
         if (is.isEmpty()) {
             return false;
         }
@@ -91,7 +93,7 @@ public final class StorageCells {
      * @return the handler registered for this item type.
      */
     @Nullable
-    public static synchronized ICellHandler getHandler(ItemStack is) {
+    public static ICellHandler getHandler(ItemStack is) {
         if (is.isEmpty()) {
             return null;
         }
@@ -111,7 +113,7 @@ public final class StorageCells {
      * @return The cell inventory, or null if there isn't one.
      */
     @Nullable
-    public static synchronized StorageCell getCellInventory(ItemStack is, @Nullable ISaveProvider host) {
+    public static StorageCell getCellInventory(ItemStack is, @Nullable ISaveProvider host) {
         if (is.isEmpty()) {
             return null;
         }
