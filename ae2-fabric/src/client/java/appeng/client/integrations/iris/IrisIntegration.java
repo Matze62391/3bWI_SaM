@@ -2,6 +2,7 @@ package appeng.client.integrations.iris;
 
 import net.irisshaders.iris.api.v0.IrisApi;
 import net.irisshaders.iris.api.v0.IrisProgram;
+import net.irisshaders.iris.api.v0.IrisShadowProgram;
 
 import appeng.client.render.AERenderPipelines;
 
@@ -23,5 +24,8 @@ public final class IrisIntegration {
         iris.assignPipeline(AERenderPipelines.SPATIAL_SKYBOX, IrisProgram.SKY_BASIC);
         iris.assignPipeline(AERenderPipelines.SPATIAL_SKYBOX_SPARKLES, IrisProgram.SKY_BASIC);
         iris.assignPipeline(AERenderPipelines.LIGHTNING_FX, IrisProgram.PARTICLES_TRANSLUCENT);
+
+        // Some shader packs also render block entities (and with them the drive LEDs) into the shadow map
+        iris.assignPipelineShadow(AERenderPipelines.STORAGE_CELL_LEDS, IrisShadowProgram.SHADOW);
     }
 }
