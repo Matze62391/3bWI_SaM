@@ -1,0 +1,97 @@
+plugins {
+    id 'net.fabricmc.fabric-loom' version "${loom_version}"
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+    archivesName = project.archives_base_name
+}
+
+repositories {
+    maven {
+        name = "Modrinth"
+        url = "https://api.modrinth.com/maven"
+        content {
+            includeGroup "maven.modrinth"
+        }
+    }
+}
+
+sourceSets {
+    main {
+        java {
+            // AE2 keeps client code in a separate folder. Fabric's merged Minecraft jar lets us compile it
+            // together with the common code, which matches how the NeoForge version is built.
+            srcDir "src/client/java"
+
+            // Not yet ported: data generators (we ship the pre-generated resources instead),
+            // the GuideME-based guidebook (GuideME only exists for NeoForge) and third-party integrations.
+            exclude "appeng/datagen/**"
+            exclude "appeng/client/guidebook/**"
+            exclude "appeng/integration/modules/**"
+            exclude "appeng/client/integrations/**"
+        }
+        resources {
+            srcDir "src/client/resources"
+            srcDir "src/generated/resources"
+            exclude "META-INF/accesstransformer.cfg"
+            exclude "META-INF/neoforge.mods.toml"
+            exclude "data/neoforge/**"
+            exclude "data/curios/**"
+        }
+    }
+}
+
+loom {
+    accessWidenerPath = file("src/main/resources/ae2.classtweaker")
+
+    mods {
+        "ae2" {
+            sourceSet sourceSets.main
+        }
+    }
+
+    runs {
+        configureEach {
+            vmArg "-Dappeng.tests=true"
+        }
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+
+    // De-facto standard energy API on Fabric (replaces NeoForge's EnergyHandler capability)
+    implementation "teamreborn:energy:${project.tr_energy_version}"
+    include "teamreborn:energy:${project.tr_energy_version}"
+}
+
+processResources {
+    def version = project.version
+    inputs.property "version", version
+
+    filesMatching("fabric.mod.json") {
+        expand "version": version
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = 25
+    it.options.encoding = "UTF-8"
+    it.options.compilerArgs += ["-Xmaxerrs", "100000"]
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+}
+
+jar {
+    from("LICENSE") {
+        rename { "${it}_ae2" }
+    }
+}
