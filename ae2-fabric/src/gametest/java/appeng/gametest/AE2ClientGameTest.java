@@ -20,8 +20,13 @@ import net.minecraft.world.level.levelgen.presets.WorldPresets;
 import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.recipe.RecipeIngredientRole;
 
+import guideme.Guides;
+import guideme.PageAnchor;
+import guideme.internal.screen.GuideScreen;
+
 import appeng.api.parts.IPartHost;
 import appeng.client.gui.config.AEConfigScreen;
+import appeng.core.AppEng;
 import appeng.core.definitions.AEBlocks;
 import appeng.core.definitions.AEItems;
 
@@ -82,6 +87,22 @@ public class AE2ClientGameTest implements FabricClientGameTest {
                 context.waitTicks(5);
                 openAndScreenshot(context, target, "ae2-" + machine);
                 setBlock(server, target, "minecraft:air");
+            }
+
+            // Guidebook: the start page and pages with 3D scenes of blocks and cables
+            for (var page : List.of("index.md", "items-blocks-machines/controller.md", "items-blocks-machines/cables.md",
+                    "items-blocks-machines/facades.md", "getting-started.md", "index.md")) {
+                var guide = Guides.getById(AppEng.makeId("guide"));
+                context.runOnClient(mc -> mc.gui.setScreen(GuideScreen.openNew(guide,
+                        PageAnchor.page(AppEng.makeId(page)))));
+                String screenNow = context.computeOnClient(mc -> String.valueOf(mc.gui.screen()));
+                LOG.info("Screen after opening guide page {}: {}", page, screenNow);
+                context.waitTicks(40);
+                String screenLater = context.computeOnClient(mc -> String.valueOf(mc.gui.screen()));
+                LOG.info("Screen 40 ticks later: {}", screenLater);
+                context.takeScreenshot("ae2-guide-" + page.replace('/', '-').replace(".md", ""));
+                context.setScreen(() -> null);
+                context.waitTicks(5);
             }
 
             // Jade: look at a drive without opening it
@@ -167,7 +188,15 @@ public class AE2ClientGameTest implements FabricClientGameTest {
             LOG.warn("No screen opened for {}", name);
         }
         context.takeScreenshot(name);
-        context.setScreen(() -> null);
+        // Close the menu like the player would, so the server doesn't close it later (which would also close
+        // whatever screen is open by then)
+        context.runOnClient(mc -> {
+            if (mc.player != null && mc.player.containerMenu != mc.player.inventoryMenu) {
+                mc.player.closeContainer();
+            } else {
+                mc.gui.setScreen(null);
+            }
+        });
         context.waitTicks(5);
     }
 }

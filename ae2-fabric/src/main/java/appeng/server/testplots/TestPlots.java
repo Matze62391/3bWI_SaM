@@ -222,7 +222,8 @@ public final class TestPlots {
                 InvalidPatternTestPlot.class,
                 SpawnExtraGridTestTools.class,
                 ItemP2PTestPlots.class,
-                InscriberTestPlots.class);
+                InscriberTestPlots.class,
+                GuidebookPlot.class);
     }
 
     public static List<PlotInfo> getPlots() {

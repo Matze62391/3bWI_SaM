@@ -46,6 +46,9 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import appeng.core.network.NetworkHelper;
 
+import guideme.color.ConstantColor;
+import guideme.document.LytRect;
+import guideme.render.SimpleRenderContext;
 
 import appeng.api.behaviors.ContainerItemStrategies;
 import appeng.api.config.ActionItems;
@@ -464,21 +467,23 @@ public class MEStorageScreen<C extends MEStorageMenu>
     private void renderLinkStatus(GuiGraphicsExtractor guiGraphics, ILinkStatus linkStatus) {
         // Draw an overlay indicating the grid is disconnected
         if (!linkStatus.connected()) {
+            var renderContext = new SimpleRenderContext(LytRect.empty(), guiGraphics);
+
             var firstSlot = style.getSlotPos(0, 0);
             var lastSlot = style.getSlotPos(rows - 1, style.getSlotsPerRow() - 1);
 
-            int rectX = firstSlot.getX() - 1;
-            int rectY = firstSlot.getY() - 1;
-            int rectW = lastSlot.getX() + 17 - (firstSlot.getX() - 1);
-            int rectH = lastSlot.getY() + 17 - (firstSlot.getY() - 1);
+            var rect = new LytRect(
+                    firstSlot.getX() - 1,
+                    firstSlot.getY() - 1,
+                    lastSlot.getX() + 17 - (firstSlot.getX() - 1),
+                    lastSlot.getY() + 17 - (firstSlot.getY() - 1));
 
-            guiGraphics.fill(rectX, rectY, rectX + rectW, rectY + rectH, 0x3f000000);
+            renderContext.fillRect(rect, new ConstantColor(0x3f000000));
 
             // Draw the disconnect status on top of the grid
             var statusDescription = linkStatus.statusDescription();
             if (statusDescription != null) {
-                renderTextCenteredIn(guiGraphics, statusDescription.getString(), ERROR_TEXT_COLOR, rectX, rectY, rectW,
-                        rectH);
+                renderContext.renderTextCenteredIn(statusDescription.getString(), ERROR_TEXT_STYLE, rect);
             }
         }
     }

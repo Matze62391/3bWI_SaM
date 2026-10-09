@@ -69,6 +69,12 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.HitResult;
 
+import guideme.Guide;
+import guideme.compiler.TagCompiler;
+import guideme.scene.ImplicitAnnotationStrategy;
+import guideme.siteexport.AdditionalResourceExporter;
+import guideme.siteexport.RecipeExporter;
+
 import appeng.api.client.StorageCellModels;
 import appeng.api.parts.CableRenderMode;
 import appeng.api.stacks.AEFluidKey;
@@ -86,6 +92,10 @@ import appeng.client.commands.ClientCommands;
 import appeng.client.gui.me.common.PendingCraftingJobs;
 import appeng.client.gui.me.common.PinnedKeys;
 import appeng.client.gui.style.StyleManager;
+import appeng.client.guidebook.AEAdditionalExportData;
+import appeng.client.guidebook.AERecipeExporter;
+import appeng.client.guidebook.ConfigValueTagExtension;
+import appeng.client.guidebook.PartAnnotationStrategy;
 import appeng.client.hooks.BlockAttackHook;
 import appeng.client.hooks.RenderBlockOutlineHook;
 import appeng.client.integrations.itemlists.FluidBlockPictureInPictureRenderer;
@@ -212,6 +222,8 @@ public class AppEngClient extends AppEngBase {
     private RecipeMap recipeMap = RecipeMap.EMPTY;
     private final Set<RecipeType<?>> knownRecipeTypes = Collections.newSetFromMap(new IdentityHashMap<>());
 
+    private final Guide guide;
+
     public AppEngClient() {
         super();
 
@@ -228,6 +240,7 @@ public class AppEngClient extends AppEngBase {
         this.registerReloadListeners();
 
         BlockAttackHook.install();
+        guide = createGuide();
 
         ClientTickEvents.START_CLIENT_TICK.register(client -> updateCableRenderMode());
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
@@ -274,6 +287,20 @@ public class AppEngClient extends AppEngBase {
             }
             dispatcher.register(builder);
         });
+    }
+
+    private Guide createGuide() {
+        return Guide.builder(AppEng.makeId("guide"))
+                .folder("ae2guide")
+                .extension(ImplicitAnnotationStrategy.EXTENSION_POINT, new PartAnnotationStrategy())
+                .extension(TagCompiler.EXTENSION_POINT, new ConfigValueTagExtension())
+                .extension(RecipeExporter.EXTENSION_POINT, new AERecipeExporter())
+                .extension(AdditionalResourceExporter.EXTENSION_POINT, new AEAdditionalExportData())
+                .build();
+    }
+
+    public Guide getGuide() {
+        return guide;
     }
 
     private void tickPinnedKeys(Minecraft minecraft) {

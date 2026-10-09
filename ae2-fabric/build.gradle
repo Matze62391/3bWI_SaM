@@ -49,11 +49,9 @@ sourceSets {
             // together with the common code, which matches how the NeoForge version is built.
             srcDir "src/client/java"
 
-            // Not yet ported: data generators (we ship the pre-generated resources instead),
-            // the GuideME-based guidebook (GuideME only exists for NeoForge) and third-party integrations.
+            // Not ported: data generators (we ship the pre-generated resources instead) and integrations with
+            // mods that don't exist for Fabric 26.3 yet.
             exclude "appeng/datagen/**"
-            exclude "appeng/client/guidebook/**"
-            exclude "appeng/server/testplots/GuidebookPlot.java"
             exclude "appeng/integration/modules/curios/**"
             exclude "appeng/integration/modules/wthit/**"
             exclude "appeng/client/api/integrations/emi/**"
@@ -76,6 +74,9 @@ loom {
     mods {
         "ae2" {
             sourceSet sourceSets.main
+        }
+        "guideme" {
+            sourceSet project(":guideme").sourceSets.main
         }
     }
 
@@ -117,6 +118,10 @@ dependencies {
     // NeoForge ships these annotation libraries, AE2 uses them
     compileOnly "com.google.code.findbugs:jsr305:3.0.2"
 
+    // GuideME (Fabric port in the guideme subproject) provides AE2's guidebook
+    implementation project(":guideme")
+    include project(":guideme")
+
     // Optional: JEI shows AE2's recipes and lets players transfer recipes into AE2's terminals
     compileOnly "mezz.jei:jei-${project.minecraft_version}-common-api:${project.jei_version}"
     compileOnly "mezz.jei:jei-${project.minecraft_version}-fabric-api:${project.jei_version}"
@@ -141,6 +146,11 @@ dependencies {
 processResources {
     def version = project.version
     inputs.property "version", version
+
+    // The guidebook pages, like in the NeoForge version
+    from('guidebook') {
+        into 'assets/ae2/ae2guide'
+    }
 
     filesMatching("fabric.mod.json") {
         expand "version": version

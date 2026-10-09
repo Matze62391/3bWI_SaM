@@ -25,8 +25,13 @@ import org.apache.commons.lang3.StringUtils;
 
 import io.netty.buffer.ByteBuf;
 
+import org.jetbrains.annotations.Nullable;
+
 import net.minecraft.core.Direction;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtUtils;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.world.level.block.Block;
@@ -94,11 +99,30 @@ public class FacadeContainer implements IFacadeContainer {
         for (var side : Direction.values()) {
             this.storage.removeFacade(side);
 
-            var blockState = input.read(NBT_KEY_NAMES[side.ordinal()], BlockState.CODEC).orElse(null);
+            var blockState = readFacadeState(input, NBT_KEY_NAMES[side.ordinal()]);
             if (blockState != null) {
                 this.storage.setFacade(side, new FacadePart(blockState, side));
             }
         }
+    }
+
+    /**
+     * Before Minecraft 26.1, block states were stored as {@code {Name: ..., Properties: {...}}}. Structures in the
+     * guidebook (and older worlds) still use that format, which the current block state codec can't read.
+     */
+    @Nullable
+    private static BlockState readFacadeState(ValueInput input, String key) {
+        var legacy = input.child(key).flatMap(child -> child.getString("Name").map(name -> {
+            var tag = new CompoundTag();
+            tag.putString("id", name);
+            child.read("Properties", CompoundTag.CODEC).ifPresent(properties -> tag.put("properties", properties));
+            return tag;
+        }));
+        if (legacy.isPresent()) {
+            var state = NbtUtils.readBlockState(BuiltInRegistries.BLOCK, legacy.get());
+            return state.isAir() ? null : state;
+        }
+        return input.read(key, BlockState.CODEC).orElse(null);
     }
 
     @Override
