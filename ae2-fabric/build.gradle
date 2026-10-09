@@ -193,6 +193,8 @@ configurations {
 
 dependencies {
     productionRuntimeMods "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+    // Not part of the Fabric API jar, only needed to run the test
+    productionRuntimeMods fabricApi.module("fabric-client-gametest-api-v1", project.fabric_api_version)
     productionRuntimeMods "mezz.jei:jei-${project.minecraft_version}-fabric:${project.jei_version}"
     productionRuntimeMods "maven.modrinth:jade:${project.jade_version}"
     productionRuntimeMods "com.terraformersmc:modmenu:${project.modmenu_version}"
