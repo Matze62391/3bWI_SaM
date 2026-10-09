@@ -51,6 +51,7 @@ import appeng.items.tools.powered.WirelessTerminalItem;
 import appeng.menu.MenuOpener;
 import appeng.menu.implementations.PriorityMenu;
 import appeng.menu.locator.MenuLocators;
+import appeng.server.testworld.TestWorldGenerator;
 
 /**
  * Opens the user interfaces of AE2's machines and terminals in a real client and takes screenshots of them. The
@@ -251,7 +252,7 @@ public class AE2ClientGameTest implements FabricClientGameTest {
             context.setScreen(() -> null);
 
             // Terminals: build AE2's terminal test plot and open the terminals of its first line, which face north
-            server.runCommand("execute as @p at @p run ae2 setuptestworld all_terminals");
+            buildTerminalPlot(server);
             context.waitTicks(100);
             context.takeScreenshot("ae2-all-terminals-overview");
             for (var terminal : TERMINALS) {
@@ -334,7 +335,7 @@ public class AE2ClientGameTest implements FabricClientGameTest {
             context.takeScreenshot("ae2-shaders-blocks");
 
             // Cables, parts and terminals of AE2's terminal test plot, by day and by night
-            server.runCommand("execute as @p at @p run ae2 setuptestworld all_terminals");
+            buildTerminalPlot(server);
             context.waitTicks(100);
             context.takeScreenshot("ae2-shaders-terminals-day");
             server.runCommand("time set midnight");
@@ -355,6 +356,18 @@ public class AE2ClientGameTest implements FabricClientGameTest {
                 openAndScreenshot(context, terminalPos, "ae2-shaders-terminal-screen");
             }
         }
+    }
+
+    /**
+     * Builds AE2's terminal test plot at the player's position. This is what {@code /ae2 setuptestworld all_terminals}
+     * does, but that command only exists in development environments.
+     */
+    private static void buildTerminalPlot(TestServerContext server) {
+        server.runOnServer(s -> {
+            var player = firstPlayer(s);
+            new TestWorldGenerator(player.level(), player, player.blockPosition(), AppEng.makeId("all_terminals"))
+                    .generate();
+        });
     }
 
     /**
