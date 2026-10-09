@@ -39,15 +39,7 @@ public record TagNotEmptyCondition(Identifier tag) implements ResourceCondition 
 
     @Override
     public boolean test(RegistryOps.@Nullable RegistryInfoLookup registryInfo) {
-        if (registryInfo == null) {
-            return false;
-        }
-        var items = registryInfo.lookup(Registries.ITEM);
-        if (items.isEmpty()) {
-            return false;
-        }
-        return items.get().get(TagKey.create(Registries.ITEM, tag))
-                .map(set -> set.size() > 0)
-                .orElse(false);
+        // Tags are not bound yet while resources are loaded, Fabric's condition knows how to check them anyway
+        return ResourceConditions.tagsPopulated(TagKey.create(Registries.ITEM, tag)).test(registryInfo);
     }
 }
