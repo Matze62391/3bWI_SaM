@@ -183,6 +183,35 @@ if (project.hasProperty("shaderPack")) {
     }
 }
 
+// Runs the client game test against the built mod jar in a production environment, the way players install it:
+// ./gradlew prodClientGameTest
+configurations {
+    productionRuntimeMods {
+        transitive = false
+    }
+}
+
+dependencies {
+    productionRuntimeMods "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+    productionRuntimeMods "mezz.jei:jei-${project.minecraft_version}-fabric:${project.jei_version}"
+    productionRuntimeMods "maven.modrinth:jade:${project.jade_version}"
+    productionRuntimeMods "com.terraformersmc:modmenu:${project.modmenu_version}"
+}
+
+def gametestJar = tasks.register("gametestJar", Jar) {
+    from sourceSets.gametest.output
+    archiveClassifier = "gametest"
+}
+
+tasks.register("prodClientGameTest", net.fabricmc.loom.task.prod.ClientProductionRunTask) {
+    mods.from(tasks.named("jar"))
+    mods.from(gametestJar)
+    mods.from(configurations.productionRuntimeMods)
+    jvmArgs.add("-Dfabric.client.gametest")
+    runDir = layout.buildDirectory.dir("run/prodClientGameTest")
+    useXVFB = false
+}
+
 processResources {
     def version = project.version
     inputs.property "version", version
