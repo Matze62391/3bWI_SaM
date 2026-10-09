@@ -61,6 +61,14 @@ loom {
         configureEach {
             vmArg "-Dappeng.tests=true"
         }
+        // Runs all game tests (including AE2's test plots) on a headless server and exits
+        gametest {
+            server()
+            name "Game Test"
+            vmArg "-Dfabric-api.gametest"
+            vmArg "-Dfabric-api.gametest.report-file=${project.layout.buildDirectory.get()}/gametest/junit.xml"
+            runDir "build/gametest"
+        }
     }
 }
 
