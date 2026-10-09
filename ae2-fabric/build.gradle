@@ -138,6 +138,9 @@ dependencies {
     compileOnly "maven.modrinth:jade:${project.jade_version}"
     localRuntime "maven.modrinth:jade:${project.jade_version}"
 
+    // Optional: tells Iris how to render AE2's own render pipelines with shader packs
+    compileOnly "maven.modrinth:iris:${project.iris_version}"
+
     // Optional: Mod Menu opens AE2's config screen
     compileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
     localRuntime "com.terraformersmc:modmenu:${project.modmenu_version}"

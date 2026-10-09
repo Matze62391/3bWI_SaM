@@ -51,6 +51,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.PictureInPictureRendererRegis
 import net.fabricmc.fabric.api.recipe.v1.sync.SynchronizedRecipes;
 import net.fabricmc.fabric.api.resource.v1.ResourceLoader;
 import net.fabricmc.fabric.api.resource.v1.reloader.ResourceReloaderKeys;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.color.item.ItemTintSources;
@@ -98,6 +99,7 @@ import appeng.client.guidebook.ConfigValueTagExtension;
 import appeng.client.guidebook.PartAnnotationStrategy;
 import appeng.client.hooks.BlockAttackHook;
 import appeng.client.hooks.RenderBlockOutlineHook;
+import appeng.client.integrations.iris.IrisIntegration;
 import appeng.client.integrations.itemlists.FluidBlockPictureInPictureRenderer;
 import appeng.client.item.ColorApplicatorItemModel;
 import appeng.client.item.EnergyFillLevelProperty;
@@ -240,6 +242,9 @@ public class AppEngClient extends AppEngBase {
         this.registerReloadListeners();
 
         BlockAttackHook.install();
+        if (FabricLoader.getInstance().isModLoaded("iris")) {
+            IrisIntegration.register();
+        }
         guide = createGuide();
 
         ClientTickEvents.START_CLIENT_TICK.register(client -> updateCableRenderMode());
