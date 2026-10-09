@@ -27,6 +27,8 @@ import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
 import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
 
 import appeng.api.inventories.BaseInternalInventory;
+import appeng.util.transfer.CombinedIndexedStorage;
+import appeng.util.transfer.IndexedStorage;
 import appeng.api.inventories.InternalInventory;
 
 /**
@@ -144,6 +146,11 @@ public class CombinedInternalInventory extends BaseInternalInventory {
 
         for (InternalInventory inventory : this.inventories) {
             parts.add(inventory.toStorage());
+        }
+
+        // Keep index-based access if possible, so that wrappers of this inventory can pass transactions through
+        if (parts.stream().allMatch(part -> part instanceof IndexedStorage)) {
+            return new CombinedIndexedStorage<>(parts.stream().map(part -> (IndexedStorage<ItemVariant>) part).toList());
         }
 
         return new CombinedStorage<>(parts);

@@ -29,7 +29,12 @@ import net.minecraft.world.item.ItemStack;
 
 /**
  * Exposes a subset of an {@link InternalInventory}.
- */
+ */import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
+import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
+
+import appeng.util.transfer.IndexedStorage;
+import appeng.util.transfer.RangedIndexedStorage;
+
 final class SubInventoryProxy extends BaseInternalInventory {
     private final InternalInventory delegate;
     private final int fromSlot;
@@ -92,4 +97,12 @@ final class SubInventoryProxy extends BaseInternalInventory {
         delegate.sendChangeNotification(translateSlot(slot));
     }
 
+    @Override
+    protected Storage<ItemVariant> createStorage() {
+        // Pass transactions through to the delegate if it supports index-based access
+        if (delegate.toStorage() instanceof IndexedStorage<ItemVariant> indexed) {
+            return new RangedIndexedStorage<>(indexed, fromSlot, toSlot);
+        }
+        return super.createStorage();
+    }
 }

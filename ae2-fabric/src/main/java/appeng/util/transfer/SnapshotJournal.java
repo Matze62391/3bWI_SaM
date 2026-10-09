@@ -44,19 +44,25 @@ public abstract class SnapshotJournal<T> {
         participant.updateSnapshots(transaction);
     }
 
-    private final class Participant extends SnapshotParticipant<T> {
+    /**
+     * Fabric does not allow null snapshots, but AE2's journals may use null as their state.
+     */
+    private record Snapshot<T>(@Nullable T state) {
+    }
+
+    private final class Participant extends SnapshotParticipant<Snapshot<T>> {
         @Nullable
-        private T originalState;
+        private Snapshot<T> originalState;
         private boolean capturingRootSnapshot;
 
         @Override
-        protected T createSnapshot() {
-            return SnapshotJournal.this.createSnapshot();
+        protected Snapshot<T> createSnapshot() {
+            return new Snapshot<>(SnapshotJournal.this.createSnapshot());
         }
 
         @Override
-        protected void readSnapshot(T snapshot) {
-            revertToSnapshot(snapshot);
+        protected void readSnapshot(Snapshot<T> snapshot) {
+            revertToSnapshot(snapshot.state());
         }
 
         @Override
@@ -72,11 +78,11 @@ public abstract class SnapshotJournal<T> {
         }
 
         @Override
-        protected void releaseSnapshot(T snapshot) {
+        protected void releaseSnapshot(Snapshot<T> snapshot) {
             if (capturingRootSnapshot && originalState == null) {
                 originalState = snapshot;
             } else {
-                SnapshotJournal.this.releaseSnapshot(snapshot);
+                SnapshotJournal.this.releaseSnapshot(snapshot.state());
             }
         }
 
@@ -85,8 +91,8 @@ public abstract class SnapshotJournal<T> {
             var original = originalState;
             originalState = null;
             if (original != null) {
-                onRootCommit(original);
-                SnapshotJournal.this.releaseSnapshot(original);
+                onRootCommit(original.state());
+                SnapshotJournal.this.releaseSnapshot(original.state());
             }
         }
     }
