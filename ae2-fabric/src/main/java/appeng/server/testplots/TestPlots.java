@@ -270,7 +270,8 @@ public final class TestPlots {
         plot.cable("[-1,0] [0,8] 0", AEParts.COVERED_DENSE_CABLE);
         plot.part("0 [0,8] 0", Direction.WEST, AEParts.CABLE_ANCHOR);
         plot.block("[-1,0] 5 0", AEBlocks.CONTROLLER);
-        plot.storageDrive(new BlockPos(0, 5, 1));
+        // The front of the drive must not face the controller, otherwise the drive does not join the network
+        plot.storageDrive(new BlockPos(0, 5, 1), Direction.SOUTH);
         plot.afterGridInitAt(new BlockPos(0, 5, 1), (grid, gridNode) -> {
             var enchantedPickaxe = createEnchantedPickaxe(gridNode.getLevel());
             var storage = grid.getStorageService().getInventory();

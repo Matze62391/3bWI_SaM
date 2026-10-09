@@ -63,6 +63,13 @@ public final class ConfigSpec {
         save();
     }
 
+    /**
+     * @return All values of this config, in the order they were defined.
+     */
+    public List<ConfigValue<?>> getValues() {
+        return values;
+    }
+
     public void save() {
         if (file == null) {
             return;
@@ -224,6 +231,21 @@ public final class ConfigSpec {
             this.value = validate(value) ? value : defaultValue;
         }
 
+        public String getName() {
+            return name;
+        }
+
+        public List<String> getSection() {
+            return section;
+        }
+
+        /**
+         * @return The comment of this option, including the allowed range or values.
+         */
+        public String getDescription() {
+            return describe();
+        }
+
         public List<String> getPath() {
             var result = new ArrayList<>(section);
             result.add(name);
@@ -300,6 +322,14 @@ public final class ConfigSpec {
             this.max = max;
         }
 
+        public int getMin() {
+            return min;
+        }
+
+        public int getMax() {
+            return max;
+        }
+
         @Override
         public int getAsInt() {
             return get();
@@ -338,6 +368,14 @@ public final class ConfigSpec {
             this.max = max;
         }
 
+        public double getMin() {
+            return min;
+        }
+
+        public double getMax() {
+            return max;
+        }
+
         @Override
         public double getAsDouble() {
             return get();
@@ -368,6 +406,10 @@ public final class ConfigSpec {
 
     public static final class EnumValue<T extends Enum<T>> extends ConfigValue<T> {
         private final Class<T> enumClass;
+
+        public Class<T> getEnumClass() {
+            return enumClass;
+        }
 
         EnumValue(Builder builder, String name, T defaultValue) {
             super(builder, name, defaultValue);

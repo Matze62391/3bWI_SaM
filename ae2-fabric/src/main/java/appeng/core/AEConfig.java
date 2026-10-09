@@ -407,6 +407,22 @@ public final class AEConfig {
         client.spec.save();
     }
 
+    public ConfigSpec getClientSpec() {
+        return client.spec;
+    }
+
+    public ConfigSpec getCommonSpec() {
+        return common.spec;
+    }
+
+    /**
+     * Applies values that were changed through the config screen and saves both config files.
+     */
+    public void onValuesChanged() {
+        common.sync();
+        save();
+    }
+
     private static class ClientConfig {
         private final ConfigSpec spec;
 

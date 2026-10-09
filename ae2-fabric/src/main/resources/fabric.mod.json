@@ -4,8 +4,12 @@
   "version": "${version}",
   "name": "Applied Energistics 2",
   "description": "A Mod about Matter, Energy and using them to conquer the world... (unofficial Fabric port)",
-  "authors": ["Team AppliedEnergistics"],
-  "contributors": ["Fabric port: 3bWI SaM"],
+  "authors": [
+    "Team AppliedEnergistics"
+  ],
+  "contributors": [
+    "Fabric port: 3bWI SaM"
+  ],
   "contact": {
     "homepage": "https://appliedenergistics.org",
     "sources": "https://github.com/AppliedEnergistics/Applied-Energistics-2"
@@ -14,9 +18,16 @@
   "icon": "logo.png",
   "environment": "*",
   "entrypoints": {
-    "main": ["appeng.core.AppEngFabricEntrypoint"]
+    "main": [
+      "appeng.core.AppEngFabricEntrypoint"
+    ],
+    "modmenu": [
+      "appeng.client.integrations.modmenu.ModMenuIntegration"
+    ]
   },
-  "mixins": ["ae2.mixins.json"],
+  "mixins": [
+    "ae2.mixins.json"
+  ],
   "accessWidener": "ae2.classtweaker",
   "depends": {
     "fabricloader": ">=0.19.5",

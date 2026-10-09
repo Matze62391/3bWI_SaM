@@ -17,6 +17,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.levelgen.presets.WorldPresets;
 
 import appeng.api.parts.IPartHost;
+import appeng.client.gui.config.AEConfigScreen;
 
 /**
  * Opens the user interfaces of AE2's machines and terminals in a real client and takes screenshots of them. The
@@ -48,6 +49,12 @@ public class AE2ClientGameTest implements FabricClientGameTest {
 
     @Override
     public void runTest(ClientGameTestContext context) {
+        // Config screen (opened through Mod Menu in normal play)
+        context.setScreen(() -> new AEConfigScreen(null));
+        context.waitTicks(10);
+        context.takeScreenshot("ae2-config-screen");
+        context.setScreen(() -> null);
+
         try (var world = context.worldBuilder().adjustSettings(settings -> {
             settings.setGameMode(WorldCreationUiState.SelectedGameMode.CREATIVE);
             // AE2's test world command requires a superflat world

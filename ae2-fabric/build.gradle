@@ -17,6 +17,17 @@ repositories {
             includeGroup "maven.modrinth"
         }
     }
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = "TerraformersMC"
+                url = "https://maven.terraformersmc.com/releases"
+            }
+        }
+        filter {
+            includeGroup "com.terraformersmc"
+        }
+    }
 }
 
 sourceSets {
@@ -32,7 +43,8 @@ sourceSets {
             exclude "appeng/client/guidebook/**"
             exclude "appeng/server/testplots/GuidebookPlot.java"
             exclude "appeng/integration/modules/**"
-            exclude "appeng/client/integrations/**"
+            exclude "appeng/client/integrations/jei/**"
+            exclude "appeng/client/integrations/itemlists/**"
             exclude "appeng/client/api/integrations/**"
             exclude "appeng/api/integrations/rei/**"
             exclude "appeng/api/integrations/igtooltip/**"
@@ -94,6 +106,10 @@ dependencies {
 
     // NeoForge ships these annotation libraries, AE2 uses them
     compileOnly "com.google.code.findbugs:jsr305:3.0.2"
+
+    // Optional: Mod Menu opens AE2's config screen
+    compileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
+    localRuntime "com.terraformersmc:modmenu:${project.modmenu_version}"
 
     // De-facto standard energy API on Fabric (replaces NeoForge's EnergyHandler capability)
     implementation "teamreborn:energy:${project.tr_energy_version}"
