@@ -23,7 +23,7 @@ import net.minecraft.client.resources.model.geometry.BakedQuad;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.client.model.standalone.StandaloneModelKey;
+import net.fabricmc.fabric.api.client.model.loading.v1.ExtraModelKey;
 
 import appeng.api.orientation.BlockOrientation;
 import appeng.blockentity.misc.CrankBlockEntity;
@@ -32,14 +32,14 @@ import appeng.core.AppEng;
 public class CrankRenderer implements BlockEntityRenderer<CrankBlockEntity, CrankRenderState> {
 
     public static final Identifier HANDLE_MODEL_ID = AppEng.makeId("block/crank_handle");
-    public static final StandaloneModelKey<BlockStateModelPart> HANDLE_MODEL = new StandaloneModelKey<>(
+    public static final ExtraModelKey<BlockStateModel> HANDLE_MODEL = ExtraModelKey.create(
             HANDLE_MODEL_ID::toString);
 
     private final BlockStateModel handleModel;
 
     public CrankRenderer(BlockEntityRendererProvider.Context context) {
         var modelManager = Minecraft.getInstance().getModelManager();
-        handleModel = new SingleVariant(Objects.requireNonNull(modelManager.getStandaloneModel(HANDLE_MODEL)));
+        handleModel = Objects.requireNonNull(modelManager.getModel(HANDLE_MODEL));
     }
 
     @Override
@@ -55,9 +55,8 @@ public class CrankRenderer implements BlockEntityRenderer<CrankBlockEntity, Cran
         state.orientation = BlockOrientation.get(be);
         state.visibleRotation = be.getVisibleRotation();
         var parts = state.modelRenderState.setupModel(new Matrix4f(), handleModel.hasMaterialFlag(
-                (BlockAndTintGetter) be.getLevel(), be.getBlockPos(), be.getBlockState(), BakedQuad.FLAG_TRANSLUCENT));
-        handleModel.collectParts((BlockAndTintGetter) be.getLevel(), be.getBlockPos(), be.getBlockState(),
-                state.modelRenderState.scratchRandomSource(42L), parts);
+                BakedQuad.FLAG_TRANSLUCENT));
+        handleModel.collectParts(state.modelRenderState.scratchRandomSource(42L), parts);
     }
 
     @Override

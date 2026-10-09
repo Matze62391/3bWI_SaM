@@ -22,7 +22,7 @@ import static net.minecraft.core.Direction.AxisDirection.POSITIVE;
 
 import net.minecraft.core.Direction;
 import net.minecraft.world.phys.AABB;
-import net.neoforged.neoforge.client.model.quad.MutableQuad;
+import appeng.client.render.quad.MutableQuad;
 
 /**
  * This transformer strips quads that are on faces. Simply set the bounds for the faces, and the strip mask.

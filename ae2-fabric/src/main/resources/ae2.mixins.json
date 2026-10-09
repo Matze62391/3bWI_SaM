@@ -24,7 +24,12 @@
     "client.WrappedGenericStackTooltipModIdMixin",
     "client.PickColorMixin",
     "client.PonderWorldMixin",
-    "client.PartModelLoaderMixin"
+    "client.PartModelLoaderMixin",
+    "client.ClientLevelParticlesMixin",
+    "client.SpatialStorageSkyMixin",
+    "client.SpatialStorageCloudsMixin",
+    "client.SpatialStorageWeatherMixin",
+    "client.MouseScrollMixin"
   ],
   "server": [],
   "injectors": {

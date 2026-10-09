@@ -17,7 +17,7 @@ import appeng.hotkeys.HotkeyActions;
  */
 public class Hotkeys {
 
-    public static final KeyMapping.Category CATEGORY = new KeyMapping.Category(AppEng.makeId("category"));
+    public static final KeyMapping.Category CATEGORY = KeyMapping.Category.register(AppEng.makeId("category"));
 
     private static final HashMap<String, Hotkey> HOTKEYS = new HashMap<>();
 

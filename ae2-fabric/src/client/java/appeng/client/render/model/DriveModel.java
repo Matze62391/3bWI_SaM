@@ -46,9 +46,9 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.client.model.ComposedModelState;
-import net.neoforged.neoforge.client.model.DynamicBlockStateModel;
-import net.neoforged.neoforge.client.model.block.CustomUnbakedBlockStateModel;
+import appeng.client.model.ComposedModelState;
+import appeng.client.model.DynamicBlockStateModel;
+import net.fabricmc.fabric.api.client.model.loading.v1.CustomUnbakedBlockStateModel;
 
 import appeng.api.model.ModelData;
 import appeng.api.client.StorageCellModels;

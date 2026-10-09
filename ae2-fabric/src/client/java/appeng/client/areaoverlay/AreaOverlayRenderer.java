@@ -33,13 +33,14 @@ import org.joml.Vector3f;
 
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.util.Mth;
-import net.minecraft.util.context.ContextKey;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.neoforge.client.event.ExtractLevelRenderStateEvent;
-import net.neoforged.neoforge.client.event.SubmitCustomGeometryEvent;
+import net.fabricmc.fabric.api.client.rendering.v1.RenderStateDataKey;
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelExtractionContext;
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelExtractionEvents;
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext;
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
 
 import appeng.client.render.AERenderTypes;
 import appeng.core.AppEng;
@@ -51,33 +52,36 @@ import appeng.core.areaoverlay.IAreaOverlayDataSource;
  */
 public class AreaOverlayRenderer {
 
-    private static final ContextKey<List<IAreaOverlayDataSource>> OVERLAY_AREAS = new ContextKey<>(
-            AppEng.makeId("overlay_areas"));
+    private static final RenderStateDataKey<List<IAreaOverlayDataSource>> OVERLAY_AREAS = RenderStateDataKey
+            .create(() -> AppEng.makeId("overlay_areas").toString());
 
-    @SubscribeEvent
-    public void extractRenderState(ExtractLevelRenderStateEvent event) {
+    public void register() {
+        LevelExtractionEvents.END_EXTRACTION.register(this::extractRenderState);
+        LevelRenderEvents.COLLECT_SUBMITS.register(this::submitCustomGeometry);
+    }
+
+    public void extractRenderState(LevelExtractionContext event) {
         var visibleAreas = AreaOverlayManager.getInstance().getVisible();
 
         var areasInThisLevel = new ArrayList<IAreaOverlayDataSource>();
         for (var visibleArea : visibleAreas) {
-            if (visibleArea.getOverlaySourceLocation().getLevel() == event.getLevel()) {
+            if (visibleArea.getOverlaySourceLocation().getLevel() == event.level()) {
                 areasInThisLevel.add(visibleArea);
             }
         }
-        event.getRenderState().setRenderData(OVERLAY_AREAS, areasInThisLevel);
+        event.levelState().setData(OVERLAY_AREAS, areasInThisLevel);
     }
 
-    @SubscribeEvent
-    public void submitCustomGeometry(SubmitCustomGeometryEvent event) {
-        var levelRenderState = event.getLevelRenderState();
-        var visibleAreas = levelRenderState.getRenderDataOrDefault(OVERLAY_AREAS, List.of());
+    public void submitCustomGeometry(LevelRenderContext event) {
+        var levelRenderState = event.levelState();
+        var visibleAreas = levelRenderState.getDataOrDefault(OVERLAY_AREAS, List.of());
 
         if (visibleAreas.isEmpty()) {
             return;
         }
 
-        var collector = event.getSubmitNodeCollector();
-        PoseStack poseStack = event.getPoseStack();
+        var collector = event.submitNodeCollector();
+        PoseStack poseStack = event.poseStack();
 
         poseStack.pushPose();
 

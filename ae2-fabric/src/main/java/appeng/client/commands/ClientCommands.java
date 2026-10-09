@@ -4,8 +4,7 @@ import java.util.List;
 
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.Commands;
+import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.network.chat.Component;
 
 import appeng.core.AEConfig;
@@ -20,16 +19,16 @@ public final class ClientCommands {
 
     @FunctionalInterface
     public interface CommandBuilder {
-        void build(LiteralArgumentBuilder<CommandSourceStack> builder);
+        void build(LiteralArgumentBuilder<FabricClientCommandSource> builder);
     }
 
-    private static void highlightGuiAreas(LiteralArgumentBuilder<CommandSourceStack> builder) {
-        builder.then(Commands.literal("highlight_gui_areas").executes(context -> {
+    private static void highlightGuiAreas(LiteralArgumentBuilder<FabricClientCommandSource> builder) {
+        builder.then(net.fabricmc.fabric.api.client.command.v2.ClientCommands.literal("highlight_gui_areas").executes(context -> {
             var src = context.getSource();
             var toggle = !AEConfig.instance().isShowDebugGuiOverlays();
             AEConfig.instance().setShowDebugGuiOverlays(toggle);
             AEConfig.instance().save();
-            src.sendSystemMessage(Component.literal("GUI Overlays: " + toggle));
+            src.sendFeedback(Component.literal("GUI Overlays: " + toggle));
             return 0;
         }));
     }

@@ -11,7 +11,6 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.client.extensions.common.IClientBlockExtensions;
 
 import appeng.block.networking.CableBusBlock;
 import appeng.block.networking.CableBusRenderState;
@@ -19,7 +18,7 @@ import appeng.client.render.cablebus.CableBusBreakingParticle;
 import appeng.client.render.cablebus.CableBusModel;
 import appeng.parts.ICableBusContainer;
 
-public class CableBusBlockClientExtensions implements IClientBlockExtensions {
+public class CableBusBlockClientExtensions {
 
     private final CableBusBlock block;
 
@@ -27,7 +26,6 @@ public class CableBusBlockClientExtensions implements IClientBlockExtensions {
         this.block = block;
     }
 
-    @Override
     public boolean addHitEffects(BlockState state, Level level, BlockPos blockPos, Direction face,
             ParticleEngine effectRenderer) {
 
@@ -76,7 +74,6 @@ public class CableBusBlockClientExtensions implements IClientBlockExtensions {
         return true;
     }
 
-    @Override
     public boolean addDestroyEffects(BlockState state, Level level, BlockPos pos,
             ParticleEngine effectRenderer) {
         ICableBusContainer cb = block.cb(level, pos);

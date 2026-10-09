@@ -31,8 +31,8 @@ import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.model.geometry.BakedQuad;
 import net.minecraft.client.resources.model.sprite.Material;
 import net.minecraft.core.Direction;
-import net.neoforged.neoforge.client.model.quad.MutableQuad;
-import net.neoforged.neoforge.client.model.quad.UVTransform;
+import appeng.client.render.quad.MutableQuad;
+import appeng.client.render.quad.UVTransform;
 
 /**
  * Builds the quads for a cube.

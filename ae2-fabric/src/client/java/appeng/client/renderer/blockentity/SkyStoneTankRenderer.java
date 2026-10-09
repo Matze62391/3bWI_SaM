@@ -23,6 +23,8 @@ import com.mojang.blaze3d.vertex.QuadInstance;
 
 import org.jetbrains.annotations.Nullable;
 
+import net.fabricmc.fabric.api.transfer.v1.client.fluid.FluidVariantRendering;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariantAttributes;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.Sheets;
 import net.minecraft.client.renderer.SubmitNodeCollector;
@@ -53,28 +55,21 @@ public final class SkyStoneTankRenderer
         BlockEntityRenderer.super.extractRenderState(be, state, partialTicks, cameraPos, crumblingOverlay);
 
         var fluidHandler = be.getFluidHandler();
-        var resource = fluidHandler.getResource(0);
-        var capacity = fluidHandler.getCapacityAsLong(0, resource);
-        var amount = fluidHandler.getAmountAsLong(0);
-        if (resource.isEmpty() || capacity <= 0 || amount <= 0) {
+        var resource = fluidHandler.getResource();
+        var capacity = fluidHandler.getCapacity();
+        var amount = fluidHandler.getAmount();
+        if (resource.isBlank() || capacity <= 0 || amount <= 0) {
             state.fill = 0;
             state.sprite = null;
             return;
         }
 
-        var fluidStack = resource.toStack(1);
-
         state.fill = (float) amount / capacity;
         var fluidModel = Minecraft.getInstance().getModelManager().getFluidStateModelSet()
                 .get(resource.getFluid().defaultFluidState());
         state.sprite = fluidModel.stillMaterial().sprite();
-        var tintSource = fluidModel.fluidTintSource();
-        if (tintSource != null) {
-            state.color = tintSource.colorAsStack(fluidStack);
-        } else {
-            state.color = -1;
-        }
-        state.lighterThanAir = resource.getFluidType().isLighterThanAir();
+        state.color = FluidVariantRendering.getColor(resource);
+        state.lighterThanAir = FluidVariantAttributes.isLighterThanAir(resource);
     }
 
     @Override

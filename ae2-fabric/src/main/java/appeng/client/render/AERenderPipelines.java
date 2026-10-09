@@ -22,8 +22,9 @@ public final class AERenderPipelines {
     /**
      * Similar to {@link RenderPipelines#LINES_TRANSLUCENT}, but with inverted depth test.
      */
-    public static final RenderPipeline LINES_BEHIND_BLOCK = RenderPipelines.LINES_TRANSLUCENT.toBuilder()
+    public static final RenderPipeline LINES_BEHIND_BLOCK = RenderPipeline.builder(RenderPipelines.LINES_SNIPPET)
             .withLocation(AppEng.makeId("pipeline/lines_behind_block"))
+            .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
             .withDepthStencilState(new DepthStencilState(CompareOp.LESS_THAN, false))
             .build();
 
@@ -71,7 +72,7 @@ public final class AERenderPipelines {
      * Pipelines used for {@link #AREA_OVERLAY_FACE} when improved transparency (OIT) is enabled.
      */
     public static final OitPipelineSet OIT_AREA_OVERLAY_FACE = OitPipelineSet
-            .builder(AppEng.makeId("area_overlay_face"),
+            .builder(AppEng.MOD_ID + "_area_overlay_face",
                     RenderPipeline.builder(RenderPipelines.OIT_DEBUG_FILLED_SNIPPET)
                             .withVertexBinding(0, DefaultVertexFormat.POSITION_COLOR_NORMAL))
             .build();
@@ -87,7 +88,7 @@ public final class AERenderPipelines {
      * additively, so they do not contribute to the transmittance.
      */
     public static final OitPipelineSet OIT_AREA_OVERLAY_LINE = OitPipelineSet
-            .builder(AppEng.makeId("area_overlay_line"), RenderPipeline.builder(RenderPipelines.OIT_LINES_SNIPPET)
+            .builder(AppEng.MOD_ID + "_area_overlay_line", RenderPipeline.builder(RenderPipelines.OIT_LINES_SNIPPET)
                     .withShaderDefine("OIT_ADDITIVE"))
             .build();
 
@@ -104,7 +105,7 @@ public final class AERenderPipelines {
      * other geometry.
      */
     public static final OitPipelineSet OIT_LINES_OCCLUDED = OitPipelineSet
-            .builder(AppEng.makeId("lines_occluded"),
+            .builder(AppEng.MOD_ID + "_lines_occluded",
                     RenderPipeline.builder(RenderPipelines.OIT_LINES_SNIPPET))
             .withDepthBoundsModifier(AERenderPipelines::invertDepthTest)
             .withTransmittanceModifier(AERenderPipelines::invertDepthTest)
@@ -135,7 +136,7 @@ public final class AERenderPipelines {
      * Pipelines used for {@link #LIGHTNING_FX} when improved transparency (OIT) is enabled.
      */
     public static final OitPipelineSet OIT_LIGHTNING_FX = OitPipelineSet
-            .builder(AppEng.makeId("lightning_fx"), RenderPipeline.builder(RenderPipelines.OIT_PARTICLE_SNIPPET)
+            .builder(AppEng.MOD_ID + "_lightning_fx", RenderPipeline.builder(RenderPipelines.OIT_PARTICLE_SNIPPET)
                     .withCull(false))
             .build();
 

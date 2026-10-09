@@ -19,9 +19,8 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.FileToIdConverter;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.ResourceManager;
-import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 import net.minecraft.util.ExtraCodecs;
-import net.neoforged.fml.ModLoader;
+import net.minecraft.util.StrictJsonParser;
 
 import appeng.api.implementations.parts.ICablePart;
 import appeng.api.parts.IPartItem;
@@ -40,19 +39,25 @@ public final class PartModels {
     private Map<Identifier, ClientPart> clientParts = null;
 
     public PartModels() {
-        ModLoader.postEvent(new RegisterPartModelsEvent(PART_MODEL_IDS));
+        RegisterPartModelsEvent.EVENT.invoker().registerPartModels(new RegisterPartModelsEvent(PART_MODEL_IDS));
     }
 
     public CompletableFuture<Void> reload(ResourceManager resourceManager, Executor executor) {
         var fileToIdConverter = FileToIdConverter.json("ae2/parts");
         return CompletableFuture.supplyAsync(() -> {
             var clientParts = new HashMap<Identifier, ClientPart>();
-            SimpleJsonResourceReloadListener.scanDirectory(
-                    resourceManager,
-                    fileToIdConverter,
-                    JsonOps.INSTANCE,
-                    ClientPart.CODEC,
-                    clientParts);
+            for (var entry : fileToIdConverter.listMatchingResources(resourceManager).entrySet()) {
+                var location = entry.getKey();
+                var id = fileToIdConverter.fileToId(location);
+                try (var reader = entry.getValue().openAsReader()) {
+                    ClientPart.CODEC.parse(JsonOps.INSTANCE, StrictJsonParser.parse(reader))
+                            .ifSuccess(parsed -> clientParts.putIfAbsent(id, parsed))
+                            .ifError(error -> LOG.error("Couldn't parse part model '{}' from '{}': {}", id,
+                                    location, error));
+                } catch (Exception e) {
+                    LOG.error("Couldn't parse part model '{}' from '{}'", id, location, e);
+                }
+            }
             return clientParts;
         }, executor)
                 .thenAccept(clientParts -> {

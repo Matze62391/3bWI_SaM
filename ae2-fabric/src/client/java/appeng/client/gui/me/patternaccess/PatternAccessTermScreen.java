@@ -51,9 +51,6 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import appeng.core.network.NetworkHelper;
 
-import guideme.color.ConstantColor;
-import guideme.document.LytRect;
-import guideme.render.SimpleRenderContext;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 
 import appeng.api.config.Settings;
@@ -221,13 +218,13 @@ public class PatternAccessTermScreen<C extends PatternAccessTermMenu> extends AE
                     }
                 } else if (row instanceof GroupHeaderRow(PatternContainerGroup group)) {
                     if (group.icon() != null) {
-                        var renderContext = new SimpleRenderContext(LytRect.empty(), guiGraphics);
-                        renderContext.renderItem(
-                                group.icon().getReadOnlyStack(),
-                                GUI_PADDING_X + PATTERN_PROVIDER_NAME_MARGIN_X,
-                                GUI_PADDING_Y + GUI_HEADER_HEIGHT + i * ROW_HEIGHT,
-                                8,
-                                8);
+                        var pose = guiGraphics.pose();
+                        pose.pushMatrix();
+                        pose.translate(GUI_PADDING_X + PATTERN_PROVIDER_NAME_MARGIN_X,
+                                GUI_PADDING_Y + GUI_HEADER_HEIGHT + i * ROW_HEIGHT);
+                        pose.scale(0.5f, 0.5f);
+                        guiGraphics.item(group.icon().getReadOnlyStack(), 0, 0);
+                        pose.popMatrix();
                     }
 
                     final int rows = this.byGroup.get(group).size();
@@ -257,20 +254,18 @@ public class PatternAccessTermScreen<C extends PatternAccessTermMenu> extends AE
     private void renderLinkStatus(GuiGraphicsExtractor guiGraphics, ILinkStatus linkStatus) {
         // Draw an overlay indicating the grid is disconnected
         if (!linkStatus.connected()) {
-            var renderContext = new SimpleRenderContext(LytRect.empty(), guiGraphics);
+            int rectX = GUI_PADDING_X - 1;
+            int rectY = GUI_HEADER_HEIGHT;
+            int rectW = COLUMNS * 18;
+            int rectH = visibleRows * ROW_HEIGHT;
 
-            var rect = new LytRect(
-                    GUI_PADDING_X - 1,
-                    GUI_HEADER_HEIGHT,
-                    COLUMNS * 18,
-                    visibleRows * ROW_HEIGHT);
-
-            renderContext.fillRect(rect, new ConstantColor(0x3f000000));
+            guiGraphics.fill(rectX, rectY, rectX + rectW, rectY + rectH, 0x3f000000);
 
             // Draw the disconnect status on top of the grid
             var statusDescription = linkStatus.statusDescription();
             if (statusDescription != null) {
-                renderContext.renderTextCenteredIn(statusDescription.getString(), ERROR_TEXT_STYLE, rect);
+                renderTextCenteredIn(guiGraphics, statusDescription.getString(), ERROR_TEXT_COLOR, rectX, rectY, rectW,
+                        rectH);
             }
         }
     }

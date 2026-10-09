@@ -7,6 +7,8 @@ import com.mojang.blaze3d.vertex.PoseStack;
 
 import org.jetbrains.annotations.Nullable;
 
+import net.fabricmc.fabric.api.transfer.v1.client.fluid.FluidVariantRendering;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariantAttributes;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.SubmitNodeCollector;
@@ -42,15 +44,9 @@ public class FluidKeyRenderer implements AEKeyRenderer<AEFluidKey, FluidKeyRende
 
     @Override
     public void extract(RenderState state, AEFluidKey what, @Nullable Level level, int seed) {
-        var fluidStack = what.toStack(1);
         var fluidModel = Minecraft.getInstance().getModelManager().getFluidStateModelSet()
                 .get(what.getFluid().defaultFluidState());
-        var tintSource = fluidModel.fluidTintSource();
-        if (tintSource != null) {
-            state.color = tintSource.colorAsStack(fluidStack);
-        } else {
-            state.color = -1;
-        }
+        state.color = FluidVariantRendering.getColor(what.toVariant());
         state.sprite = fluidModel.stillMaterial().sprite();
     }
 
@@ -105,7 +101,7 @@ public class FluidKeyRenderer implements AEKeyRenderer<AEFluidKey, FluidKeyRende
     @Override
     public List<Component> getTooltip(AEFluidKey stack) {
         var tooltip = new ArrayList<Component>();
-        tooltip.add(stack.toStack(1).getHoverName());
+        tooltip.add(FluidVariantAttributes.getName(stack.toVariant()));
 
         // Heuristic: If the last line doesn't include the modname, add it ourselves
         var modName = Platform.formatModName(stack.getModId());

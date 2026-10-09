@@ -18,9 +18,11 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.Shapes;
-import net.neoforged.neoforge.client.CustomBlockOutlineRenderer;
-import net.neoforged.neoforge.client.event.ExtractBlockOutlineRenderStateEvent;
-import net.neoforged.neoforge.common.NeoForge;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelExtractionContext;
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelExtractionEvents;
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
 
 import appeng.api.implementations.items.IFacadeItem;
 import appeng.api.parts.IFacadePart;
@@ -41,21 +43,52 @@ public class RenderBlockOutlineHook {
     private RenderBlockOutlineHook() {
     }
 
+    /**
+     * The custom outline renderers that were determined during extraction of the current frame.
+     */
+    private static final List<CustomBlockOutlineRenderer> customRenderers = new ArrayList<>();
+
     public static void install() {
-        NeoForge.EVENT_BUS.addListener(RenderBlockOutlineHook::handleEvent);
+        LevelExtractionEvents.AFTER_BLOCK_OUTLINE_EXTRACTION.register(RenderBlockOutlineHook::handleEvent);
+        LevelRenderEvents.BEFORE_BLOCK_OUTLINE.register((context, outlineRenderState) -> {
+            boolean renderVanillaOutline = true;
+            for (var renderer : customRenderers) {
+                if (renderer.render(outlineRenderState, context.submitNodeCollector(), context.poseStack(),
+                        context.levelState())) {
+                    renderVanillaOutline = false;
+                }
+            }
+            return renderVanillaOutline;
+        });
+    }
+
+    @FunctionalInterface
+    interface CustomBlockOutlineRenderer {
+        /**
+         * @return true to suppress rendering of the vanilla block outline.
+         */
+        boolean render(BlockOutlineRenderState blockOutlineRenderState,
+                SubmitNodeCollector collector,
+                PoseStack poseStack,
+                LevelRenderState levelRenderState);
     }
 
     /*
      * Changes block outline rendering such that it renders only for individual parts, not for the entire part host.
      */
-    private static void handleEvent(ExtractBlockOutlineRenderStateEvent evt) {
+    private static void handleEvent(LevelExtractionContext context, @org.jetbrains.annotations.Nullable HitResult hit) {
+        customRenderers.clear();
+
         var player = Minecraft.getInstance().player;
-        if (player == null) {
+        var outlineRenderState = context.levelState().blockOutlineRenderState;
+        if (player == null || outlineRenderState == null || !(hit instanceof BlockHitResult blockHitResult)
+                || hit.getType() != HitResult.Type.BLOCK) {
             return;
         }
 
+        var camera = context.camera();
+        var blockPos = blockHitResult.getBlockPos();
         var itemInHand = player.getItemInHand(InteractionHand.MAIN_HAND);
-        var blockHitResult = evt.getHitResult();
 
         if (AEConfig.instance().isPlacementPreviewEnabled()) {
             if (!itemInHand.isEmpty() && itemInHand.getItem() instanceof IPartItem<?> partItem) {
@@ -63,26 +96,26 @@ public class RenderBlockOutlineHook {
                 var placement = PartPlacement.getPartPlacement(player,
                         player.level(),
                         itemInHand,
-                        evt.getBlockPos(),
+                        blockPos,
                         blockHitResult.getDirection(),
                         blockHitResult.getLocation());
                 if (placement != null) {
                     var cameraRelativePos = new Vec3(
-                            placement.pos().getX() - evt.getCamera().position().x,
-                            placement.pos().getY() - evt.getCamera().position().y,
-                            placement.pos().getZ() - evt.getCamera().position().z);
-                    evt.addCustomRenderer(new PartPlacementPreviewRenderer(placement, part, cameraRelativePos));
+                            placement.pos().getX() - camera.position().x,
+                            placement.pos().getY() - camera.position().y,
+                            placement.pos().getZ() - camera.position().z);
+                    customRenderers.add(new PartPlacementPreviewRenderer(placement, part, cameraRelativePos));
                 }
             }
         }
 
         // Hit test against all attached parts to highlight the part that is relevant
-        var pos = evt.getBlockPos();
-        if (evt.getLevel().getBlockEntity(pos) instanceof IPartHost partHost) {
+        var pos = blockPos;
+        if (context.level().getBlockEntity(pos) instanceof IPartHost partHost) {
             var cameraRelativePos = new Vec3(
-                    evt.getBlockPos().getX() - evt.getCamera().position().x,
-                    evt.getBlockPos().getY() - evt.getCamera().position().y,
-                    evt.getBlockPos().getZ() - evt.getCamera().position().z);
+                    blockPos.getX() - camera.position().x,
+                    blockPos.getY() - camera.position().y,
+                    blockPos.getZ() - camera.position().z);
 
             // Rendering a preview of what is currently in hand has priority
             // If the item in hand is a facade and a block is hit, attempt facade placement
@@ -94,24 +127,24 @@ public class RenderBlockOutlineHook {
                         // Maybe a bit hacky, but if there's no part on the side to support the facade
                         // We would render a cable anchor implicitly
                         boolean renderAnchor = partHost.getPart(side) == null;
-                        evt.addCustomRenderer(
+                        customRenderers.add(
                                 new FacadePlacementPreviewRenderer(side, facade, renderAnchor, cameraRelativePos));
                     }
                 }
             }
 
-            var selectedPart = partHost.selectPartWorld(evt.getHitResult().getLocation());
-            boolean highContrast = evt.isHighContrast();
+            var selectedPart = partHost.selectPartWorld(blockHitResult.getLocation());
+            boolean highContrast = outlineRenderState.highContrast();
             float lineWidth = Minecraft.getInstance().gameRenderer
                     .gameRenderState().windowRenderState.appropriateLineWidth;
             if (selectedPart.facade != null) {
-                evt.addCustomRenderer(
+                customRenderers.add(
                         new FacadeOutlineRenderer(selectedPart.facade, selectedPart.side, cameraRelativePos,
                                 highContrast, lineWidth));
                 return;
             }
             if (selectedPart.part != null) {
-                evt.addCustomRenderer(new PartOutlineRenderer(selectedPart.part, selectedPart.side, cameraRelativePos,
+                customRenderers.add(new PartOutlineRenderer(selectedPart.part, selectedPart.side, cameraRelativePos,
                         highContrast, lineWidth));
                 return;
             }

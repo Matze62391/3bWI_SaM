@@ -2,18 +2,27 @@ package appeng.client.api.renderer.parts;
 
 import org.jetbrains.annotations.ApiStatus;
 
-import net.neoforged.fml.DeferredWorkQueue;
-import net.neoforged.fml.ModContainer;
-import net.neoforged.fml.event.lifecycle.ParallelDispatchEvent;
+import net.fabricmc.fabric.api.event.Event;
+import net.fabricmc.fabric.api.event.EventFactory;
 
 import appeng.api.parts.IPart;
 
-public class RegisterPartRendererEvent extends ParallelDispatchEvent {
+/**
+ * Register a listener for {@link #EVENT} in your client initializer to register renderers for your parts. The event
+ * is fired on every resource reload.
+ */
+public class RegisterPartRendererEvent {
+    public static final Event<Listener> EVENT = EventFactory.createArrayBacked(Listener.class,
+            listeners -> event -> {
+                for (var listener : listeners) {
+                    listener.registerPartRenderers(event);
+                }
+            });
+
     private final PartRegistrationSink delegate;
 
-    public RegisterPartRendererEvent(ModContainer container, DeferredWorkQueue workQueue,
-            PartRegistrationSink delegate) {
-        super(container, workQueue);
+    @ApiStatus.Internal
+    public RegisterPartRendererEvent(PartRegistrationSink delegate) {
         this.delegate = delegate;
     }
 
@@ -25,5 +34,10 @@ public class RegisterPartRendererEvent extends ParallelDispatchEvent {
     @ApiStatus.Internal
     public interface PartRegistrationSink {
         <T extends IPart> void register(Class<T> partClass, PartRenderer<? super T, ?> factory);
+    }
+
+    @FunctionalInterface
+    public interface Listener {
+        void registerPartRenderers(RegisterPartRendererEvent event);
     }
 }

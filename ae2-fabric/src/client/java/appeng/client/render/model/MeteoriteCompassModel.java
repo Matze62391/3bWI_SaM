@@ -49,7 +49,7 @@ import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.client.model.quad.QuadTransforms;
+import appeng.client.render.quad.QuadTransforms;
 
 import appeng.client.render.ItemBaseModelWrapper;
 import appeng.core.AppEng;

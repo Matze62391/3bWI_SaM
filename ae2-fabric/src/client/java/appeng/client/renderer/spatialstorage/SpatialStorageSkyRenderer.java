@@ -37,15 +37,12 @@ import org.joml.Vector3f;
 import org.joml.Vector4f;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.state.level.LevelRenderState;
-import net.minecraft.client.renderer.state.level.SkyRenderState;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
-import net.neoforged.neoforge.client.CustomSkyboxRenderer;
 
 import appeng.client.render.AERenderPipelines;
 
-public class SpatialStorageSkyRenderer implements CustomSkyboxRenderer, AutoCloseable {
+public class SpatialStorageSkyRenderer implements AutoCloseable {
 
     private static final int MAX_SPARKLE_QUADS = 50;
 
@@ -61,9 +58,7 @@ public class SpatialStorageSkyRenderer implements CustomSkyboxRenderer, AutoClos
             new Quaternionf().rotationZ(Mth.DEG_TO_RAD * 90.0F),
             new Quaternionf().rotationZ(Mth.DEG_TO_RAD * -90.0F), };
 
-    @Override
-    public boolean renderSky(LevelRenderState levelRenderState, SkyRenderState skyRenderState,
-            Matrix4fc modelViewMatrix, GpuBufferSlice skyFog) {
+    public boolean renderSky(Matrix4fc modelViewMatrix) {
         if (skyboxVertices == null) {
             skyboxVertices = buildSkybox();
         }

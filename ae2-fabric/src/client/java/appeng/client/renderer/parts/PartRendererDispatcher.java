@@ -10,8 +10,6 @@ import org.jetbrains.annotations.Nullable;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
-import net.neoforged.fml.ModLoader;
-import net.neoforged.fml.ModWorkManager;
 
 import appeng.api.parts.IPart;
 import appeng.client.api.renderer.parts.PartRenderer;
@@ -31,14 +29,8 @@ public class PartRendererDispatcher implements ResourceManagerReloadListener {
     @Override
     public void onResourceManagerReload(ResourceManager resourceManager) {
         var tempMap = new ConcurrentHashMap<Class<?>, Registration<?>>();
-        ModLoader.dispatchParallelEvent(
-                "Collect Part Renderers",
-                ModWorkManager.syncExecutor(),
-                ModWorkManager.parallelExecutor(),
-                () -> {
-                },
-                (modContainer, deferredWorkQueue) -> new RegisterPartRendererEvent(modContainer, deferredWorkQueue,
-                        makeRegistrationSink(tempMap, modContainer.getModId())));
+        RegisterPartRendererEvent.EVENT.invoker()
+                .registerPartRenderers(new RegisterPartRendererEvent(makeRegistrationSink(tempMap)));
 
         registrations = Collections.unmodifiableMap(new IdentityHashMap<>(tempMap));
     }
@@ -54,16 +46,16 @@ public class PartRendererDispatcher implements ResourceManagerReloadListener {
     }
 
     private RegisterPartRendererEvent.PartRegistrationSink makeRegistrationSink(
-            Map<Class<?>, Registration<?>> registrations, String modId) {
+            Map<Class<?>, Registration<?>> registrations) {
         return new RegisterPartRendererEvent.PartRegistrationSink() {
             @Override
             public <T extends IPart> void register(Class<T> partClass, PartRenderer<? super T, ?> renderer) {
-                registrations.put(partClass, new Registration<>(modId, partClass, renderer));
+                registrations.put(partClass, new Registration<>(partClass, renderer));
             }
         };
     }
 
-    private record Registration<T extends IPart>(String modId, Class<T> partClass,
+    private record Registration<T extends IPart>(Class<T> partClass,
             PartRenderer<? super T, ?> renderer) {
     }
 }

@@ -23,68 +23,50 @@ import java.util.IdentityHashMap;
 import java.util.Objects;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
+import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.fabricmc.fabric.api.client.model.loading.v1.CustomUnbakedBlockStateModel;
+import net.fabricmc.fabric.api.client.model.loading.v1.ModelLoadingPlugin;
+import net.fabricmc.fabric.api.client.model.loading.v1.SimpleUnbakedExtraModel;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
+import net.fabricmc.fabric.api.client.particle.v1.ParticleGroupRegistry;
+import net.fabricmc.fabric.api.client.particle.v1.ParticleProviderRegistry;
+import net.fabricmc.fabric.api.client.recipe.v1.sync.ClientRecipeSynchronizedEvent;
+import net.fabricmc.fabric.api.client.rendering.v1.BlockColorRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.BlockEntityRendererRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.ClientTooltipComponentCallback;
+import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.ModelLayerRegistry;
+import net.fabricmc.fabric.api.recipe.v1.sync.SynchronizedRecipes;
+import net.fabricmc.fabric.api.resource.v1.ResourceLoader;
+import net.fabricmc.fabric.api.resource.v1.reloader.ResourceReloaderKeys;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.color.item.ItemTintSources;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.Commands;
+import net.minecraft.client.renderer.item.ItemModels;
+import net.minecraft.client.renderer.item.properties.numeric.RangeSelectItemModelProperties;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import net.minecraft.server.packs.PackType;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.RecipeMap;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.HitResult;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.EventPriority;
-import net.neoforged.bus.api.IEventBus;
-import net.neoforged.fml.InterModComms;
-import net.neoforged.fml.ModContainer;
-import net.neoforged.fml.common.Mod;
-import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
-import net.neoforged.fml.event.lifecycle.InterModEnqueueEvent;
-import net.neoforged.neoforge.client.event.AddClientReloadListenersEvent;
-import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
-import net.neoforged.neoforge.client.event.EntityRenderersEvent;
-import net.neoforged.neoforge.client.event.InitializeClientRegistriesEvent;
-import net.neoforged.neoforge.client.event.InputEvent;
-import net.neoforged.neoforge.client.event.ModelEvent;
-import net.neoforged.neoforge.client.event.RecipesReceivedEvent;
-import net.neoforged.neoforge.client.event.RegisterBlockStateModels;
-import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
-import net.neoforged.neoforge.client.event.RegisterClientTooltipComponentFactoriesEvent;
-import net.neoforged.neoforge.client.event.RegisterColorHandlersEvent;
-import net.neoforged.neoforge.client.event.RegisterCustomEnvironmentEffectRendererEvent;
-import net.neoforged.neoforge.client.event.RegisterItemModelsEvent;
-import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
-import net.neoforged.neoforge.client.event.RegisterParticleGroupsEvent;
-import net.neoforged.neoforge.client.event.RegisterParticleProvidersEvent;
-import net.neoforged.neoforge.client.event.RegisterPictureInPictureRenderersEvent;
-import net.neoforged.neoforge.client.event.RegisterRangeSelectItemModelPropertyEvent;
-import net.neoforged.neoforge.client.event.RegisterRenderPipelinesEvent;
-import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent;
-import net.neoforged.neoforge.client.gui.ConfigurationScreen;
-import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
-import net.neoforged.neoforge.client.model.standalone.SimpleUnbakedStandaloneModel;
-import appeng.core.network.NetworkHelper;
-import net.neoforged.neoforge.client.resources.VanillaClientListeners;
-import net.neoforged.neoforge.client.settings.KeyConflictContext;
-import net.neoforged.neoforge.common.NeoForge;
-
-import guideme.Guide;
-import guideme.compiler.TagCompiler;
-import guideme.scene.ImplicitAnnotationStrategy;
-import guideme.siteexport.AdditionalResourceExporter;
-import guideme.siteexport.RecipeExporter;
 
 import appeng.api.client.StorageCellModels;
 import appeng.api.parts.CableRenderMode;
@@ -98,19 +80,13 @@ import appeng.client.api.model.parts.RegisterPartModelsEvent;
 import appeng.client.api.model.parts.StaticPartModel;
 import appeng.client.api.renderer.parts.RegisterPartRendererEvent;
 import appeng.client.areaoverlay.AreaOverlayRenderer;
-import appeng.client.block.cablebus.CableBusBlockClientExtensions;
 import appeng.client.block.cablebus.CableBusColor;
 import appeng.client.commands.ClientCommands;
 import appeng.client.gui.me.common.PendingCraftingJobs;
 import appeng.client.gui.me.common.PinnedKeys;
 import appeng.client.gui.style.StyleManager;
-import appeng.client.guidebook.AEAdditionalExportData;
-import appeng.client.guidebook.AERecipeExporter;
-import appeng.client.guidebook.ConfigValueTagExtension;
-import appeng.client.guidebook.PartAnnotationStrategy;
 import appeng.client.hooks.BlockAttackHook;
 import appeng.client.hooks.RenderBlockOutlineHook;
-import appeng.client.integrations.itemlists.FluidBlockPictureInPictureRenderer;
 import appeng.client.item.ColorApplicatorItemModel;
 import appeng.client.item.EnergyFillLevelProperty;
 import appeng.client.item.PortableCellColorTintSource;
@@ -126,7 +102,6 @@ import appeng.client.model.QnbFormedModel;
 import appeng.client.model.SpatialPylonModel;
 import appeng.client.model.StatusIndicatorPartModel;
 import appeng.client.render.AEColorItemTintSource;
-import appeng.client.render.AERenderPipelines;
 import appeng.client.render.ColorableBlockEntityBlockColor;
 import appeng.client.render.FacadeItemModel;
 import appeng.client.render.StaticBlockColor;
@@ -161,9 +136,6 @@ import appeng.client.renderer.keytypes.FluidKeyRenderer;
 import appeng.client.renderer.keytypes.ItemKeyRenderer;
 import appeng.client.renderer.part.MonitorRenderer;
 import appeng.client.renderer.parts.PartRendererDispatcher;
-import appeng.client.renderer.spatialstorage.SpatialStorageCloudsRenderer;
-import appeng.client.renderer.spatialstorage.SpatialStorageSkyRenderer;
-import appeng.client.renderer.spatialstorage.SpatialStorageWeatherEffectsRenderer;
 import appeng.core.AEConfig;
 import appeng.core.AppEng;
 import appeng.core.AppEngBase;
@@ -172,6 +144,7 @@ import appeng.core.definitions.AEBlockEntities;
 import appeng.core.definitions.AEBlocks;
 import appeng.core.definitions.AEEntities;
 import appeng.core.definitions.AEItems;
+import appeng.core.network.NetworkHelper;
 import appeng.core.network.ServerboundPacket;
 import appeng.core.network.serverbound.MouseWheelPacket;
 import appeng.core.network.serverbound.UpdateHoldingCtrlPacket;
@@ -180,13 +153,11 @@ import appeng.helpers.IMouseWheelItem;
 import appeng.items.storage.StorageCellTooltipComponent;
 import appeng.parts.reporting.ConversionMonitorPart;
 import appeng.parts.reporting.StorageMonitorPart;
-import appeng.spatial.SpatialStorageDimensionIds;
 import appeng.util.Platform;
 
 /**
  * Client-specific functionality.
  */
-@Mod(value = AppEng.MOD_ID, dist = Dist.CLIENT)
 public class AppEngClient extends AppEngBase {
     private static final Logger LOG = LoggerFactory.getLogger(AppEngClient.class);
     public static final Identifier MODEL_CELL_ITEMS_1K = Identifier.parse(
@@ -216,11 +187,11 @@ public class AppEngClient extends AppEngBase {
      * This modifier key has to be held to activate mouse wheel items.
      */
     private static final KeyMapping MOUSE_WHEEL_ITEM_MODIFIER = new KeyMapping(
-            "key.ae2.mouse_wheel_item_modifier", KeyConflictContext.IN_GAME, InputConstants.Type.KEYBOARD,
+            "key.ae2.mouse_wheel_item_modifier", InputConstants.Type.KEYBOARD,
             InputConstants.KEY_LSHIFT, Hotkeys.CATEGORY);
 
     private static final KeyMapping PART_PLACEMENT_OPPOSITE = new KeyMapping(
-            "key.ae2.part_placement_opposite", KeyConflictContext.IN_GAME, InputConstants.Type.KEYBOARD,
+            "key.ae2.part_placement_opposite", InputConstants.Type.KEYBOARD,
             InputConstants.KEY_LCONTROL, Hotkeys.CATEGORY);
 
     private static AppEngClient INSTANCE;
@@ -239,77 +210,60 @@ public class AppEngClient extends AppEngBase {
     private RecipeMap recipeMap = RecipeMap.EMPTY;
     private final Set<RecipeType<?>> knownRecipeTypes = Collections.newSetFromMap(new IdentityHashMap<>());
 
-    private final Guide guide;
-
-    private SpatialStorageSkyRenderer spatialStorageSkyRenderer;
-
-    public AppEngClient(IEventBus modEventBus, ModContainer container) {
-        super(modEventBus, container);
+    public AppEngClient() {
+        super();
 
         INSTANCE = this;
 
-        this.registerClientCommands();
+        Platform.setShiftKeyDownSupplier(() -> Minecraft.getInstance().hasShiftDown());
 
-        modEventBus.addListener(this::registerClientTooltipComponents);
-        modEventBus.addListener(this::registerHotkeys);
-        modEventBus.addListener(InitScreens::init);
-        modEventBus.addListener(this::registerReloadListeners);
+        this.registerClientCommands();
+        this.registerHotkeys();
+        ClientTooltipComponentCallback.EVENT.register(data -> data instanceof StorageCellTooltipComponent component
+                ? new StorageCellClientTooltipComponent(component)
+                : null);
+        InitScreens.init();
+        this.registerReloadListeners();
 
         BlockAttackHook.install();
-        guide = createGuide();
 
-        NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST, (ClientTickEvent.Pre e) -> {
-            updateCableRenderMode();
+        ClientTickEvents.START_CLIENT_TICK.register(client -> updateCableRenderMode());
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            tickPinnedKeys(client);
+            Hotkeys.checkHotkeys();
+            updateHoldingCtrl(client);
         });
 
-        modEventBus.addListener(this::clientSetup);
-
-        NeoForge.EVENT_BUS.addListener((ClientPlayerNetworkEvent.LoggingIn evt) -> {
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
             PendingCraftingJobs.clearPendingJobs();
             PinnedKeys.clearPinnedKeys();
         });
 
-        NeoForge.EVENT_BUS.addListener((ClientTickEvent.Post e) -> {
-            tickPinnedKeys(Minecraft.getInstance());
-            Hotkeys.checkHotkeys();
-        });
+        AEKeyRendering.register(AEKeyType.items(), AEItemKey.class, new ItemKeyRenderer());
+        AEKeyRendering.register(AEKeyType.fluids(), AEFluidKey.class, new FluidKeyRenderer());
 
-        container.registerExtensionPoint(IConfigScreenFactory.class,
-                (mc, parent) -> new ConfigurationScreen(container, parent));
-
-        modEventBus.addListener(new AEClientboundPacketHandler()::register);
-        modEventBus.addListener(this::registerEntityRenderers);
-        modEventBus.addListener(this::registerEntityLayerDefinitions);
-        modEventBus.addListener(this::registerClientExtensions);
-        modEventBus.addListener(this::enqueueImcMessages);
-        modEventBus.addListener(this::registerParticleFactories);
-        modEventBus.addListener(this::registerParticleGroups);
-        modEventBus.addListener(this::registerBlockStateModels);
-        modEventBus.addListener(this::registerStandaloneModels);
-        modEventBus.addListener(this::registerRenderPipelines);
-        modEventBus.addListener(this::registerItemModelProperties);
-        modEventBus.addListener(this::registerItemModels);
-        modEventBus.addListener(this::registerEnvironmentalEffectRenderers);
-        modEventBus.addListener(this::registerItemTintSources);
-        modEventBus.addListener(this::registerBlockTintSources);
-        modEventBus.addListener(this::registerPipRenderers);
+        new AEClientboundPacketHandler().register();
+        this.registerEntityRenderers();
+        this.registerEntityLayerDefinitions();
+        this.registerParticleFactories();
+        this.registerBlockStateModels();
+        this.registerExtraModels();
+        this.registerItemModels();
+        this.registerTintSources();
 
         RenderBlockOutlineHook.install();
+        new AreaOverlayRenderer().register();
 
-        var areaOverlayRenderer = new AreaOverlayRenderer();
-        NeoForge.EVENT_BUS.register(areaOverlayRenderer);
-
-        modEventBus.addListener(this::registerPartRenderers);
-        modEventBus.addListener(this::registerPartModelTypes);
-        modEventBus.addListener(this::initCustomClientRegistries);
-        NeoForge.EVENT_BUS.addListener(this::receiveRecipes);
+        RegisterPartRendererEvent.EVENT.register(this::registerPartRenderers);
+        RegisterPartModelsEvent.EVENT.register(this::registerPartModelTypes);
+        this.registerStorageCellModels();
+        ClientRecipeSynchronizedEvent.EVENT.register((client, recipes) -> receiveRecipes(recipes));
     }
 
     private void registerClientCommands() {
-        NeoForge.EVENT_BUS.addListener((RegisterClientCommandsEvent evt) -> {
-            var dispatcher = evt.getDispatcher();
-
-            LiteralArgumentBuilder<CommandSourceStack> builder = Commands.literal("ae2client");
+        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
+            LiteralArgumentBuilder<FabricClientCommandSource> builder = net.fabricmc.fabric.api.client.command.v2.ClientCommands
+                    .literal("ae2client");
             if (AEConfig.instance().isDebugToolsEnabled()) {
                 for (var commandBuilder : ClientCommands.DEBUG_COMMANDS) {
                     commandBuilder.build(builder);
@@ -317,17 +271,6 @@ public class AppEngClient extends AppEngBase {
             }
             dispatcher.register(builder);
         });
-    }
-
-    private Guide createGuide() {
-
-        return Guide.builder(AppEng.makeId("guide"))
-                .folder("ae2guide")
-                .extension(ImplicitAnnotationStrategy.EXTENSION_POINT, new PartAnnotationStrategy())
-                .extension(TagCompiler.EXTENSION_POINT, new ConfigValueTagExtension())
-                .extension(RecipeExporter.EXTENSION_POINT, new AERecipeExporter())
-                .extension(AdditionalResourceExporter.EXTENSION_POINT, new AEAdditionalExportData())
-                .build();
     }
 
     private void tickPinnedKeys(Minecraft minecraft) {
@@ -347,76 +290,66 @@ public class AppEngClient extends AppEngBase {
         Hotkeys.registerHotkey(id);
     }
 
-    private void registerHotkeys(RegisterKeyMappingsEvent e) {
-        e.registerCategory(Hotkeys.CATEGORY);
-        e.register(MOUSE_WHEEL_ITEM_MODIFIER);
-        e.register(PART_PLACEMENT_OPPOSITE);
-        Hotkeys.finalizeRegistration(e::register);
+    private void registerHotkeys() {
+        KeyMappingHelper.registerKeyMapping(MOUSE_WHEEL_ITEM_MODIFIER);
+        KeyMappingHelper.registerKeyMapping(PART_PLACEMENT_OPPOSITE);
+        Hotkeys.finalizeRegistration(KeyMappingHelper::registerKeyMapping);
     }
 
     public static AppEngClient instance() {
         return Objects.requireNonNull(INSTANCE, "AppEngClient is not initialized");
     }
 
-    private void registerClientTooltipComponents(RegisterClientTooltipComponentFactoriesEvent event) {
-        event.register(StorageCellTooltipComponent.class, StorageCellClientTooltipComponent::new);
-    }
-
-    private void clientSetup(FMLClientSetupEvent event) {
-        event.enqueueWork(() -> {
-            try {
-                AEKeyRendering.register(AEKeyType.items(), AEItemKey.class, new ItemKeyRenderer());
-                AEKeyRendering.register(AEKeyType.fluids(), AEFluidKey.class, new FluidKeyRenderer());
-            } catch (Throwable e) {
-                LOG.error("AE2 failed postClientSetup", e);
-                throw new RuntimeException(e);
-            }
-        });
-
-        NeoForge.EVENT_BUS.addListener(this::wheelEvent);
-        NeoForge.EVENT_BUS.addListener(this::ctrlEvent);
-    }
-
-    private void registerReloadListeners(AddClientReloadListenersEvent event) {
-        event.addListener(PartRendererDispatcher.ID, partRendererDispatcher);
+    private void registerReloadListeners() {
+        var loader = ResourceLoader.get(PackType.CLIENT_RESOURCES);
+        loader.registerReloadListener(PartRendererDispatcher.ID, partRendererDispatcher);
         // The block entity render for parts needs access to the formed PartRendererDispatcher
-        event.addDependency(VanillaClientListeners.BLOCK_ENTITY_RENDERER, PartRendererDispatcher.ID);
+        loader.addListenerOrdering(PartRendererDispatcher.ID,
+                ResourceReloaderKeys.Client.BLOCK_ENTITY_RENDER_DISPATCHER);
 
-        event.addListener(AppEng.makeId("styles"), StyleManager.getReloadListener());
+        loader.registerReloadListener(AppEng.makeId("styles"), StyleManager.getReloadListener());
     }
 
-    private void wheelEvent(InputEvent.MouseScrollingEvent me) {
-        if (me.getScrollDeltaY() == 0) {
-            return;
+    /**
+     * Called by a mixin when the mouse wheel is scrolled while no screen is open.
+     *
+     * @return true if the scroll event was consumed.
+     */
+    public static boolean handleMouseWheel(double scrollDeltaY) {
+        if (scrollDeltaY == 0) {
+            return false;
         }
 
         final Minecraft mc = Minecraft.getInstance();
         final Player player = mc.player;
-        if (MOUSE_WHEEL_ITEM_MODIFIER.isDown()) {
+        if (player != null && MOUSE_WHEEL_ITEM_MODIFIER.isDown()) {
             var mainHand = player.getItemInHand(InteractionHand.MAIN_HAND)
                     .getItem() instanceof IMouseWheelItem;
             var offHand = player.getItemInHand(InteractionHand.OFF_HAND).getItem() instanceof IMouseWheelItem;
 
             if (mainHand || offHand) {
-                ServerboundPacket message = new MouseWheelPacket(me.getScrollDeltaY() > 0);
+                ServerboundPacket message = new MouseWheelPacket(scrollDeltaY > 0);
                 NetworkHelper.sendToServer(message);
-                me.setCanceled(true);
+                return true;
             }
         }
+        return false;
     }
 
-    private void ctrlEvent(InputEvent.Key event) {
-        if (event.getKey() == PART_PLACEMENT_OPPOSITE.getKey().getValue()) {
-            var player = Minecraft.getInstance().player;
+    /**
+     * Informs the server when the player starts or stops holding the key for placing parts on the opposite side.
+     */
+    private void updateHoldingCtrl(Minecraft minecraft) {
+        var player = minecraft.player;
+        if (player == null || minecraft.getConnection() == null) {
+            return;
+        }
 
-            if (player != null) {
-                var isDown = event.getAction() == InputConstants.PRESS || event.getAction() == InputConstants.REPEAT;
-                var previousIsDown = player.getAttachedOrCreate(AEAttachmentTypes.HOLDING_CTRL);
-                if (previousIsDown != isDown) {
-                    player.setAttached(AEAttachmentTypes.HOLDING_CTRL, isDown);
-                    NetworkHelper.sendToServer(new UpdateHoldingCtrlPacket(isDown));
-                }
-            }
+        var isDown = PART_PLACEMENT_OPPOSITE.isDown();
+        var previousIsDown = player.getAttachedOrCreate(AEAttachmentTypes.HOLDING_CTRL);
+        if (previousIsDown != isDown) {
+            player.setAttached(AEAttachmentTypes.HOLDING_CTRL, isDown);
+            NetworkHelper.sendToServer(new UpdateHoldingCtrlPacket(isDown));
         }
     }
 
@@ -471,10 +404,6 @@ public class AppEngClient extends AppEngBase {
         return this.getCableRenderModeForPlayer(mc.player);
     }
 
-    public Guide getGuide() {
-        return guide;
-    }
-
     @Override
     public void sendSystemMessage(Player player, Component text) {
         if (player == Minecraft.getInstance().player) {
@@ -508,9 +437,7 @@ public class AppEngClient extends AppEngBase {
         event.registerModelType(PlanePartModel.Unbaked.ID, PlanePartModel.Unbaked.MAP_CODEC);
     }
 
-    private void initCustomClientRegistries(InitializeClientRegistriesEvent event) {
-        partModels = new PartModels();
-
+    private void registerStorageCellModels() {
         StorageCellModels.registerModel(AEItems.ITEM_CELL_1K, AppEngClient.MODEL_CELL_ITEMS_1K);
         StorageCellModels.registerModel(AEItems.ITEM_CELL_4K, AppEngClient.MODEL_CELL_ITEMS_4K);
         StorageCellModels.registerModel(AEItems.ITEM_CELL_16K, AppEngClient.MODEL_CELL_ITEMS_16K);
@@ -541,8 +468,9 @@ public class AppEngClient extends AppEngBase {
     }
 
     public PartModels getPartModels() {
+        // Created lazily so that addons had a chance to register for the part model registration event
         if (partModels == null) {
-            throw new IllegalStateException("Client registries have not been initialized yet");
+            partModels = new PartModels();
         }
         return partModels;
     }
@@ -551,123 +479,97 @@ public class AppEngClient extends AppEngBase {
         return partRendererDispatcher;
     }
 
-    private void registerRenderPipelines(RegisterRenderPipelinesEvent event) {
-        event.registerPipeline(AERenderPipelines.LINES_BEHIND_BLOCK);
-        event.registerPipeline(AERenderPipelines.LIGHTNING_FX);
-        event.registerOitPipelineSet(AERenderPipelines.OIT_LIGHTNING_FX);
-        event.registerOitPipelineSet(AERenderPipelines.OIT_AREA_OVERLAY_FACE);
-        event.registerOitPipelineSet(AERenderPipelines.OIT_AREA_OVERLAY_LINE);
-        event.registerOitPipelineSet(AERenderPipelines.OIT_LINES_OCCLUDED);
+    private void registerBlockStateModels() {
+        CustomUnbakedBlockStateModel.register(SingleSpinnableVariant.Unbaked.ID,
+                SingleSpinnableVariant.Unbaked.MAP_CODEC);
+        CustomUnbakedBlockStateModel.register(CableBusModel.Unbaked.ID, CableBusModel.Unbaked.MAP_CODEC);
+        CustomUnbakedBlockStateModel.register(QuartzGlassModel.Unbaked.ID, QuartzGlassModel.Unbaked.MAP_CODEC);
+        CustomUnbakedBlockStateModel.register(AppEng.makeId("drive"), DriveModel.Unbaked.MAP_CODEC);
+        CustomUnbakedBlockStateModel.register(AppEng.makeId("spatial_pylon"), SpatialPylonModel.Unbaked.MAP_CODEC);
+        CustomUnbakedBlockStateModel.register(AppEng.makeId("paint"), PaintSplotchesModel.Unbaked.MAP_CODEC);
+        CustomUnbakedBlockStateModel.register(AppEng.makeId("qnb_formed"), QnbFormedModel.Unbaked.MAP_CODEC);
+        CustomUnbakedBlockStateModel.register(CraftingCubeModel.Unbaked.ID, CraftingCubeModel.Unbaked.MAP_CODEC);
     }
 
-    private void registerBlockStateModels(RegisterBlockStateModels event) {
-        event.registerModel(SingleSpinnableVariant.Unbaked.ID, SingleSpinnableVariant.Unbaked.MAP_CODEC);
-        event.registerModel(CableBusModel.Unbaked.ID, CableBusModel.Unbaked.MAP_CODEC);
-        event.registerModel(QuartzGlassModel.Unbaked.ID, QuartzGlassModel.Unbaked.MAP_CODEC);
-        event.registerModel(AppEng.makeId("drive"), DriveModel.Unbaked.MAP_CODEC);
-        event.registerModel(AppEng.makeId("spatial_pylon"), SpatialPylonModel.Unbaked.MAP_CODEC);
-        event.registerModel(AppEng.makeId("paint"), PaintSplotchesModel.Unbaked.MAP_CODEC);
-        event.registerModel(AppEng.makeId("qnb_formed"), QnbFormedModel.Unbaked.MAP_CODEC);
-        event.registerModel(CraftingCubeModel.Unbaked.ID, CraftingCubeModel.Unbaked.MAP_CODEC);
+    private void registerEntityRenderers() {
+        EntityRendererRegistry.register(AEEntities.TINY_TNT_PRIMED.get(), TinyTNTPrimedRenderer::new);
+
+        BlockEntityRendererRegistry.register(AEBlockEntities.CRANK.get(), CrankRenderer::new);
+        BlockEntityRendererRegistry.register(AEBlockEntities.INSCRIBER.get(), InscriberRenderer::new);
+        BlockEntityRendererRegistry.register(AEBlockEntities.SKY_CHEST.get(), SkyStoneChestRenderer::new);
+        BlockEntityRendererRegistry.register(AEBlockEntities.CHARGER.get(), ChargerRenderer::new);
+        BlockEntityRendererRegistry.register(AEBlockEntities.DRIVE.get(), DriveRenderer::new);
+        BlockEntityRendererRegistry.register(AEBlockEntities.ME_CHEST.get(), MEChestRenderer::new);
+        BlockEntityRendererRegistry.register(AEBlockEntities.CRAFTING_MONITOR.get(), CraftingMonitorRenderer::new);
+        BlockEntityRendererRegistry.register(AEBlockEntities.MOLECULAR_ASSEMBLER.get(),
+                MolecularAssemblerRenderer::new);
+        BlockEntityRendererRegistry.register(AEBlockEntities.CABLE_BUS.get(), CableBusRenderer::new);
+        BlockEntityRendererRegistry.register(AEBlockEntities.SKY_STONE_TANK.get(), SkyStoneTankRenderer::new);
     }
 
-    private void registerClientExtensions(RegisterClientExtensionsEvent event) {
-        event.registerBlock(new CableBusBlockClientExtensions(AEBlocks.CABLE_BUS.block()), AEBlocks.CABLE_BUS.block());
+    private void registerEntityLayerDefinitions() {
+        ModelLayerRegistry.registerModelLayer(SkyStoneChestRenderer.MODEL_LAYER,
+                SkyStoneChestModel::createSingleBodyLayer);
     }
 
-    private void registerEntityRenderers(EntityRenderersEvent.RegisterRenderers event) {
-        event.registerEntityRenderer(AEEntities.TINY_TNT_PRIMED.get(), TinyTNTPrimedRenderer::new);
+    private void registerParticleFactories() {
+        var registry = ParticleProviderRegistry.getInstance();
+        registry.register(ParticleTypes.CRAFTING, CraftingParticle.Factory::new);
+        registry.register(ParticleTypes.ENERGY, EnergyFx.Factory::new);
+        registry.register(ParticleTypes.LIGHTNING_ARC, LightningArcFX.Factory::new);
+        registry.register(ParticleTypes.LIGHTNING, LightningFX.Factory::new);
+        registry.register(ParticleTypes.MATTER_CANNON, MatterCannonFX.Factory::new);
+        registry.register(ParticleTypes.VIBRANT, VibrantFX.Factory::new);
 
-        event.registerBlockEntityRenderer(AEBlockEntities.CRANK.get(), CrankRenderer::new);
-        event.registerBlockEntityRenderer(AEBlockEntities.INSCRIBER.get(), InscriberRenderer::new);
-        event.registerBlockEntityRenderer(AEBlockEntities.SKY_CHEST.get(), SkyStoneChestRenderer::new);
-        event.registerBlockEntityRenderer(AEBlockEntities.CHARGER.get(), ChargerRenderer::new);
-        event.registerBlockEntityRenderer(AEBlockEntities.DRIVE.get(), DriveRenderer::new);
-        event.registerBlockEntityRenderer(AEBlockEntities.ME_CHEST.get(), MEChestRenderer::new);
-        event.registerBlockEntityRenderer(AEBlockEntities.CRAFTING_MONITOR.get(), CraftingMonitorRenderer::new);
-        event.registerBlockEntityRenderer(AEBlockEntities.MOLECULAR_ASSEMBLER.get(), MolecularAssemblerRenderer::new);
-        event.registerBlockEntityRenderer(AEBlockEntities.CABLE_BUS.get(), CableBusRenderer::new);
-        event.registerBlockEntityRenderer(AEBlockEntities.SKY_STONE_TANK.get(), SkyStoneTankRenderer::new);
+        ParticleGroupRegistry.register(LightningFXGroup.GROUP, LightningFXGroup::new);
     }
 
-    private void registerEntityLayerDefinitions(EntityRenderersEvent.RegisterLayerDefinitions event) {
-        event.registerLayerDefinition(SkyStoneChestRenderer.MODEL_LAYER, SkyStoneChestModel::createSingleBodyLayer);
+    private void registerExtraModels() {
+        ModelLoadingPlugin.register(context -> {
+            context.addModel(CrankRenderer.HANDLE_MODEL,
+                    SimpleUnbakedExtraModel.blockStateModel(CrankRenderer.HANDLE_MODEL_ID));
+
+            // For rendering the ME chest we require the original storage cell models as standalone models
+            for (var entry : StorageCellModels.models().entrySet()) {
+                var key = StorageCellModels.standaloneModel(entry.getKey());
+                if (key != null) {
+                    context.addModel(key, SimpleUnbakedExtraModel.blockStateModel(entry.getValue()));
+                }
+            }
+            context.addModel(StorageCellModels.getDefaultStandaloneModel(),
+                    SimpleUnbakedExtraModel.blockStateModel(StorageCellModels.getDefaultModel()));
+        });
     }
 
-    public void registerParticleFactories(RegisterParticleProvidersEvent event) {
-        event.registerSpriteSet(ParticleTypes.CRAFTING, CraftingParticle.Factory::new);
-        event.registerSpriteSet(ParticleTypes.ENERGY, EnergyFx.Factory::new);
-        event.registerSpriteSet(ParticleTypes.LIGHTNING_ARC, LightningArcFX.Factory::new);
-        event.registerSpriteSet(ParticleTypes.LIGHTNING, LightningFX.Factory::new);
-        event.registerSpriteSet(ParticleTypes.MATTER_CANNON, MatterCannonFX.Factory::new);
-        event.registerSpriteSet(ParticleTypes.VIBRANT, VibrantFX.Factory::new);
+    private void registerItemModels() {
+        RangeSelectItemModelProperties.ID_MAPPER.put(EnergyFillLevelProperty.ID, EnergyFillLevelProperty.CODEC);
+
+        ItemModels.ID_MAPPER.put(ColorApplicatorItemModel.Unbaked.ID, ColorApplicatorItemModel.Unbaked.MAP_CODEC);
+        ItemModels.ID_MAPPER.put(MemoryCardItemModel.Unbaked.ID, MemoryCardItemModel.Unbaked.MAP_CODEC);
+        ItemModels.ID_MAPPER.put(FacadeItemModel.Unbaked.ID, FacadeItemModel.Unbaked.MAP_CODEC);
+        ItemModels.ID_MAPPER.put(MeteoriteCompassModel.Unbaked.ID, MeteoriteCompassModel.Unbaked.MAP_CODEC);
     }
 
-    public void registerParticleGroups(RegisterParticleGroupsEvent event) {
-        event.register(LightningFXGroup.GROUP, LightningFXGroup::new);
+    private void registerTintSources() {
+        ItemTintSources.ID_MAPPER.put(PortableCellColorTintSource.ID, PortableCellColorTintSource.MAP_CODEC);
+        ItemTintSources.ID_MAPPER.put(StorageCellStateTintSource.ID, StorageCellStateTintSource.MAP_CODEC);
+        ItemTintSources.ID_MAPPER.put(AEColorItemTintSource.ID, AEColorItemTintSource.MAP_CODEC);
+
+        BlockColorRegistry.register(StaticBlockColor.createTintSources(AEColor.TRANSPARENT),
+                AEBlocks.WIRELESS_ACCESS_POINT.block());
+        BlockColorRegistry.register(CableBusColor.TINT_SOURCES, AEBlocks.CABLE_BUS.block());
+        BlockColorRegistry.register(ColorableBlockEntityBlockColor.TINT_SOURCES, AEBlocks.ME_CHEST.block());
     }
 
-    private void enqueueImcMessages(InterModEnqueueEvent event) {
-        // Our new light-mode UI doesn't play nice with darkmodeeverywhere
-        InterModComms.sendTo("darkmodeeverywhere", "dme-shaderblacklist", () -> "appeng.");
-        InterModComms.sendTo("framedblocks", "add_ct_property", () -> QuartzGlassModel.GLASS_STATE);
-    }
-
-    private void registerStandaloneModels(ModelEvent.RegisterStandalone event) {
-        event.register(CrankRenderer.HANDLE_MODEL,
-                SimpleUnbakedStandaloneModel.simpleModelWrapper(CrankRenderer.HANDLE_MODEL_ID));
-
-        // For rendering the ME chest we require the original storage cell models as standalone models
-        for (var cellModelKey : StorageCellModels.standaloneModels().values()) {
-            // TODO 1.21.8 Investigate what model debug name vs. model key vs. resource location is
-            event.register(cellModelKey,
-                    SimpleUnbakedStandaloneModel.blockStateModel(Identifier.parse(cellModelKey.getName())));
-        }
-        event.register(StorageCellModels.getDefaultStandaloneModel(), SimpleUnbakedStandaloneModel
-                .blockStateModel(Identifier.parse(StorageCellModels.getDefaultStandaloneModel().getName())));
-    }
-
-    private void registerItemModelProperties(RegisterRangeSelectItemModelPropertyEvent event) {
-        event.register(EnergyFillLevelProperty.ID, EnergyFillLevelProperty.CODEC);
-    }
-
-    private void registerItemModels(RegisterItemModelsEvent event) {
-        event.register(ColorApplicatorItemModel.Unbaked.ID, ColorApplicatorItemModel.Unbaked.MAP_CODEC);
-        event.register(MemoryCardItemModel.Unbaked.ID, MemoryCardItemModel.Unbaked.MAP_CODEC);
-        event.register(FacadeItemModel.Unbaked.ID, FacadeItemModel.Unbaked.MAP_CODEC);
-        event.register(MeteoriteCompassModel.Unbaked.ID, MeteoriteCompassModel.Unbaked.MAP_CODEC);
-    }
-
-    private void registerEnvironmentalEffectRenderers(RegisterCustomEnvironmentEffectRendererEvent event) {
-        if (spatialStorageSkyRenderer == null) {
-            spatialStorageSkyRenderer = new SpatialStorageSkyRenderer();
-        }
-
-        event.registerCloudRenderer(SpatialStorageDimensionIds.CUSTOM_RENDERER_ID, new SpatialStorageCloudsRenderer());
-        event.registerSkyboxRenderer(SpatialStorageDimensionIds.CUSTOM_RENDERER_ID, spatialStorageSkyRenderer);
-        event.registerWeatherEffectRenderer(SpatialStorageDimensionIds.CUSTOM_RENDERER_ID,
-                new SpatialStorageWeatherEffectsRenderer());
-    }
-
-    private void registerItemTintSources(RegisterColorHandlersEvent.ItemTintSources event) {
-        event.register(PortableCellColorTintSource.ID, PortableCellColorTintSource.MAP_CODEC);
-        event.register(StorageCellStateTintSource.ID, StorageCellStateTintSource.MAP_CODEC);
-        event.register(AEColorItemTintSource.ID, AEColorItemTintSource.MAP_CODEC);
-    }
-
-    public void registerBlockTintSources(RegisterColorHandlersEvent.BlockTintSources event) {
-        event.register(StaticBlockColor.createTintSources(AEColor.TRANSPARENT), AEBlocks.WIRELESS_ACCESS_POINT.block());
-        event.register(CableBusColor.TINT_SOURCES, AEBlocks.CABLE_BUS.block());
-        event.register(ColorableBlockEntityBlockColor.TINT_SOURCES, AEBlocks.ME_CHEST.block());
-    }
-
-    private void receiveRecipes(RecipesReceivedEvent event) {
-        recipeMap = event.getRecipeMap();
+    private void receiveRecipes(SynchronizedRecipes recipes) {
+        var byType = ImmutableMultimap.<RecipeType<?>, RecipeHolder<?>>builder();
+        var byKey = ImmutableMap.<net.minecraft.resources.ResourceKey<net.minecraft.world.item.crafting.Recipe<?>>, RecipeHolder<?>>builder();
         knownRecipeTypes.clear();
-        knownRecipeTypes.addAll(event.getRecipeTypes());
-    }
-
-    private void registerPipRenderers(RegisterPictureInPictureRenderersEvent event) {
-        event.register(FluidBlockPictureInPictureRenderer.State.class, FluidBlockPictureInPictureRenderer::new);
+        for (var recipe : recipes.recipes()) {
+            byType.put(recipe.value().getType(), recipe);
+            byKey.put(recipe.id(), recipe);
+            knownRecipeTypes.add(recipe.value().getType());
+        }
+        recipeMap = new RecipeMap(byType.build(), byKey.buildKeepingLast());
     }
 }

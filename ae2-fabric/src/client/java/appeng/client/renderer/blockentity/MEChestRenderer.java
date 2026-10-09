@@ -42,7 +42,8 @@ import net.minecraft.core.Direction;
 import net.minecraft.util.LightCoordsUtil;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.client.model.quad.QuadTransforms;
+import appeng.client.model.DynamicBlockStateModel;
+import appeng.client.render.quad.QuadTransforms;
 
 import appeng.api.client.StorageCellModels;
 import appeng.api.orientation.BlockOrientation;
@@ -103,11 +104,16 @@ public class MEChestRenderer implements BlockEntityRenderer<MEChestBlockEntity, 
         if (cellModelKey == null) {
             cellModelKey = StorageCellModels.getDefaultStandaloneModel();
         }
-        var model = modelManager.getStandaloneModel(cellModelKey);
+        var model = modelManager.getModel(cellModelKey);
+        if (model == null) {
+            state.cellModel.clear();
+            return;
+        }
         var blockAndTintGetter = (BlockAndTintGetter) be.getLevel();
+        var random = state.cellModel.scratchRandomSource(42L);
         var modelParts = state.cellModel.setupModel(IDENTITY, model.hasMaterialFlag(blockAndTintGetter,
-                be.getBlockPos(), be.getBlockState(), BakedQuad.FLAG_TRANSLUCENT));
-        model.collectParts(blockAndTintGetter, be.getBlockPos(), be.getBlockState(),
+                be.getBlockPos(), be.getBlockState(), random, BakedQuad.FLAG_TRANSLUCENT));
+        DynamicBlockStateModel.collectParts(model, blockAndTintGetter, be.getBlockPos(), be.getBlockState(),
                 state.cellModel.scratchRandomSource(42L), modelParts);
     }
 

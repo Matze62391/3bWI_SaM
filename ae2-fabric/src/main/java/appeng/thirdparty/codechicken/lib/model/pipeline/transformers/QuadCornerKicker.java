@@ -25,7 +25,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.AxisDirection;
 import net.minecraft.core.Vec3i;
 import net.minecraft.world.phys.AABB;
-import net.neoforged.neoforge.client.model.quad.MutableQuad;
+import appeng.client.render.quad.MutableQuad;
 
 /**
  * This transformer is a little complicated. Basically a Facade / Cover can use this to 'kick' the edges in of quads to

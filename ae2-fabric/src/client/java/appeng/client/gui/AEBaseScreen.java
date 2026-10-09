@@ -36,6 +36,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import net.minecraft.ChatFormatting;
+import net.minecraft.resources.Identifier;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
@@ -59,14 +60,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import appeng.core.network.NetworkHelper;
 
-import guideme.GuidesCommon;
-import guideme.PageAnchor;
-import guideme.color.SymbolicColor;
-import guideme.compiler.IdUtils;
-import guideme.document.DefaultStyles;
-import guideme.indices.ItemIndex;
-import guideme.style.ResolvedTextStyle;
-import guideme.style.TextStyle;
 
 import appeng.api.behaviors.ContainerItemStrategies;
 import appeng.api.behaviors.EmptyingAction;
@@ -118,12 +111,10 @@ public abstract class AEBaseScreen<T extends AEBaseMenu> extends AbstractContain
      */
     public static final String TEXT_ID_DIALOG_TITLE = "dialog_title";
 
-    protected static final ResolvedTextStyle ERROR_TEXT_STYLE = TextStyle.builder()
-            .color(SymbolicColor.ERROR_TEXT)
-            .font(FontDescription.DEFAULT)
-            .dropShadow(true)
-            .build()
-            .mergeWith(DefaultStyles.BASE_STYLE);
+    /**
+     * Color used for error messages (GuideME's error text color on NeoForge).
+     */
+    protected static final int ERROR_TEXT_COLOR = 0xFFFF5555;
 
     private final VerticalButtonBar verticalToolbar;
     private final OpenGuideButton helpButton;
@@ -256,7 +247,8 @@ public abstract class AEBaseScreen<T extends AEBaseMenu> extends AbstractContain
      */
     @MustBeInvokedByOverriders
     protected void updateBeforeRender() {
-        helpButton.setVisibility(getHelpTopic() != null);
+        // The guidebook is based on GuideME, which is not available on Fabric
+        helpButton.setVisibility(false);
     }
 
     @Override
@@ -562,7 +554,7 @@ public abstract class AEBaseScreen<T extends AEBaseMenu> extends AbstractContain
         // Handler for Pick Block mouse click in Survival mode
         // (Key presses & Creative clicks all reach slotClicked handler as CLONE slot clicks)
         var pickBlockButton = InputConstants.Type.MOUSE.getOrCreate(event.button());
-        if (getMinecraft().options.keyPickItem.isActiveAndMatches(pickBlockButton)
+        if (getMinecraft().options.keyPickItem.matches(pickBlockButton)
                 && handlePickBlock(this.getHoveredSlot(event.x(), event.y()))) {
             return true;
         }
@@ -808,7 +800,7 @@ public abstract class AEBaseScreen<T extends AEBaseMenu> extends AbstractContain
     }
 
     @Override
-    protected boolean isHovering(Slot slot, double x, double y) {
+    public boolean isHovering(Slot slot, double x, double y) {
         if (slot instanceof ResizableSlot resizableSlot) {
             var width = resizableSlot.getWidth();
             var height = resizableSlot.getHeight();
@@ -1083,14 +1075,14 @@ public abstract class AEBaseScreen<T extends AEBaseMenu> extends AbstractContain
     protected void openHelp() {
         var topic = getHelpTopic();
         if (topic != null) {
-            GuidesCommon.openGuide(getPlayer(), GuideItem.GUIDE_ID, topic);
+            LOG.info("Help topic {} requested, but the guidebook is not available on Fabric", topic);
         } else {
             LOG.warn("No topic assigned to screen {}, but button was clicked", this);
         }
     }
 
     @Nullable
-    protected PageAnchor getHelpTopic() {
+    protected HelpTopic getHelpTopic() {
         // Help topic may be overridden via screen style
         String helpTopic = style.getHelpTopic();
         if (helpTopic != null) {
@@ -1101,30 +1093,31 @@ public abstract class AEBaseScreen<T extends AEBaseMenu> extends AbstractContain
                 helpTopic = helpTopic.substring(0, sep);
             }
             try {
-                return new PageAnchor(IdUtils.resolveId(helpTopic, AppEng.MOD_ID), fragment);
+                var pageId = helpTopic.contains(":") ? Identifier.parse(helpTopic)
+                        : Identifier.fromNamespaceAndPath(AppEng.MOD_ID, helpTopic);
+                return new HelpTopic(pageId, fragment);
             } catch (Exception e) {
                 LOG.warn("Invalid helpTopic for screen {}: {}", this, helpTopic);
             }
         }
 
-        // Try finding the help topic automatically via the guidebook item index
-        var guide = AppEngClient.instance().getGuide();
-        var itemIndex = guide.getIndex(ItemIndex.class);
-
-        Object target = getMenu().getTarget();
-        if (target instanceof BlockEntity be) {
-            var block = be.getBlockState().getBlock();
-            var blockId = BuiltInRegistries.BLOCK.getKey(block);
-            return itemIndex.get(blockId);
-        } else if (target instanceof IPart part) {
-            var item = part.getPartItem().asItem();
-            var itemId = BuiltInRegistries.ITEM.getKey(item);
-            return itemIndex.get(itemId);
-        } else if (target instanceof ItemMenuHost<?> menuHost) {
-            var item = menuHost.getItem();
-            var itemId = BuiltInRegistries.ITEM.getKey(item);
-            return itemIndex.get(itemId);
-        }
+        // NeoForge finds the help topic automatically via the guidebook's item index.
         return null;
+    }
+
+    /**
+     * Fills the given rectangle and draws the text centered within it, wrapping it as needed. Replaces the GuideME
+     * render context used on NeoForge.
+     */
+    protected void renderTextCenteredIn(GuiGraphicsExtractor guiGraphics, String text, int color, int x, int y,
+            int width, int height) {
+        var lines = font.split(net.minecraft.network.chat.Component.literal(text), width);
+        int totalHeight = lines.size() * font.lineHeight;
+        int lineY = y + (height - totalHeight) / 2;
+        for (var line : lines) {
+            int lineX = x + (width - font.width(line)) / 2;
+            guiGraphics.text(font, line, lineX, lineY, color, true);
+            lineY += font.lineHeight;
+        }
     }
 }

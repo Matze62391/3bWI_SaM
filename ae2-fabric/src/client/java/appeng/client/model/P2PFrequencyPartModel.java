@@ -23,7 +23,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.RandomSource;
-import net.neoforged.neoforge.client.model.quad.QuadTransforms;
+import appeng.client.render.quad.QuadTransforms;
 import appeng.api.model.ModelData;
 
 import appeng.api.util.AEColor;

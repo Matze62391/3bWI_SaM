@@ -26,9 +26,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import org.jetbrains.annotations.Nullable;
 
+import net.fabricmc.fabric.api.client.renderer.v1.Renderer;
+import net.fabricmc.fabric.api.client.renderer.v1.mesh.QuadEmitter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.color.block.BlockColors;
 import net.minecraft.client.renderer.block.BlockAndTintGetter;
@@ -43,11 +46,10 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
 import net.minecraft.resources.Identifier;
-import net.minecraft.util.TriState;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.SingleThreadedRandomSource;
 import net.minecraft.world.phys.AABB;
-import net.neoforged.neoforge.client.model.quad.MutableQuad;
+import appeng.client.render.quad.MutableQuad;
 
 import appeng.api.parts.IPart;
 import appeng.api.parts.PartHelper;
@@ -205,118 +207,126 @@ public class FacadeBuilder {
 
             QuadReInterpolator interpolator = new QuadReInterpolator();
 
+            // Let the block model emit its quads through Fabric's renderer API, which keeps vertex colors and
+            // supports models that depend on the level.
             var random = new SingleThreadedRandomSource(blockState.getSeed(pos));
-            var parts = new ArrayList<BlockStateModelPart>();
-            model.collectParts(level, pos, blockState, random, parts);
+            var mesh = Renderer.get().mutableMesh();
+            model.emitQuads(mesh.emitter(), level, pos, blockState, random, cullFace -> false);
 
-            // Transform each part emitted by the block model
-            for (var part : parts) {
-                quad.reset();
-                var builder = new QuadCollection.Builder();
+            var builder = new QuadCollection.Builder();
+            var emittedQuads = new ArrayList<MutableQuad>();
+            var emittedCullFaces = new ArrayList<@Nullable Direction>();
+            var skipCullFace = new EnumMap<Direction, Boolean>(Direction.class);
 
-                for (var cullFace : Platform.CULL_FACES) {
-                    // Ignore quad if it's not supposed to connect to the adjacent block.
-                    if (cullFace != null) {
-                        BlockPos adjPos = pos.relative(cullFace);
+            mesh.forEach(originalQuad -> {
+                var cullFace = originalQuad.cullFace();
+                // Ignore quad if it's not supposed to connect to the adjacent block.
+                if (cullFace != null) {
+                    var skip = skipCullFace.computeIfAbsent(cullFace, face -> {
+                        BlockPos adjPos = pos.relative(face);
                         CableBusBlock.RENDERING_FACADE_DIRECTION.set(side);
                         BlockState adjState = level.getBlockState(adjPos).getAppearance(level, adjPos,
-                                cullFace.getOpposite(), blockState, pos);
+                                face.getOpposite(), blockState, pos);
                         CableBusBlock.RENDERING_FACADE_DIRECTION.remove();
-
-                        if (blockState.skipRendering(adjState, cullFace)) {
-                            continue;
-                        }
-                    }
-
-                    for (var originalQuad : part.getQuads(cullFace)) {
-                        QuadTinter quadTinter = null;
-
-                        // Prebake the color tint into the quad
-                        if (originalQuad.materialInfo().isTinted()) {
-                            var tintSource = blockColors.getTintSource(blockState,
-                                    originalQuad.materialInfo().tintIndex());
-                            if (tintSource != null) {
-                                var tintedColor = tintSource.colorInWorld(blockState, level, pos);
-                                quadTinter = new QuadTinter(tintedColor);
-                            }
-                        }
-
-                        for (AABB box : holeStrips) {
-                            quad.setFrom(originalQuad);
-                            // Keep the cull-face for faces that are flush with the outer block-face on the
-                            // side the facade is attached to, but clear it for anything that faces inwards
-                            quad.setDirection(originalQuad.direction());
-                            quad.setShadeOverride(originalQuad.materialInfo().shadeDirectionOverride());
-                            quad.setAmbientOcclusion(originalQuad.materialInfo().ambientOcclusion());
-                            interpolator.setInputQuad(quad);
-
-                            QuadClamper clamper = new QuadClamper(box);
-                            if (!clamper.transform(quad)) {
-                                continue;
-                            }
-
-                            // Strips faces if they match a mask.
-                            if (!faceStripper.transform(quad)) {
-                                continue;
-                            }
-
-                            // Kicks the edge inner corners in, solves Z fighting
-                            if (!kicker.transform(quad)) {
-                                continue;
-                            }
-
-                            interpolator.transform(quad);
-
-                            // Tints the quad if we need it to. Disabled by default.
-                            if (quadTinter != null) {
-                                quadTinter.transform(quad);
-                            }
-
-                            if (cullFace == side) {
-                                builder.addCulledFace(side, quad.toBakedQuad());
-                            } else {
-                                builder.addUnculledFace(quad.toBakedQuad());
-                            }
-                        }
+                        return blockState.skipRendering(adjState, face);
+                    });
+                    if (skip) {
+                        return;
                     }
                 }
 
-                // Build a new quad collection
-                var quads = builder.build();
-                if (!quads.getAll().isEmpty()) {
-                    partConsumer.accept(new FacadeBlockModelPart(quads, part));
+                QuadTinter quadTinter = null;
+
+                // Prebake the color tint into the quad
+                if (originalQuad.tintIndex() != -1) {
+                    var tintSource = blockColors.getTintSource(blockState, originalQuad.tintIndex());
+                    if (tintSource != null) {
+                        var tintedColor = tintSource.colorInWorld(blockState, level, pos);
+                        quadTinter = new QuadTinter(tintedColor);
+                    }
                 }
+
+                for (AABB box : holeStrips) {
+                    quad.setFrom(originalQuad);
+                    interpolator.setInputQuad(quad);
+
+                    QuadClamper clamper = new QuadClamper(box);
+                    if (!clamper.transform(quad)) {
+                        continue;
+                    }
+
+                    // Strips faces if they match a mask.
+                    if (!faceStripper.transform(quad)) {
+                        continue;
+                    }
+
+                    // Kicks the edge inner corners in, solves Z fighting
+                    if (!kicker.transform(quad)) {
+                        continue;
+                    }
+
+                    interpolator.transform(quad);
+
+                    // Tints the quad if we need it to. Disabled by default.
+                    if (quadTinter != null) {
+                        quadTinter.transform(quad);
+                    }
+
+                    // Keep the cull-face for faces that are flush with the outer block-face on the
+                    // side the facade is attached to, but clear it for anything that faces inwards
+                    var resultCullFace = cullFace == side ? side : null;
+                    if (resultCullFace != null) {
+                        builder.addCulledFace(side, quad.toBakedQuad());
+                    } else {
+                        builder.addUnculledFace(quad.toBakedQuad());
+                    }
+                    emittedQuads.add(quad.copy());
+                    emittedCullFaces.add(resultCullFace);
+                }
+            });
+
+            // Build a new quad collection
+            var quads = builder.build();
+            if (!quads.getAll().isEmpty()) {
+                partConsumer.accept(new FacadeBlockModelPart(quads, emittedQuads, emittedCullFaces,
+                        model.particleMaterial()));
             }
         }
 
     }
 
+    /**
+     * The vanilla quads are used by consumers that don't support Fabric's renderer API. They lose the vertex colors
+     * of the original model, which is why {@link #emitQuads} emits the full quads instead.
+     */
     record FacadeBlockModelPart(QuadCollection quadCollection,
-            BlockStateModelPart originalPart) implements BlockStateModelPart {
+            List<MutableQuad> quads,
+            List<@Nullable Direction> cullFaces,
+            Material.Baked particleMaterial) implements BlockStateModelPart {
         @Override
         public List<BakedQuad> getQuads(@Nullable Direction side) {
             return quadCollection.getQuads(side);
         }
 
-        @SuppressWarnings("deprecation")
         @Override
         public boolean useAmbientOcclusion() {
-            return originalPart.useAmbientOcclusion();
-        }
-
-        @Override
-        public TriState ambientOcclusion() {
-            return originalPart.ambientOcclusion();
-        }
-
-        @Override
-        public Material.Baked particleMaterial() {
-            return originalPart.particleMaterial();
+            return true;
         }
 
         @Override
         public @BakedQuad.MaterialFlags int materialFlags() {
-            return originalPart.materialFlags();
+            return quadCollection.materialFlags();
+        }
+
+        @Override
+        public void emitQuads(QuadEmitter emitter, Predicate<@Nullable Direction> cullTest) {
+            for (int i = 0; i < quads.size(); i++) {
+                var cullFace = cullFaces.get(i);
+                if (cullTest.test(cullFace)) {
+                    continue;
+                }
+                quads.get(i).emit(emitter, cullFace);
+            }
         }
     }
 

@@ -7,8 +7,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import appeng.core.network.NetworkHelper;
-import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
+import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
 
 import appeng.api.parts.IPartHost;
 import appeng.core.network.ServerboundPacket;
@@ -25,27 +24,18 @@ public final class BlockAttackHook {
     }
 
     public static void install() {
-        NeoForge.EVENT_BUS.addListener(BlockAttackHook::onBlockAttackedOnClientEvent);
+        AttackBlockCallback.EVENT.register((player, level, hand, pos, direction) -> {
+            // Do not process this event on the server since we're handling the server-side ourselves
+            if (!level.isClientSide()) {
+                return InteractionResult.PASS;
+            }
+            return onBlockAttackedOnClient(player, level);
+        });
     }
 
     /**
      * We intercept when the player attacks a cable bus and send an interaction handling packet instead.
      */
-    private static void onBlockAttackedOnClientEvent(PlayerInteractEvent.LeftClickBlock event) {
-
-        var level = event.getLevel();
-
-        // Do not process this event on the server since we're handling the server-side ourselves
-        if (!level.isClientSide()) {
-            return;
-        }
-
-        var result = onBlockAttackedOnClient(event.getEntity(), level);
-        if (result != InteractionResult.PASS) {
-            event.setCanceled(true);
-        }
-    }
-
     private static InteractionResult onBlockAttackedOnClient(Player player, Level level) {
         // This shouldn't happen as the attack block logic should only be called if the player is pointing at a block
         // to begin with.
