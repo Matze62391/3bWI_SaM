@@ -26,11 +26,8 @@ import appeng.api.stacks.AEItemKey;
 import appeng.client.api.AEKeyRenderer;
 
 public class ItemKeyRenderer implements AEKeyRenderer<AEItemKey, ItemStackRenderState> {
-    private final ItemModelResolver itemModelResolver;
-
-    public ItemKeyRenderer() {
-        itemModelResolver = Minecraft.getInstance().getItemModelResolver();
-    }
+    // Looked up lazily: the renderer is registered while the client initializes, before the resolver exists
+    private ItemModelResolver itemModelResolver;
 
     @Override
     public void drawInGui(Minecraft minecraft, GuiGraphicsExtractor guiGraphics, int x, int y, AEItemKey stack) {
@@ -56,6 +53,9 @@ public class ItemKeyRenderer implements AEKeyRenderer<AEItemKey, ItemStackRender
 
     @Override
     public void extract(ItemStackRenderState state, AEItemKey what, @Nullable Level level, int seed) {
+        if (itemModelResolver == null) {
+            itemModelResolver = Minecraft.getInstance().getItemModelResolver();
+        }
         itemModelResolver.updateForTopItem(
                 state,
                 what.getReadOnlyStack(),
