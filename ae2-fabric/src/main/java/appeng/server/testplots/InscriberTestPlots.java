@@ -93,19 +93,19 @@ public final class InscriberTestPlots {
                         var inscriber = plotTestHelper.getBlockEntity(BlockPos.ZERO, InscriberBlockEntity.class);
                         var inv = inscriber.getInternalInventory();
                         plotTestHelper.check(
-                                ItemStack.isSameItemSameComponents(inv.getStackInSlot(0), expectedTopSlot.create()),
+                                matches(inv.getStackInSlot(0), expectedTopSlot),
                                 "Top slot is not as expected",
                                 BlockPos.ZERO);
                         plotTestHelper.check(
-                                ItemStack.isSameItemSameComponents(inv.getStackInSlot(1), expectedBottomSlot.create()),
+                                matches(inv.getStackInSlot(1), expectedBottomSlot),
                                 "Bottom slot is not as expected",
                                 BlockPos.ZERO);
                         plotTestHelper.check(
-                                ItemStack.isSameItemSameComponents(inv.getStackInSlot(2), expectedMiddleSlot.create()),
+                                matches(inv.getStackInSlot(2), expectedMiddleSlot),
                                 "Middle slot is not as expected",
                                 BlockPos.ZERO);
                         plotTestHelper.check(
-                                ItemStack.isSameItemSameComponents(inv.getStackInSlot(3), expectedResult.create()),
+                                matches(inv.getStackInSlot(3), expectedResult),
                                 "Result slot is not as expected",
                                 BlockPos.ZERO);
                     })
@@ -113,4 +113,8 @@ public final class InscriberTestPlots {
         });
     }
 
+
+    private static boolean matches(ItemStack stack, @Nullable ItemStackTemplate expected) {
+        return expected == null ? stack.isEmpty() : ItemStack.isSameItemSameComponents(stack, expected.create());
+    }
 }
