@@ -69,7 +69,7 @@ public class CraftingUnitTransformRecipe extends MechanicsRecipe<RecipeInput> {
     public static ItemStack getRemovedUpgrade(ServerLevel level, Block upgradedBlock) {
         var recipeManager = level.recipeAccess();
 
-        for (var holder : recipeManager.recipeMap().byType(AERecipeTypes.CRAFTING_UNIT_TRANSFORM)) {
+        for (var holder : recipeManager.recipes.byType(AERecipeTypes.CRAFTING_UNIT_TRANSFORM)) {
             if (holder.value().upgradedBlock == upgradedBlock) {
                 return holder.value().upgradeItem.getDefaultInstance();
             }
@@ -82,7 +82,7 @@ public class CraftingUnitTransformRecipe extends MechanicsRecipe<RecipeInput> {
      * Search for the resulting upgraded block when upgrading a crafting unit with the given upgrade item.
      */
     public static Block getUpgradedBlock(ServerLevel level, ItemStack upgradeItem) {
-        for (var holder : level.recipeAccess().recipeMap().byType(AERecipeTypes.CRAFTING_UNIT_TRANSFORM)) {
+        for (var holder : level.recipeAccess().recipes.byType(AERecipeTypes.CRAFTING_UNIT_TRANSFORM)) {
             if (upgradeItem.is(holder.value().getUpgradeItem())) {
                 return holder.value().upgradedBlock;
             }

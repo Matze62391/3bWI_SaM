@@ -23,6 +23,7 @@ import java.text.DecimalFormat;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.function.BooleanSupplier;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
@@ -321,6 +322,19 @@ public class Platform {
             var state = blockEntity.getBlockState();
             blockEntity.getLevel().sendBlockUpdated(blockEntity.getBlockPos(), state, state, 0);
         }
+    }
+
+    private static BooleanSupplier shiftKeyDown = () -> false;
+
+    /**
+     * NeoForge exposes the shift key state on TooltipFlag. On Fabric, the client sets a supplier for it.
+     */
+    public static boolean isShiftKeyDown() {
+        return shiftKeyDown.getAsBoolean();
+    }
+
+    public static void setShiftKeyDownSupplier(BooleanSupplier supplier) {
+        shiftKeyDown = supplier;
     }
 
     public static boolean isSortOrderAvailable(SortOrder order) {

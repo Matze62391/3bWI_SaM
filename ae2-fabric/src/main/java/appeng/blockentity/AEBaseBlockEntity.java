@@ -445,6 +445,17 @@ public class AEBaseBlockEntity extends BlockEntity
         return null;
     }
 
+    static {
+        DeferredBlockEntityUnloader.register();
+    }
+
+    /**
+     * Called when the chunk containing this block entity is unloaded on the server. Replaces NeoForge's block entity
+     * extension of the same name.
+     */
+    public void onChunkUnloaded() {
+    }
+
     /**
      * @return The data used by this block entity's dynamic model.
      */

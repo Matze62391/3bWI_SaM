@@ -33,6 +33,9 @@ sourceSets {
             exclude "appeng/server/testplots/GuidebookPlot.java"
             exclude "appeng/integration/modules/**"
             exclude "appeng/client/integrations/**"
+            exclude "appeng/client/api/integrations/**"
+            exclude "appeng/api/integrations/rei/**"
+            exclude "appeng/api/integrations/igtooltip/**"
         }
         resources {
             srcDir "src/client/resources"

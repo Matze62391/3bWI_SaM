@@ -22,7 +22,13 @@ import org.jetbrains.annotations.Nullable;
 
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.context.UseOnContext;
+import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.item.Item;
 
 public abstract class AEBaseItem extends Item {
@@ -39,6 +45,21 @@ public abstract class AEBaseItem extends Item {
 
     public void addToMainCreativeTab(CreativeModeTab.ItemDisplayParameters parameters, CreativeModeTab.Output output) {
         output.accept(this);
+    }
+
+    /**
+     * Called when the item is used on a block, before the block itself handles the interaction. Replaces NeoForge's
+     * item extension of the same name. Return {@link InteractionResult#PASS} to continue with the normal interaction.
+     */
+    public InteractionResult onItemUseFirst(ItemStack stack, UseOnContext context) {
+        return InteractionResult.PASS;
+    }
+
+    /**
+     * @return true if the targeted block should be used even though the player is sneaking with this item.
+     */
+    public boolean doesSneakBypassUse(ItemStack stack, LevelReader level, BlockPos pos, Player player) {
+        return false;
     }
 
     @Override

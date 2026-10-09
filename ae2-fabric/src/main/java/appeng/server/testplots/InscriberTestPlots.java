@@ -29,7 +29,7 @@ public final class InscriberTestPlots {
                 .template(patch -> patch.set(AEComponents.NAME_PRESS_NAME, Component.literal("HELLO WORLD")));
         ;
         var ironIngots = new ItemStackTemplate(Items.IRON_INGOT, 2);
-        var namedIngots = new ItemStackTemplate(Items.IRON_INGOT, 2, DataComponentPatch.builder()
+        var namedIngots = new ItemStackTemplate(Items.IRON_INGOT.builtInRegistryHolder(), 2, DataComponentPatch.builder()
                 .set(DataComponents.CUSTOM_NAME, Component.literal("HELLO WORLD"))
                 .build());
 
@@ -93,19 +93,19 @@ public final class InscriberTestPlots {
                         var inscriber = plotTestHelper.getBlockEntity(BlockPos.ZERO, InscriberBlockEntity.class);
                         var inv = inscriber.getInternalInventory();
                         plotTestHelper.check(
-                                ItemStack.isSameItemSameComponents(inv.getStackInSlot(0), expectedTopSlot),
+                                ItemStack.isSameItemSameComponents(inv.getStackInSlot(0), expectedTopSlot.create()),
                                 "Top slot is not as expected",
                                 BlockPos.ZERO);
                         plotTestHelper.check(
-                                ItemStack.isSameItemSameComponents(inv.getStackInSlot(1), expectedBottomSlot),
+                                ItemStack.isSameItemSameComponents(inv.getStackInSlot(1), expectedBottomSlot.create()),
                                 "Bottom slot is not as expected",
                                 BlockPos.ZERO);
                         plotTestHelper.check(
-                                ItemStack.isSameItemSameComponents(inv.getStackInSlot(2), expectedMiddleSlot),
+                                ItemStack.isSameItemSameComponents(inv.getStackInSlot(2), expectedMiddleSlot.create()),
                                 "Middle slot is not as expected",
                                 BlockPos.ZERO);
                         plotTestHelper.check(
-                                ItemStack.isSameItemSameComponents(inv.getStackInSlot(3), expectedResult),
+                                ItemStack.isSameItemSameComponents(inv.getStackInSlot(3), expectedResult.create()),
                                 "Result slot is not as expected",
                                 BlockPos.ZERO);
                     })

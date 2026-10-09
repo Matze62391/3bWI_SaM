@@ -88,7 +88,7 @@ public class CraftingPatternHelper {
         var input = new SingleRecipeInput(new ItemStack(inputItem));
 
         RecipeHolder<StonecutterRecipe> foundRecipe = null;
-        var it = level.recipeAccess().recipeMap().getRecipesFor(RecipeType.STONECUTTING, input, level).iterator();
+        var it = level.recipeAccess().recipes.getRecipesFor(RecipeType.STONECUTTING, input, level).iterator();
         while (it.hasNext()) {
             var holder = it.next();
             StonecutterRecipe recipe = holder.value();

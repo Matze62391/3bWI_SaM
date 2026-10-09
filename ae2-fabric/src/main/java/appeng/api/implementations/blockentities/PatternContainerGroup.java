@@ -117,8 +117,8 @@ public record PatternContainerGroup(
         } else {
             // Try to wrestle an item from the adjacent block entity
             var targetBlock = target.getBlockState().getBlock();
-            var targetItem = level instanceof ServerLevel serverLevel ? targetBlock.getCloneItemStack(level, pos,
-                    target.getBlockState(), true, Platform.getFakePlayer(serverLevel, null))
+            var targetItem = level instanceof ServerLevel ? target.getBlockState().getCloneItemStack(level, pos,
+                    true)
                     : new ItemStack(targetBlock);
             icon = AEItemKey.of(targetItem);
 

@@ -18,13 +18,14 @@
 
 package appeng.worldgen.meteorite.fallout;
 
+import appeng.core.ConventionTags;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.tags.BiomeTags;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.common.Tags;
 
 import appeng.worldgen.meteorite.MeteoriteBlockPutter;
 
@@ -43,11 +44,11 @@ public class FalloutCopy extends Fallout {
         var biome = level.getBiome(pos);
         if (biome.is(BiomeTags.IS_BADLANDS)) {
             block = Blocks.TERRACOTTA.defaultBlockState();
-        } else if (biome.is(Tags.Biomes.IS_SNOWY)) {
+        } else if (biome.is(ConventionTags.BIOME_IS_SNOWY)) {
             block = Blocks.SNOW_BLOCK.defaultBlockState();
-        } else if (biome.is(BiomeTags.IS_BEACH) || biome.is(Tags.Biomes.IS_SANDY)) {
+        } else if (biome.is(BiomeTags.IS_BEACH) || biome.is(ConventionTags.BIOME_IS_SANDY)) {
             block = Blocks.SAND.defaultBlockState();
-        } else if (biome.is(Tags.Biomes.IS_PLAINS) || biome.is(BiomeTags.IS_FOREST)) {
+        } else if (biome.is(ConventionTags.BIOME_IS_PLAINS) || biome.is(BiomeTags.IS_FOREST)) {
             block = Blocks.DIRT.defaultBlockState();
         } else {
             block = Blocks.COBBLESTONE.defaultBlockState();

@@ -36,15 +36,22 @@ class ChunkLoadState extends SavedData {
                 .apply(builder, ForcedChunk::new));
     }
 
-    private static final SavedDataType<ChunkLoadState> TYPE = new SavedDataType<>(
-            AppEng.makeId("chunk_load_state"),
-            ChunkLoadState::new,
-            level -> RecordCodecBuilder.create(builder -> builder.group(
-                    ForcedChunk.CODEC.listOf().fieldOf("forcedChunks").forGetter(ChunkLoadState::getForcedChunks))
-                    .apply(builder, data -> new ChunkLoadState(level, data))));
+    /**
+     * Vanilla saved data types can't depend on the level (NeoForge adds this), so a type is created for each level.
+     * Saved data storage identifies types by their id, so this is equivalent.
+     */
+    private static SavedDataType<ChunkLoadState> type(ServerLevel level) {
+        return new SavedDataType<>(
+                AppEng.makeId("chunk_load_state"),
+                () -> new ChunkLoadState(level),
+                RecordCodecBuilder.create(builder -> builder.group(
+                        ForcedChunk.CODEC.listOf().fieldOf("forcedChunks").forGetter(ChunkLoadState::getForcedChunks))
+                        .apply(builder, data -> new ChunkLoadState(level, data))),
+                null /* no data fixing, handled by Fabric API */);
+    }
 
     public static ChunkLoadState get(ServerLevel level) {
-        return level.getDataStorage().computeIfAbsent(TYPE);
+        return level.getDataStorage().computeIfAbsent(type(level));
     }
 
     private final ServerLevel level;

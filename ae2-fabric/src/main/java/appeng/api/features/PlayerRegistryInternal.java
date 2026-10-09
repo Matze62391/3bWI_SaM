@@ -57,12 +57,19 @@ final class PlayerRegistryInternal extends SavedData implements IPlayerRegistry 
                     UUIDUtil.CODEC.listOf().fieldOf("profile_ids").forGetter(PlayerRegistryData::profileIds))
                     .apply(builder, PlayerRegistryData::new));
 
-    private static final SavedDataType<PlayerRegistryInternal> TYPE = new SavedDataType<>(
-            ID,
-            level -> new PlayerRegistryInternal(level.getServer()),
-            level -> RecordCodecBuilder.create(builder -> builder.group(
-                    PLAYER_REGISTRY_DATA_CODEC.fieldOf("players").forGetter(PlayerRegistryInternal::getData))
-                    .apply(builder, data -> new PlayerRegistryInternal(level.getServer(), data))));
+    /**
+     * Vanilla saved data types can't depend on the level (NeoForge adds this), so a type is created for each server.
+     * Saved data storage identifies types by their id, so this is equivalent.
+     */
+    private static SavedDataType<PlayerRegistryInternal> type(MinecraftServer server) {
+        return new SavedDataType<>(
+                ID,
+                () -> new PlayerRegistryInternal(server),
+                RecordCodecBuilder.create(builder -> builder.group(
+                        PLAYER_REGISTRY_DATA_CODEC.fieldOf("players").forGetter(PlayerRegistryInternal::getData))
+                        .apply(builder, data -> new PlayerRegistryInternal(server, data))),
+                null /* no data fixing, handled by Fabric API */);
+    }
 
     private final BiMap<UUID, Integer> mapping = HashBiMap.create();
 
@@ -96,7 +103,7 @@ final class PlayerRegistryInternal extends SavedData implements IPlayerRegistry 
         if (overworld == null) {
             throw new IllegalStateException("Cannot retrieve player data for a server that has no overworld.");
         }
-        return overworld.getDataStorage().computeIfAbsent(TYPE);
+        return overworld.getDataStorage().computeIfAbsent(type(overworld.getServer()));
     }
 
     @Nullable

@@ -197,7 +197,9 @@ public class ConversionMonitorPart extends AbstractMonitorPart implements ISubMe
 
     @Override
     public void returnToMainMenu(Player player, ISubMenu subMenu) {
-        player.closeContainer();
+        if (player instanceof ServerPlayer serverPlayer) {
+            serverPlayer.closeContainer();
+        }
     }
 
     @Override

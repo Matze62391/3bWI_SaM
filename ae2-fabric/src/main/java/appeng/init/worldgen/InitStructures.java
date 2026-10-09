@@ -31,7 +31,6 @@ import net.minecraft.world.level.levelgen.structure.TerrainAdjustment;
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
 import net.minecraft.world.level.levelgen.structure.placement.RandomSpreadStructurePlacement;
 import net.minecraft.world.level.levelgen.structure.placement.RandomSpreadType;
-import net.neoforged.bus.api.IEventBus;
 import appeng.core.registries.DeferredRegister;
 
 import appeng.core.AppEng;
@@ -72,11 +71,11 @@ public final class InitStructures {
         context.register(MeteoriteStructure.STRUCTURE_SET_KEY, structureSet);
     }
 
-    public static void register(IEventBus eventBus) {
+    public static void register() {
         STRUCTURE_PIECES.register("ae2mtrt", () -> MeteoriteStructurePiece.TYPE);
         STRUCTURE_TYPES.register("ae2mtrt", () -> MeteoriteStructure.TYPE);
 
-        STRUCTURE_PIECES.register(eventBus);
-        STRUCTURE_TYPES.register(eventBus);
+        STRUCTURE_PIECES.register();
+        STRUCTURE_TYPES.register();
     }
 }

@@ -299,7 +299,7 @@ public abstract class AEBaseScreen<T extends AEBaseMenu> extends AbstractContain
         var emptyingAction = ContainerItemStrategies.getEmptyingAction(carried);
         if (emptyingAction != null) {
             var wrappedStack = GenericStack.wrapInItemStack(new GenericStack(emptyingAction.what(), 1));
-            if (configInv.isItemValid(slot.getSlotIndex(), wrappedStack)) {
+            if (configInv.isItemValid(slot.getContainerSlot(), wrappedStack)) {
                 return emptyingAction;
             }
         }
@@ -781,7 +781,7 @@ public abstract class AEBaseScreen<T extends AEBaseMenu> extends AbstractContain
                 if (getMinecraft().options.keyHotbarSlots[j].matches(event)) {
                     final List<Slot> slots = this.getInventorySlots();
                     for (Slot s : slots) {
-                        if (s.getSlotIndex() == j && s.container == this.menu.getPlayerInventory()
+                        if (s.getContainerSlot() == j && s.container == this.menu.getPlayerInventory()
                                 && !s.mayPickup(this.menu.getPlayerInventory().player)) {
                             return false;
                         }
@@ -792,7 +792,7 @@ public abstract class AEBaseScreen<T extends AEBaseMenu> extends AbstractContain
                         return true;
                     } else {
                         for (Slot s : slots) {
-                            if (s.getSlotIndex() == j
+                            if (s.getContainerSlot() == j
                                     && s.container == this.menu.getPlayerInventory()) {
                                 ServerboundPacket message = new SwapSlotsPacket(s.index, theSlot.index);
                                 NetworkHelper.sendToServer(message);

@@ -116,7 +116,7 @@ public class PartPlacement {
         }
 
         var state = level.getBlockState(pos);
-        var ss = state.getSoundType(level, pos, player);
+        var ss = state.getSoundType();
         level.playSound(null, pos, ss.getPlaceSound(), SoundSource.BLOCKS, (ss.getVolume() + 1.0F) / 2.0F,
                 ss.getPitch() * 0.8F);
         return addedPart;

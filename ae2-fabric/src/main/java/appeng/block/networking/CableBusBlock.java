@@ -144,7 +144,9 @@ public class CableBusBlock extends AEBaseEntityBlock<CableBusBlockEntity> implem
         builder.add(LIGHT_LEVEL, WATERLOGGED);
     }
 
-    @Override
+    /**
+     * Called from a mixin into {@code LivingEntity#onClimbable} (a block extension on NeoForge).
+     */
     public boolean isLadder(BlockState state, LevelReader level, BlockPos pos, LivingEntity entity) {
         return this.cb(level, pos).isLadder(entity);
     }
@@ -166,7 +168,10 @@ public class CableBusBlock extends AEBaseEntityBlock<CableBusBlockEntity> implem
         return this.cb(level, pos).canConnectRedstone(side.getOpposite());
     }
 
-    @Override
+    /**
+     * Picks the part or facade the player is looking at. Called from Fabric's pick-item event, since vanilla's
+     * {@code getCloneItemStack} does not know about the player.
+     */
     public ItemStack getCloneItemStack(LevelReader level, BlockPos pos, BlockState state, boolean includeData,
             Player player) {
         var playerRay = InteractionUtil.getPlayerRay(player, 100);
@@ -327,7 +332,10 @@ public class CableBusBlock extends AEBaseEntityBlock<CableBusBlockEntity> implem
         }
     }
 
-    @Override
+    /**
+     * Called when the block entity of a neighbor changed (i.e. its inventory). On Fabric this is called from a mixin
+     * into {@code Level#updateNeighbourForOutputSignal}, which is where NeoForge calls its block extension.
+     */
     public void onNeighborChange(BlockState state, LevelReader level, BlockPos pos, BlockPos neighbor) {
         this.cb(level, pos).onNeighborChanged(level, pos, neighbor);
     }

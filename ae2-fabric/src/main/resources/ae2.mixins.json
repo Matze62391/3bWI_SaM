@@ -13,7 +13,10 @@
     "tests.TestInstanceBlockEntityMixin",
     "tests.TestCommandMixin",
     "StructureTemplateMixin",
-    "PlayerDestroySpeedMixin"
+    "PlayerDestroySpeedMixin",
+    "LivingEntityClimbableMixin",
+    "LevelOutputSignalMixin",
+    "FireBlockMixin"
   ],
   "client": [
     "client.AbstractContainerScreenMixin",

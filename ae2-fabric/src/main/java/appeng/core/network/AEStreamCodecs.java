@@ -2,7 +2,7 @@ package appeng.core.network;
 
 import io.netty.buffer.ByteBuf;
 
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.VarInt;
 import net.minecraft.network.codec.StreamCodec;
 
 /**
@@ -17,12 +17,12 @@ public final class AEStreamCodecs {
         return new StreamCodec<>() {
             @Override
             public T decode(B buf) {
-                return values[FriendlyByteBuf.readVarInt(buf)];
+                return values[VarInt.read(buf)];
             }
 
             @Override
             public void encode(B buf, T value) {
-                FriendlyByteBuf.writeVarInt(buf, value.ordinal());
+                VarInt.write(buf, value.ordinal());
             }
         };
     }

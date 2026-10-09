@@ -733,7 +733,7 @@ public final class TestPlots {
 
             var patternProviders = grid.getMachines(PatternProviderPart.class).iterator();
             PatternProviderPart current = patternProviders.next();
-            var craftingRecipes = node.getLevel().recipeAccess().recipeMap().byType(RecipeType.CRAFTING);
+            var craftingRecipes = node.getLevel().recipeAccess().recipes.byType(RecipeType.CRAFTING);
 
             Set<AEItemKey> neededIngredients = new HashSet<>();
             Set<AEItemKey> providedResults = new HashSet<>();

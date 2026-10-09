@@ -594,7 +594,7 @@ public abstract class AEBaseMenu extends AbstractContainerMenu {
                 && appEngSlot.getInventory() instanceof ConfigMenuInventory configInv
                 && configInv.getDelegate().getMode() == GenericStackInv.Mode.STORAGE) {
             var realInv = configInv.getDelegate();
-            var realInvSlot = appEngSlot.getSlotIndex();
+            var realInvSlot = appEngSlot.getContainerSlot();
 
             if (action == InventoryAction.FILL_ITEM || action == InventoryAction.FILL_ENTIRE_ITEM) {
                 var what = realInv.getKey(realInvSlot);
@@ -896,7 +896,7 @@ public abstract class AEBaseMenu extends AbstractContainerMenu {
 
     protected final void sendPacketToClient(ClientboundPacket packet) {
         if (getPlayer() instanceof ServerPlayer serverPlayer) {
-            serverPlayer.connection.send(packet);
+            NetworkHelper.sendToPlayer(serverPlayer, packet);
         }
     }
 

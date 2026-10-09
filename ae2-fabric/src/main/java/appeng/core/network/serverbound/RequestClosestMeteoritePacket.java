@@ -1,6 +1,8 @@
 
 package appeng.core.network.serverbound;
 
+import appeng.core.network.NetworkHelper;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,6 +36,6 @@ public record RequestClosestMeteoritePacket(ChunkPos pos) implements Serverbound
     public void handleOnServer(ServerPlayer player) {
         var result = ServerCompassService.getClosestMeteorite(player.level(), pos);
         LOG.trace("{} requested closest meteorite for {} in {} -> {}", player, pos, player.level(), result);
-        player.connection.send(new CompassResponsePacket(pos, result));
+        NetworkHelper.sendToPlayer(player, new CompassResponsePacket(pos, result));
     }
 }

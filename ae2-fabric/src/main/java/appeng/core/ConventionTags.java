@@ -151,6 +151,11 @@ public final class ConventionTags {
      */
     public static final TagKey<Biome> METEORITE_OCEAN = cBiome("is_ocean");
 
+    public static final TagKey<Biome> BIOME_IS_SNOWY = cBiome("is_snowy");
+    public static final TagKey<Biome> BIOME_IS_SANDY = cBiome("is_sandy");
+    public static final TagKey<Biome> BIOME_IS_PLAINS = cBiome("is_plains");
+    public static final TagKey<Biome> BIOME_IS_COLD = cBiome("is_cold");
+
     /**
      * Used to identify items that act as wrenches.
      */

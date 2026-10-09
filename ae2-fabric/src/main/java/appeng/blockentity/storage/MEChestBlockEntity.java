@@ -656,23 +656,20 @@ public class MEChestBlockEntity extends AENetworkedPoweredBlockEntity
         }
 
         @Override
-        public int size() {
-            if (!canAcceptLiquids()) {
-                return 0;
-            }
-            return super.size();
+        public boolean supportsInsertion() {
+            return canAcceptLiquids();
         }
 
         @Override
         protected void onRootCommit(GenericStack originalState) {
-            pushToNetwork(pendingSideEffect.what(), (int) pendingSideEffect.amount(), Actionable.MODULATE);
+            pushToNetwork(pendingSideEffect.what(), pendingSideEffect.amount(), Actionable.MODULATE);
             pendingSideEffect = null;
         }
 
-        private int pushToNetwork(AEKey what, int amount, Actionable mode) {
+        private long pushToNetwork(AEKey what, long amount, Actionable mode) {
             MEChestBlockEntity.this.updateHandler();
             if (canAcceptLiquids()) {
-                return (int) StorageHelper.poweredInsert(
+                return StorageHelper.poweredInsert(
                         MEChestBlockEntity.this,
                         MEChestBlockEntity.this.cellHandler,
                         what,

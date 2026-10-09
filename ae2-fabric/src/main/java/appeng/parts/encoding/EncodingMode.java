@@ -1,8 +1,9 @@
 package appeng.parts.encoding;
 
+import appeng.core.network.AEStreamCodecs;
+
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
-import appeng.core.network.AEStreamCodecs;
 
 public enum EncodingMode {
     CRAFTING,
@@ -11,6 +12,6 @@ public enum EncodingMode {
     STONECUTTING,
     ;
 
-    public static final StreamCodec<FriendlyByteBuf, EncodingMode> STREAM_CODEC = NeoForgeStreamCodecs
+    public static final StreamCodec<FriendlyByteBuf, EncodingMode> STREAM_CODEC = AEStreamCodecs
             .enumCodec(EncodingMode.class);
 }

@@ -41,6 +41,7 @@ import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.fabric.api.event.player.PlayerPickItemEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder;
 import net.fabricmc.fabric.api.event.registry.RegistryAttribute;
@@ -60,7 +61,8 @@ import appeng.core.definitions.AEParts;
 import appeng.core.network.ClientboundPacket;
 import appeng.core.network.InitNetwork;
 import appeng.core.particles.InitParticleTypes;
-import appeng.hooks.SkyStoneBreakSpeed;
+import appeng.block.networking.CableBusBlock;
+import appeng.hooks.FabricItemHooks;
 import appeng.hooks.WrenchHook;
 import appeng.hooks.ticking.TickHandler;
 import appeng.hotkeys.HotkeyActions;
@@ -169,6 +171,14 @@ public abstract class AppEngBase implements AppEng {
                 .register((dispatcher, registryAccess, environment) -> new AECommand().register(dispatcher));
 
         UseBlockCallback.EVENT.register(WrenchHook::onPlayerUseBlock);
+        FabricItemHooks.register();
+        PlayerPickItemEvents.BLOCK.register((player, pos, state, includeData) -> {
+            if (state.getBlock() instanceof CableBusBlock cableBus) {
+                var picked = cableBus.getCloneItemStack(player.level(), pos, state, includeData, player);
+                return picked.isEmpty() ? null : picked;
+            }
+            return null;
+        });
 
         HotkeyActions.init();
 
@@ -293,7 +303,7 @@ public abstract class AppEngBase implements AppEng {
     @Override
     public RecipeMap getRecipeMapForType(Level level, RecipeType<?> recipeType) {
         if (level instanceof ServerLevel serverLevel) {
-            return serverLevel.recipeAccess().recipeMap();
+            return serverLevel.recipeAccess().recipes;
         } else {
             LOG.warn("Don't know how to retrieve recipe information for level type {}", level);
             return RecipeMap.EMPTY;

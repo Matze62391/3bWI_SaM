@@ -34,7 +34,7 @@ public record ExportedGridContent(int serialNumber,
         CHUNK,
         LAST_CHUNK;
 
-        public static final StreamCodec<FriendlyByteBuf, ContentType> STREAM_CODEC = NeoForgeStreamCodecs
+        public static final StreamCodec<FriendlyByteBuf, ContentType> STREAM_CODEC = AEStreamCodecs
                 .enumCodec(ContentType.class);
     }
 }

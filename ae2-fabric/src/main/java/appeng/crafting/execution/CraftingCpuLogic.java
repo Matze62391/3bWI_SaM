@@ -17,6 +17,8 @@
  */
 package appeng.crafting.execution;
 
+import appeng.core.network.NetworkHelper;
+
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -556,7 +558,7 @@ public class CraftingCpuLogic {
                     job.finalOutput.amount(),
                     job.remainingAmount,
                     status);
-            connectedPlayer.connection.send(message);
+            NetworkHelper.sendToPlayer(connectedPlayer, message);
         }
     }
 }

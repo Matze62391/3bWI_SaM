@@ -65,7 +65,7 @@ public final class TransformLogic {
         List<ItemEntity> itemEntities = level.getEntities(null, region).stream()
                 .filter(e -> e instanceof ItemEntity && !e.isRemoved()).map(e -> (ItemEntity) e).toList();
 
-        for (var holder : level.recipeAccess().recipeMap().byType(AERecipeTypes.TRANSFORM)) {
+        for (var holder : level.recipeAccess().recipes.byType(AERecipeTypes.TRANSFORM)) {
             var recipe = holder.value();
             if (!circumstancePredicate.test(recipe.circumstance))
                 continue;
@@ -143,7 +143,7 @@ public final class TransformLogic {
     private static HolderSet<Item> getTransformableItems(ServerLevel level, Fluid fluid) {
         return fluidCache.computeIfAbsent(fluid, f -> {
             List<HolderSet<Item>> holderSets = new ArrayList<>();
-            for (var holder : level.recipeAccess().recipeMap().byType(AERecipeTypes.TRANSFORM)) {
+            for (var holder : level.recipeAccess().recipes.byType(AERecipeTypes.TRANSFORM)) {
                 var recipe = holder.value();
                 if (!(recipe.circumstance.isFluid(fluid)))
                     continue;
@@ -163,7 +163,7 @@ public final class TransformLogic {
         HolderSet<Item> ret = anyFluidCache;
         if (ret == null) {
             List<HolderSet<Item>> holderSets = new ArrayList<>();
-            for (var holder : level.recipeAccess().recipeMap().byType(AERecipeTypes.TRANSFORM)) {
+            for (var holder : level.recipeAccess().recipes.byType(AERecipeTypes.TRANSFORM)) {
                 var recipe = holder.value();
                 if (!recipe.circumstance.isFluid())
                     continue;
@@ -186,7 +186,7 @@ public final class TransformLogic {
         HolderSet<Item> ret = explosionCache;
         if (ret == null) {
             List<HolderSet<Item>> holderSets = new ArrayList<>();
-            for (var holder : level.recipeAccess().recipeMap().byType(AERecipeTypes.TRANSFORM)) {
+            for (var holder : level.recipeAccess().recipes.byType(AERecipeTypes.TRANSFORM)) {
                 var recipe = holder.value();
                 if (!recipe.circumstance.isExplosion())
                     continue;

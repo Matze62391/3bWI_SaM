@@ -18,12 +18,13 @@
 
 package appeng.recipes.handlers;
 
+import appeng.core.network.AEStreamCodecs;
+
 import com.mojang.serialization.Codec;
 
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.util.StringRepresentable;
-import appeng.core.network.AEStreamCodecs;
 
 public enum InscriberProcessType implements StringRepresentable {
     /**
@@ -40,7 +41,7 @@ public enum InscriberProcessType implements StringRepresentable {
 
     public static Codec<InscriberProcessType> CODEC = StringRepresentable.fromEnum(InscriberProcessType::values);
 
-    public static StreamCodec<FriendlyByteBuf, InscriberProcessType> STREAM_CODEC = NeoForgeStreamCodecs
+    public static StreamCodec<FriendlyByteBuf, InscriberProcessType> STREAM_CODEC = AEStreamCodecs
             .enumCodec(InscriberProcessType.class);
 
     InscriberProcessType(String serializedName) {

@@ -18,6 +18,8 @@
 
 package appeng.core.particles;
 
+import net.fabricmc.fabric.api.particle.v1.FabricParticleTypes;
+
 import com.mojang.serialization.MapCodec;
 
 import net.minecraft.core.particles.ItemParticleOption;
@@ -64,8 +66,8 @@ public final class ParticleTypes {
             return LightningArcParticleData.STREAM_CODEC;
         }
     };
-    public static final SimpleParticleType LIGHTNING = new SimpleParticleType(false);
-    public static final SimpleParticleType MATTER_CANNON = new SimpleParticleType(false);
-    public static final SimpleParticleType VIBRANT = new SimpleParticleType(false);
+    public static final SimpleParticleType LIGHTNING = FabricParticleTypes.simple(false);
+    public static final SimpleParticleType MATTER_CANNON = FabricParticleTypes.simple(false);
+    public static final SimpleParticleType VIBRANT = FabricParticleTypes.simple(false);
 
 }

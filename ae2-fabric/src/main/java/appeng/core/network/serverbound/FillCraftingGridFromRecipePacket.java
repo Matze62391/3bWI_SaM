@@ -76,7 +76,8 @@ public record FillCraftingGridFromRecipePacket(
             NonNullList<ItemStack> ingredientTemplates,
             boolean craftMissing) {
         this.recipeId = recipeId;
-        this.ingredientTemplates = NonNullList.copyOf(ingredientTemplates.stream().map(ItemStack::copy).toList());
+        this.ingredientTemplates = NonNullList.of(ItemStack.EMPTY,
+                ingredientTemplates.stream().map(ItemStack::copy).toArray(ItemStack[]::new));
         this.craftMissing = craftMissing;
     }
 

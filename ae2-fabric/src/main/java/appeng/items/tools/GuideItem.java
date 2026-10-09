@@ -6,7 +6,6 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 
-import guideme.GuidesCommon;
 
 import appeng.core.AppEng;
 import appeng.items.AEBaseItem;
@@ -23,8 +22,10 @@ public class GuideItem extends AEBaseItem {
 
     @Override
     public InteractionResult use(Level level, Player player, InteractionHand hand) {
+        // TODO: The guidebook is based on GuideME, which is not available for Fabric
         if (level.isClientSide()) {
-            GuidesCommon.openGuide(player, GUIDE_ID);
+            player.sendOverlayMessage(net.minecraft.network.chat.Component
+                    .literal("The AE2 guidebook is not available in the Fabric port yet."));
         }
 
         return InteractionResult.FAIL;

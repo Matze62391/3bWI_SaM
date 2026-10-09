@@ -18,6 +18,8 @@
 
 package appeng.items.storage;
 
+import appeng.util.Platform;
+
 import java.util.Optional;
 import java.util.function.Consumer;
 
@@ -70,7 +72,7 @@ public class CreativeCellItem extends AEBaseItem implements ICellWorkbenchItem {
         if (inventory != null) {
             var cc = getConfigInventory(stack);
             if (!cc.isEmpty()) {
-                if (tooltipFlags.hasShiftDown()) {
+                if (Platform.isShiftKeyDown()) {
                     for (var key : cc.keySet()) {
                         lines.accept(Tooltips.of(key.getDisplayName()));
                     }

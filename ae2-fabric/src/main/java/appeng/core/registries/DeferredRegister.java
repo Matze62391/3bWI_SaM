@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
@@ -96,7 +97,8 @@ public class DeferredRegister<T> {
     private record Entry<T, I extends T>(ResourceKey<T> key, Function<Identifier, ? extends I> factory,
             DeferredHolder<T, ?> holder) {
         void register(Registry<T> registry) {
-            var reference = Registry.registerForHolder(registry, key, factory.apply(key.identifier()));
+            T value = factory.apply(key.identifier());
+            Holder.Reference<T> reference = Registry.registerForHolder(registry, key, value);
             holder.bind(reference);
         }
     }

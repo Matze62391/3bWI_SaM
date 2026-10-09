@@ -168,7 +168,7 @@ public class EntropyManipulatorItem extends AEBasePoweredItem implements IBlockT
         if (tryBoth || !InteractionUtil.isInAlternateUseMode(p)) {
             if (block instanceof TntBlock) {
                 level.removeBlock(pos, false);
-                block.onCaughtFire(level.getBlockState(pos), level, pos, side, p, item);
+                TntBlock.prime(level, pos, p, item);
                 return true;
             }
 
@@ -280,7 +280,7 @@ public class EntropyManipulatorItem extends AEBasePoweredItem implements IBlockT
     @Nullable
     private static EntropyRecipe findRecipe(ServerLevel level, EntropyMode mode, BlockState blockState,
             FluidState fluidState) {
-        for (var holder : level.recipeAccess().recipeMap().byType(AERecipeTypes.ENTROPY)) {
+        for (var holder : level.recipeAccess().recipes.byType(AERecipeTypes.ENTROPY)) {
             var recipe = holder.value();
             if (recipe.matches(mode, blockState, fluidState)) {
                 return recipe;

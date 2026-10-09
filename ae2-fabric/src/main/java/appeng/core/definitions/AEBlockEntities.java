@@ -21,12 +21,14 @@ package appeng.core.definitions;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.google.common.base.Preconditions;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -229,7 +231,7 @@ public final class AEBlockEntities {
                     .map(BlockDefinition::block)
                     .toArray(AEBaseEntityBlock[]::new);
 
-            var type = new BlockEntityType<>(supplier, blocks);
+            var type = new BlockEntityType<>(supplier, Set.<Block>of(blocks));
             typeHolder.setPlain(type); // Makes it available to the supplier used above
 
             AEBaseBlockEntity.registerBlockEntityItem(type, blockDefinitions[0].asItem());

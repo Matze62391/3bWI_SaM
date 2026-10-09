@@ -71,11 +71,6 @@ public class MatrixFrameBlock extends AEBaseBlock {
     }
 
     @Override
-    public void onBlockExploded(BlockState state, ServerLevel level, BlockPos pos, Explosion explosion) {
-        // Immune to explosions
-    }
-
-    @Override
     protected boolean propagatesSkylightDown(BlockState state) {
         return true;
     }
@@ -85,9 +80,4 @@ public class MatrixFrameBlock extends AEBaseBlock {
         return 1.0f;
     }
 
-    @Override
-    public boolean canEntityDestroy(final BlockState state, final BlockGetter level, final BlockPos pos,
-            final Entity entity) {
-        return false;
-    }
 }
