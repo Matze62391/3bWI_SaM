@@ -104,6 +104,12 @@ public class AE2ClientGameTest implements FabricClientGameTest {
 
     @Override
     public void runTest(ClientGameTestContext context) {
+        if (Boolean.getBoolean("ae2.gametest.shaders")) {
+            // Rendering with a shader pack is slow, so only look at what shaders affect
+            runShaderTest(context);
+            return;
+        }
+
         // Config screen (opened through Mod Menu in normal play)
         context.setScreen(() -> new AEConfigScreen(null));
         context.waitTicks(10);
@@ -295,6 +301,58 @@ public class AE2ClientGameTest implements FabricClientGameTest {
                 context.getInput().lookAt(meteorite.atY(60));
                 context.waitTicks(20);
                 context.takeScreenshot("ae2-meteorite");
+            }
+        }
+    }
+
+    /**
+     * Looks at AE2's blocks, cables and screens while an Iris shader pack is enabled.
+     */
+    private static void runShaderTest(ClientGameTestContext context) {
+        try (var world = context.worldBuilder().adjustSettings(settings -> {
+            settings.setGameMode(WorldCreationUiState.SelectedGameMode.CREATIVE);
+            settings.getNormalPresetList().stream()
+                    .filter(entry -> entry.preset() != null && entry.preset().is(WorldPresets.FLAT))
+                    .findFirst()
+                    .ifPresent(settings::setWorldType);
+        }).create()) {
+            var server = world.getServer();
+            server.runCommand("time set noon");
+            context.waitTicks(20);
+            var origin = server.computeOnServer(s -> firstPlayer(s).blockPosition());
+
+            // A row of AE2 blocks in front of the player
+            var blocks = List.of("controller", "drive", "me_chest", "energy_cell", "dense_energy_cell", "charger",
+                    "inscriber", "pattern_provider", "interface", "molecular_assembler", "quartz_glass",
+                    "quartz_vibrant_glass", "fluix_block", "sky_stone_block", "flawless_budding_quartz",
+                    "quantum_ring", "spatial_io_port", "crafting_unit", "1k_crafting_storage", "crafting_monitor");
+            for (var i = 0; i < blocks.size(); i++) {
+                setBlock(server, origin.offset(i - blocks.size() / 2, 0, 4), "ae2:" + blocks.get(i));
+            }
+            context.getInput().lookAt(origin.offset(0, 0, 4));
+            context.waitTicks(40);
+            context.takeScreenshot("ae2-shaders-blocks");
+
+            // Cables, parts and terminals of AE2's terminal test plot, by day and by night
+            server.runCommand("execute as @p at @p run ae2 setuptestworld all_terminals");
+            context.waitTicks(100);
+            context.takeScreenshot("ae2-shaders-terminals-day");
+            server.runCommand("time set midnight");
+            context.waitTicks(40);
+            context.takeScreenshot("ae2-shaders-terminals-night");
+            server.runCommand("time set noon");
+            context.waitTicks(20);
+
+            // A terminal screen on top of the shaded world
+            var terminalPos = server.computeOnServer(s -> findNorthFacingPart(s, "terminal"));
+            if (terminalPos != null) {
+                server.runCommand("tp @p %d.5 %d %d.5".formatted(terminalPos.getX(), terminalPos.getY(),
+                        terminalPos.getZ() - 2));
+                context.waitTicks(20);
+                context.getInput().lookAt(terminalPos);
+                context.waitTicks(20);
+                context.takeScreenshot("ae2-shaders-terminal-part");
+                openAndScreenshot(context, terminalPos, "ae2-shaders-terminal-screen");
             }
         }
     }

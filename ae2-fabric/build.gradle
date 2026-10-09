@@ -158,6 +158,28 @@ dependencies {
     include "teamreborn:energy:${project.tr_energy_version}"
 }
 
+// With -PshaderPack=<zip file>, the client game test runs with that Iris shader pack enabled (needs -PcompatMods)
+if (project.hasProperty("shaderPack")) {
+    def shaderPack = file(project.property("shaderPack"))
+    def runDir = layout.projectDirectory.dir("build/run/clientGameTest")
+    def installShaderPack = tasks.register("installGameTestShaderPack") {
+        mustRunAfter "deleteGameTestRunDir"
+        doLast {
+            copy {
+                from shaderPack
+                into runDir.dir("shaderpacks")
+            }
+            def config = runDir.file("config/iris.properties").asFile
+            config.parentFile.mkdirs()
+            config.text = "enableShaders=true\nshaderPack=${shaderPack.name}\n"
+        }
+    }
+    tasks.matching { it.name == "runClientGameTest" }.configureEach {
+        dependsOn installShaderPack
+        jvmArgs "-Dae2.gametest.shaders=true"
+    }
+}
+
 processResources {
     def version = project.version
     inputs.property "version", version
