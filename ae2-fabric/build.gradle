@@ -68,7 +68,22 @@ loom {
             vmArg "-Dfabric-api.gametest"
             vmArg "-Dfabric-api.gametest.report-file=${project.layout.buildDirectory.get()}/gametest/junit.xml"
             runDir "build/gametest"
+            if (project.hasProperty("gametestFilter")) {
+                vmArg "-Dfabric-api.gametest.filter=${project.property("gametestFilter")}"
+            }
         }
+    }
+}
+
+fabricApi {
+    // Client game tests drive a real client (see src/gametest). They live in their own source set and are not
+    // shipped with the mod.
+    configureTests {
+        createSourceSet = true
+        modId = "ae2-gametest"
+        enableGameTests = false // AE2's server game tests run through the "gametest" run above
+        enableClientGameTests = true
+        eula = true
     }
 }
 
