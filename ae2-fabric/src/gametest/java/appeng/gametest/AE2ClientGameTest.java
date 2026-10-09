@@ -95,7 +95,8 @@ public class AE2ClientGameTest implements FabricClientGameTest {
             AEItems.PORTABLE_ITEM_CELL1K,
             AEItems.PORTABLE_FLUID_CELL1K,
             AEItems.WIRELESS_TERMINAL,
-            AEItems.WIRELESS_CRAFTING_TERMINAL);
+            AEItems.WIRELESS_CRAFTING_TERMINAL,
+            AEItems.GUIDE);
 
     private static final List<String> TERMINALS = List.of(
             "terminal",
