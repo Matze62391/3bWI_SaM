@@ -21,6 +21,8 @@ import net.minecraft.core.Direction;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.levelgen.presets.WorldPresets;
@@ -33,6 +35,8 @@ import net.pedroksl.advanced_ae.common.definitions.AAEHotkeysRegistry;
 import net.pedroksl.advanced_ae.common.definitions.AAEItems;
 import net.pedroksl.advanced_ae.common.entities.AdvCraftingBlockEntity;
 import net.pedroksl.advanced_ae.common.entities.ReactionChamberEntity;
+import net.pedroksl.advanced_ae.common.items.armors.QuantumArmorBase;
+import net.pedroksl.advanced_ae.common.items.upgrades.UpgradeType;
 import net.pedroksl.advanced_ae.xmod.jei.ReactionChamberCategory;
 
 import mezz.jei.api.constants.VanillaTypes;
@@ -43,6 +47,7 @@ import guideme.PageAnchor;
 import guideme.compiler.ParsedGuidePage;
 import guideme.internal.screen.GuideScreen;
 
+import appeng.api.config.Actionable;
 import appeng.api.parts.PartHelper;
 import appeng.api.stacks.AEFluidKey;
 import appeng.core.AppEng;
@@ -305,14 +310,41 @@ public class AAEClientGameTest implements FabricClientGameTest {
         context.runOnClient(mc -> mc.options.setCameraType(CameraType.FIRST_PERSON));
         context.waitTicks(5);
 
-        // Upgrades are installed through the configuration menu, check that a powered helmet keeps its charge
-        var charged = server.computeOnServer(s -> {
-            var helmet = firstPlayer(s).getItemBySlot(net.minecraft.world.entity.EquipmentSlot.HEAD);
-            return helmet.getItem() == AAEItems.QUANTUM_HELMET.get();
+        // Upgrades: flight (granted through the player's abilities on Fabric) and step assist (an attribute modifier)
+        server.runCommand("gamemode survival @a");
+        server.runOnServer(s -> {
+            var player = firstPlayer(s);
+            for (var slot : List.of(EquipmentSlot.CHEST, EquipmentSlot.FEET)) {
+                var stack = player.getItemBySlot(slot);
+                var armor = (QuantumArmorBase) stack.getItem();
+                armor.applyUpgrade(stack, slot == EquipmentSlot.CHEST ? UpgradeType.FLIGHT : UpgradeType.STEP_ASSIST);
+                armor.injectAEPower(stack, armor.getAEMaxPower(stack), Actionable.MODULATE);
+            }
         });
-        if (!charged) {
-            throw new AssertionError("The quantum helmet is not equipped");
-        }
+        context.waitTicks(10);
+        server.runOnServer(s -> {
+            var player = firstPlayer(s);
+            if (!player.getAbilities().mayfly) {
+                throw new AssertionError("The flight upgrade doesn't let the player fly");
+            }
+            var stepHeight = player.getAttributeValue(Attributes.STEP_HEIGHT);
+            if (stepHeight <= 0.6) {
+                throw new AssertionError("The step assist upgrade doesn't change the step height: " + stepHeight);
+            }
+            LOG.info("Quantum armor upgrades work: flight, step height {}", stepHeight);
+
+            var chest = player.getItemBySlot(EquipmentSlot.CHEST);
+            ((QuantumArmorBase) chest.getItem()).removeUpgrade(chest, UpgradeType.FLIGHT);
+        });
+        context.waitTicks(10);
+        server.runOnServer(s -> {
+            if (firstPlayer(s).getAbilities().mayfly) {
+                throw new AssertionError("The player can still fly after removing the flight upgrade");
+            }
+        });
+        server.runCommand("gamemode creative @a");
+        server.runCommand("clear @a");
+        context.waitTicks(5);
     }
 
     /**
