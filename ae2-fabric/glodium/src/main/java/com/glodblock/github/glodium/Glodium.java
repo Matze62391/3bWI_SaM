@@ -25,8 +25,7 @@ public class Glodium implements ModInitializer {
 
     @Override
     public void onInitialize() {
-        XModManager.scan();
-        XModManager.init();
+        XModManager.load();
         ServerLifecycleEvents.SERVER_STARTING.register(server -> this.server = server);
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> this.server = null);
     }

@@ -9,11 +9,11 @@
     "ServerPlayerMixin",
     "BowItemMixin",
     "ItemEntityMixin",
-    "LivingEntityMixin"
+    "LivingEntityMixin",
+    "ServerGamePacketListenerImplMixin"
   ],
   "client": [
-    "GuiMixin",
-    "ServerGamePacketListenerImplMixin"
+    "GuiMixin"
   ],
   "injectors": {
     "defaultRequire": 1

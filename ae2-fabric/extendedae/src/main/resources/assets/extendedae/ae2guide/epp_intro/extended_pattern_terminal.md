@@ -1,0 +1,44 @@
+---
+navigation:
+    parent: epp_intro/epp_intro-index.md
+    title: ME Extended Pattern Access Terminal
+    icon: extendedae:ex_pattern_access_part
+categories:
+- extended devices
+item_ids:
+- extendedae:ex_pattern_access_part
+- extendedae:wireless_ex_pat
+---
+
+# ME Extended Pattern Access Terminal
+
+The ME Extended Pattern Access Terminal provides three additional features compared with the <ItemLink id="ae2:pattern_access_terminal" />.
+
+<Row gap="20">
+<GameScene zoom="6" background="transparent">
+<ImportStructure src="../structure/cable_ex_pattern_terminal.snbt"></ImportStructure>
+<IsometricCamera yaw="180"></IsometricCamera>
+</GameScene>
+<ItemImage id="extendedae:wireless_ex_pat" scale="4"></ItemImage>
+</Row>
+
+## Better Pattern Search
+
+You can search for patterns by the names of their input or output ingredients.
+
+![EPA1](../pic/epa_gui1.png)
+
+## Pattern Highlight
+
+Sometimes it is still difficult to find the desired pattern because patterns are always displayed as a group. The Extended
+Pattern Access Terminal can highlight the matching pattern in the GUI.
+
+![EPA2](../pic/epa_gui2.png)
+
+## Pattern Provider In-World Highlight
+
+It can be difficult to determine which Pattern Provider is stuck during a large crafting job. The Extended Pattern Access Terminal
+can highlight the Pattern Provider in the world, making it easy to locate.
+
+![EPA3](../pic/epa_gui3.png)
+

@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "L": "minecraft:lapis_lazuli",
+    "M": "extendedae:machine_frame",
+    "Q": "#c:gems/quartz"
+  },
+  "pattern": [
+    "QLQ",
+    "LML",
+    "QLQ"
+  ],
+  "result": {
+    "id": "extendedae:assembler_matrix_frame"
+  }
+}

@@ -24,8 +24,21 @@ public final class XModManager {
 
     public static final String CUSTOM_KEY = "glodium:xmod";
     private static final List<XMod> LOADERS = new ArrayList<>();
+    private static boolean loaded;
 
-    public static void scan() {
+    /**
+     * Scans and instantiates the plugins once. Mods may register their content (e.g. in AE2's addon entrypoint) before
+     * Glodium's own entrypoint ran, so every entry point calls this.
+     */
+    public static synchronized void load() {
+        if (!loaded) {
+            loaded = true;
+            scan();
+            init();
+        }
+    }
+
+    private static void scan() {
         LOADERS.clear();
         for (var mod : FabricLoader.getInstance().getAllMods()) {
             var meta = mod.getMetadata();
@@ -43,7 +56,7 @@ public final class XModManager {
         }
     }
 
-    public static void init() {
+    private static void init() {
         for (var loader: LOADERS) {
             if (GlodUtil.checkMod(loader.xmod)) {
                 try {
@@ -60,6 +73,7 @@ public final class XModManager {
      * does this in the common setup event).
      */
     public static void common(String host) {
+        load();
         for (var loader: LOADERS) {
             if (loader.instance != null && loader.host.equals(host)) {
                 loader.instance.loadCommon();
@@ -71,6 +85,7 @@ public final class XModManager {
      * Runs the client setup of the plugins of the given mod.
      */
     public static void client(String host) {
+        load();
         for (var loader: LOADERS) {
             if (loader.instance != null && loader.host.equals(host)) {
                 loader.instance.loadClient();
@@ -79,6 +94,7 @@ public final class XModManager {
     }
 
     public static void register(String host, RegistryHandler handler) {
+        load();
         for (var loader: LOADERS) {
             if (loader.instance != null && loader.host.equals(host)) {
                 loader.instance.onRegister(handler);

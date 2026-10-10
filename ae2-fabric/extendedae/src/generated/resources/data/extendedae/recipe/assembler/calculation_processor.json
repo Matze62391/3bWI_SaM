@@ -1,0 +1,28 @@
+{
+  "fabric:load_conditions": [
+    {
+      "config_id": "assembler_circuit",
+      "condition": "extendedae:config"
+    }
+  ],
+  "type": "extendedae:crystal_assembler",
+  "energy": 4000,
+  "input_items": [
+    {
+      "amount": 4,
+      "ingredient": "ae2:printed_calculation_processor"
+    },
+    {
+      "amount": 4,
+      "ingredient": "ae2:printed_silicon"
+    },
+    {
+      "amount": 4,
+      "ingredient": "#c:dusts/redstone"
+    }
+  ],
+  "output": {
+    "count": 4,
+    "id": "ae2:calculation_processor"
+  }
+}

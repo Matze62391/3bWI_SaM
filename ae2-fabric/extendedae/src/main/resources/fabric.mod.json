@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "id": "extendedae",
+  "version": "${version}",
+  "name": "ExtendedAE",
+  "description": "Add some QoL extended contents for AE2 (unofficial Fabric port).",
+  "authors": [
+    "GlodBlock"
+  ],
+  "contributors": [
+    "Fabric port: 3bWI SaM"
+  ],
+  "contact": {
+    "sources": "https://github.com/GlodBlock/ExtendedAE"
+  },
+  "license": "LGPL-3.0-only",
+  "icon": "logo.png",
+  "environment": "*",
+  "entrypoints": {
+    "ae2:addon": [
+      "com.glodblock.github.extendedae.ExtendedAE"
+    ],
+    "client": [
+      "com.glodblock.github.extendedae.ExtendedAEClient"
+    ],
+    "ae2:part_capabilities": [
+      "com.glodblock.github.extendedae.common.EAERegistryHandler::registerPartCapabilities"
+    ],
+    "jei_mod_plugin": [
+      "com.glodblock.github.extendedae.xmod.jei.JEIPlugin"
+    ],
+    "jade": [
+      "com.glodblock.github.extendedae.xmod.jade.JadePlugin"
+    ]
+  },
+  "custom": {
+    "glodium:xmod": {
+      "advanced_ae": "com.glodblock.github.extendedae.xmod.aae.AAELoader"
+    }
+  },
+  "mixins": [
+    "mixins.extendedae.json"
+  ],
+  "accessWidener": "extendedae.classtweaker",
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "fabric-api": "*",
+    "minecraft": "~26.3",
+    "java": ">=25",
+    "ae2": "*",
+    "glodium": "*",
+    "ae2wtlib": "*"
+  },
+  "suggests": {
+    "jei": "*"
+  }
+}

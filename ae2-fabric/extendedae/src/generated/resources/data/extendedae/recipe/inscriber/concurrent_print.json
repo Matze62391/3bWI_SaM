@@ -1,0 +1,11 @@
+{
+  "type": "ae2:inscriber",
+  "ingredients": {
+    "middle": "#c:gems/entro",
+    "top": "extendedae:concurrent_processor_press"
+  },
+  "mode": "inscribe",
+  "result": {
+    "id": "extendedae:concurrent_processor_print"
+  }
+}

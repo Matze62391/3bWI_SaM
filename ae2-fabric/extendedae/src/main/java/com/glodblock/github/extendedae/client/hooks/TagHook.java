@@ -1,0 +1,71 @@
+package com.glodblock.github.extendedae.client.hooks;
+
+import com.glodblock.github.extendedae.client.gui.GuiTagExportBus;
+import com.glodblock.github.extendedae.client.gui.GuiTagStorageBus;
+import com.mojang.blaze3d.platform.InputConstants;
+import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
+import it.unimi.dsi.fastutil.objects.ReferenceSet;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.core.Holder;
+import net.minecraft.network.chat.Component;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.material.Fluid;
+import net.fabricmc.fabric.api.transfer.v1.context.ContainerItemContext;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidStorage;
+import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.List;
+import java.util.stream.Stream;
+
+public class TagHook {
+
+    public static void onInit() {
+        ItemTooltipCallback.EVENT.register((stack, context, flag, lines) -> hookTooltip(stack, lines));
+    }
+
+    @SuppressWarnings("deprecation")
+    private static void hookTooltip(ItemStack stack, List<Component> tooltip) {
+        if (Minecraft.getInstance().gui.screen() instanceof GuiTagExportBus || Minecraft.getInstance().gui.screen() instanceof GuiTagStorageBus) {
+            if (InputConstants.isKeyDown(InputConstants.KEY_LSHIFT) || InputConstants.isKeyDown(InputConstants.KEY_RSHIFT)) {
+                Holder.Reference<@NotNull Block> blockHolder = null;
+                boolean anyTag = false;
+                if (stack.getItem() instanceof BlockItem block) {
+                    blockHolder = block.getBlock().builtInRegistryHolder();
+                }
+                if (Stream.concat(stack.tags(), blockHolder == null ? Stream.empty() : blockHolder.tags()).findAny().isPresent()) {
+                    tooltip.add(Component.translatable("tag_display.tooltip.items").withStyle(ChatFormatting.YELLOW));
+                    Stream.concat(stack.tags(), blockHolder == null ? Stream.empty() : blockHolder.tags()).limit(128).forEach(
+                            key -> tooltip.add(Component.literal(key.location().toString()).withStyle(ChatFormatting.GREEN))
+                    );
+                    anyTag = true;
+                }
+
+                var fluidCap = FluidStorage.ITEM.find(stack, ContainerItemContext.withConstant(stack));
+                if (fluidCap != null) {
+                    ReferenceSet<TagKey<@NotNull Fluid>> fluidSet = new ReferenceOpenHashSet<>();
+                    for (var view : fluidCap.nonEmptyViews()) {
+                        view.getResource().getFluid().builtInRegistryHolder().tags().forEach(fluidSet::add);
+                    }
+                    if (!fluidSet.isEmpty()) {
+                        tooltip.add(Component.translatable("tag_display.tooltip.fluids").withStyle(ChatFormatting.YELLOW));
+                        fluidSet.stream().limit(128).forEach(
+                                key -> tooltip.add(Component.literal(key.location().toString()).withStyle(ChatFormatting.GREEN))
+                        );
+                        anyTag = true;
+                    }
+                }
+                if (!anyTag) {
+                    tooltip.add(Component.translatable("tag_display.tooltip.no_tags").withStyle(ChatFormatting.YELLOW));
+                }
+            } else {
+                tooltip.add(Component.translatable("tag_display.tooltip.hint").withStyle(ChatFormatting.YELLOW));
+            }
+        }
+    }
+
+}

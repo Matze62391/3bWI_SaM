@@ -1,0 +1,34 @@
+{
+  "type": "extendedae:crystal_assembler",
+  "energy": 50000,
+  "input_items": [
+    {
+      "ingredient": "extendedae:machine_frame"
+    },
+    {
+      "amount": 8,
+      "ingredient": "ae2:engineering_processor"
+    },
+    {
+      "ingredient": "ae2:calculation_processor_press"
+    },
+    {
+      "ingredient": "ae2:engineering_processor_press"
+    },
+    {
+      "ingredient": "ae2:logic_processor_press"
+    },
+    {
+      "ingredient": "ae2:silicon_press"
+    },
+    {
+      "ingredient": "extendedae:concurrent_processor_press"
+    },
+    {
+      "ingredient": "minecraft:stonecutter"
+    }
+  ],
+  "output": {
+    "id": "extendedae:circuit_cutter"
+  }
+}

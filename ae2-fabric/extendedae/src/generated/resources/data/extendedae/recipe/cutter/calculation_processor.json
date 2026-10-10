@@ -1,0 +1,11 @@
+{
+  "type": "extendedae:circuit_cutter",
+  "energy": 8000,
+  "input": {
+    "ingredient": "ae2:quartz_block"
+  },
+  "output": {
+    "count": 4,
+    "id": "ae2:printed_calculation_processor"
+  }
+}

@@ -92,7 +92,7 @@ dependencies {
     compileOnly "teamreborn:energy:${rootProject.tr_energy_version}"
 
     // GeckoLib animates the quantum armor
-    implementation "maven.modrinth:geckolib:${project.geckolib_version}"
+    implementation "maven.modrinth:geckolib:${rootProject.geckolib_version}"
 
     compileOnly "mezz.jei:jei-${rootProject.minecraft_version}-common-api:${rootProject.jei_version}"
     compileOnly "mezz.jei:jei-${rootProject.minecraft_version}-fabric-api:${rootProject.jei_version}"
@@ -144,7 +144,7 @@ dependencies {
     productionRuntimeMods "net.fabricmc.fabric-api:fabric-api:${rootProject.fabric_api_version}"
     // Not part of the Fabric API jar, only needed to run the test
     productionRuntimeMods fabricApi.module("fabric-client-gametest-api-v1", rootProject.fabric_api_version)
-    productionRuntimeMods "maven.modrinth:geckolib:${project.geckolib_version}"
+    productionRuntimeMods "maven.modrinth:geckolib:${rootProject.geckolib_version}"
     productionRuntimeMods "mezz.jei:jei-${rootProject.minecraft_version}-fabric:${rootProject.jei_version}"
     productionRuntimeMods "maven.modrinth:jade:${rootProject.jade_version}"
     productionRuntimeMods "com.terraformersmc:modmenu:${rootProject.modmenu_version}"

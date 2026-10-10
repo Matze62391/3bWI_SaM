@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "extendedae:wireless_hub"
+        }
+      ],
+      "rolls": 1,
+      "condition": {
+        "type": "minecraft:survives_explosion"
+      }
+    }
+  ],
+  "random_sequence": "extendedae:blocks/wireless_hub"
+}

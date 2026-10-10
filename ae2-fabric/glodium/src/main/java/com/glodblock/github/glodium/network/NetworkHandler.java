@@ -71,12 +71,11 @@ public class NetworkHandler {
     /**
      * Registers the handlers of clientbound packets. Only call this on the client.
      */
-    @SuppressWarnings({"rawtypes", "unchecked"})
     public void registerClient() {
         for (var packet : this.packets) {
             if (packet.client()) {
-                ClientPlayNetworking.registerGlobalReceiver(packet.type(),
-                        (payload, context) -> ((IMessage) payload).onMessage(context.player()));
+                // In its own class: the handler passes a LocalPlayer, which can't be loaded on dedicated servers
+                ClientPacketHandlers.register(packet.type());
             }
         }
     }

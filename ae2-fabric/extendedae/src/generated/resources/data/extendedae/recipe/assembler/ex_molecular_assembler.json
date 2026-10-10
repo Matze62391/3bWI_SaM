@@ -1,0 +1,28 @@
+{
+  "type": "extendedae:crystal_assembler",
+  "energy": 20000,
+  "input_items": [
+    {
+      "amount": 4,
+      "ingredient": "ae2:molecular_assembler"
+    },
+    {
+      "amount": 4,
+      "ingredient": "extendedae:concurrent_processor"
+    },
+    {
+      "amount": 4,
+      "ingredient": "#c:dusts/fluix"
+    },
+    {
+      "amount": 3,
+      "ingredient": "ae2:engineering_processor"
+    },
+    {
+      "ingredient": "ae2:speed_card"
+    }
+  ],
+  "output": {
+    "id": "extendedae:ex_molecular_assembler"
+  }
+}

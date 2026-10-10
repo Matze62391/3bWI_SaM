@@ -1,0 +1,23 @@
+{
+  "type": "extendedae:crystal_assembler",
+  "energy": 50000,
+  "input_items": [
+    {
+      "ingredient": "extendedae:assembler_matrix_wall"
+    },
+    {
+      "amount": 8,
+      "ingredient": "ae2:speed_card"
+    },
+    {
+      "amount": 6,
+      "ingredient": "ae2:red_lumen_paint_ball"
+    },
+    {
+      "ingredient": "extendedae:concurrent_processor"
+    }
+  ],
+  "output": {
+    "id": "extendedae:assembler_matrix_speed"
+  }
+}

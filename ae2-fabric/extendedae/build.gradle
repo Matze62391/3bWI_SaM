@@ -1,0 +1,139 @@
+plugins {
+    id 'net.fabricmc.fabric-loom'
+}
+
+// Fabric port of ExtendedAE (https://github.com/GlodBlock/ExtendedAE), which adds extended machines and parts for AE2.
+// ExtendedAE is licensed under the LGPL-3.0, see LICENSE.
+version = project.extendedae_version
+group = "com.glodblock.github"
+
+base {
+    archivesName = "extendedae-fabric"
+}
+
+repositories {
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = "Modrinth"
+                url = "https://api.modrinth.com/maven"
+            }
+        }
+        filter {
+            includeGroup "maven.modrinth"
+        }
+    }
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = "BlameJared"
+                url = "https://maven.blamejared.com"
+            }
+        }
+        filter {
+            includeGroup "mezz.jei"
+            includeGroup "net.mezzdev.config"
+        }
+    }
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = "TerraformersMC"
+                url = "https://maven.terraformersmc.com/releases"
+            }
+        }
+        filter {
+            includeGroup "com.terraformersmc"
+        }
+    }
+}
+
+sourceSets {
+    main {
+        java {
+            // Data generators are not ported (the generated resources are included)
+            exclude "com/glodblock/github/extendedae/datagen/**"
+            // Integrations with mods that don't exist for Fabric 26.3
+            exclude "com/glodblock/github/extendedae/xmod/appflux/**"
+            exclude "com/glodblock/github/extendedae/xmod/darkmode/**"
+            exclude "com/glodblock/github/extendedae/xmod/kjs/**"
+        }
+        resources {
+            srcDir "src/generated/resources"
+            exclude ".cache/**"
+        }
+    }
+}
+
+loom {
+    accessWidenerPath = file("src/main/resources/extendedae.classtweaker")
+}
+
+fabricApi {
+    // The client game test (src/gametest) builds ExtendedAE's machines in a real client and opens their screens:
+    // ./gradlew :extendedae:runClientGameTest
+    configureTests {
+        createSourceSet = true
+        modId = "extendedae-gametest"
+        enableGameTests = false
+        enableClientGameTests = true
+        eula = true
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${rootProject.minecraft_version}"
+    implementation "net.fabricmc:fabric-loader:${rootProject.loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${rootProject.fabric_api_version}"
+    compileOnly "com.google.code.findbugs:jsr305:3.0.2"
+    compileOnly "teamreborn:energy:${rootProject.tr_energy_version}"
+
+    implementation project(":")
+    implementation project(":guideme")
+    implementation project(":glodium")
+    implementation project(":ae2wtlib")
+    // Advanced AE's advanced processing patterns can be edited in the pattern modifier
+    compileOnly project(":advancedae")
+    compileOnly project(":ae2addonlib")
+    localRuntime project(":advancedae")
+    localRuntime project(":ae2addonlib")
+    // GeckoLib (needed by Advanced AE) adds interfaces to Minecraft classes, so it must be on the compile classpath too
+    compileOnly "maven.modrinth:geckolib:${rootProject.geckolib_version}"
+    localRuntime "maven.modrinth:geckolib:${rootProject.geckolib_version}"
+
+    compileOnly "mezz.jei:jei-${rootProject.minecraft_version}-common-api:${rootProject.jei_version}"
+    compileOnly "mezz.jei:jei-${rootProject.minecraft_version}-fabric-api:${rootProject.jei_version}"
+    localRuntime "mezz.jei:jei-${rootProject.minecraft_version}-fabric:${rootProject.jei_version}"
+    compileOnly "maven.modrinth:jade:${rootProject.jade_version}"
+    localRuntime "maven.modrinth:jade:${rootProject.jade_version}"
+    compileOnly "com.terraformersmc:modmenu:${rootProject.modmenu_version}"
+    localRuntime "com.terraformersmc:modmenu:${rootProject.modmenu_version}"
+
+    // The client game test opens JEI's recipe screens
+    gametestCompileOnly "mezz.jei:jei-${rootProject.minecraft_version}-common-api:${rootProject.jei_version}"
+}
+
+processResources {
+    def version = project.version
+    inputs.property "version", version
+    filesMatching("fabric.mod.json") {
+        expand "version": version
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = 25
+    it.options.encoding = "UTF-8"
+    it.options.compilerArgs += ["-Xmaxerrs", "100000"]
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+}
+
+jar {
+    from("LICENSE") {
+        rename { "${it}_extendedae" }
+    }
+}
