@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "id": "ae2wtlib",
+  "version": "${version}",
+  "name": "AE2WTLib",
+  "description": "Adds Wireless versions of AE2 Terminals with infinite range capabilities (unofficial Fabric port).",
+  "authors": [
+    "mari_023",
+    "Ridanisaurus"
+  ],
+  "contributors": [
+    "Fabric port: 3bWI SaM"
+  ],
+  "contact": {
+    "sources": "https://github.com/Mari023/AE2WirelessTerminalLibrary"
+  },
+  "license": "MIT",
+  "icon": "icon.png",
+  "environment": "*",
+  "provides": [
+    "ae2wtlib_api"
+  ],
+  "entrypoints": {
+    "ae2:addon": [
+      "de.mari_023.ae2wtlib.AE2wtlibFabric"
+    ],
+    "jei_mod_plugin": [
+      "de.mari_023.ae2wtlib.recipeviewer.JEIPlugin"
+    ],
+    "modmenu": [
+      "de.mari_023.ae2wtlib.AE2wtlibModMenu"
+    ]
+  },
+  "mixins": [
+    "ae2wtlib.mixins.json"
+  ],
+  "accessWidener": "ae2wtlib.classtweaker",
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "fabric-api": "*",
+    "minecraft": "~26.3",
+    "java": ">=25",
+    "ae2": "*"
+  }
+}

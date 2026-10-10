@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "a a",
+    " b ",
+    "aca"
+  ],
+  "key": {
+    "a": "ae2:quantum_ring",
+    "b": "ae2:advanced_card",
+    "c": "ae2:quantum_link"
+  },
+  "result": {
+    "count": 1,
+    "id": "ae2wtlib:quantum_bridge_card"
+  }
+}

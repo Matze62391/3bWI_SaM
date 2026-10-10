@@ -1,0 +1,5 @@
+{
+  "type": "ae2wtlib:upgrade",
+  "terminal": "ae2:wireless_crafting_terminal",
+  "terminalName": "crafting"
+}
