@@ -1,0 +1,51 @@
+plugins {
+    id 'net.fabricmc.fabric-loom'
+}
+
+// Fabric port of Glodium (https://github.com/GlodBlock/Glodium), GlodBlock's library used by ExtendedAE.
+// Glodium is licensed under the MIT license, see LICENSE.
+version = project.glodium_version
+group = "io.github.glodblock"
+
+base {
+    archivesName = "glodium-fabric"
+}
+
+loom {
+    accessWidenerPath = file("src/main/resources/glodium.classtweaker")
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${rootProject.minecraft_version}"
+    implementation "net.fabricmc:fabric-loader:${rootProject.loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${rootProject.fabric_api_version}"
+    compileOnly "com.google.code.findbugs:jsr305:3.0.2"
+
+    // The registry helpers build on AE2's registration replacement
+    implementation project(":")
+}
+
+processResources {
+    def version = project.version
+    inputs.property "version", version
+    filesMatching("fabric.mod.json") {
+        expand "version": version
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = 25
+    it.options.encoding = "UTF-8"
+    it.options.compilerArgs += ["-Xmaxerrs", "100000"]
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+}
+
+jar {
+    from("LICENSE") {
+        rename { "${it}_glodium" }
+    }
+}
