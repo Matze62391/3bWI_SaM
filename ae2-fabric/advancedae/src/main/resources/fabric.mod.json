@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "id": "advanced_ae",
+  "version": "${version}",
+  "name": "Advanced AE",
+  "description": "An AE2 addon that adds a lot of utilities and quality of life (unofficial Fabric port).",
+  "authors": [
+    "Pedroksl"
+  ],
+  "contributors": [
+    "Ridanisaurus Rid (texture style)",
+    "Jm³ and Sea_Kerman (models)",
+    "Fabric port: 3bWI SaM"
+  ],
+  "contact": {
+    "homepage": "https://github.com/pedroksl/AdvancedAE",
+    "sources": "https://github.com/pedroksl/AdvancedAE",
+    "issues": "https://github.com/pedroksl/AdvancedAE/issues"
+  },
+  "license": "LGPL-3.0-only",
+  "icon": "logo.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "net.pedroksl.advanced_ae.AdvancedAEFabricEntrypoint"
+    ],
+    "ae2:part_capabilities": [
+      "net.pedroksl.advanced_ae.AdvancedAE::registerPartCapabilities"
+    ],
+    "jei_mod_plugin": [
+      "net.pedroksl.advanced_ae.xmod.jei.JEIPlugin"
+    ]
+  },
+  "mixins": [
+    "mixins.aae.json"
+  ],
+  "accessWidener": "advanced_ae.classtweaker",
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "fabric-api": "*",
+    "minecraft": "~26.3",
+    "java": ">=25",
+    "ae2": "*",
+    "ae2addonlib": "*",
+    "geckolib": "*"
+  },
+  "suggests": {
+    "jei": "*"
+  }
+}

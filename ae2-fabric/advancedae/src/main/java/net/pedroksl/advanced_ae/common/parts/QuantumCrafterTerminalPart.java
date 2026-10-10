@@ -1,0 +1,73 @@
+package net.pedroksl.advanced_ae.common.parts;
+
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import net.minecraft.world.phys.Vec3;
+import net.pedroksl.advanced_ae.api.AAESettings;
+import net.pedroksl.advanced_ae.api.IQuantumCrafterTermMenuHost;
+import net.pedroksl.advanced_ae.api.ShowQuantumCrafters;
+import net.pedroksl.advanced_ae.common.definitions.AAEItems;
+import net.pedroksl.advanced_ae.common.definitions.AAEMenus;
+
+import appeng.api.parts.IPartItem;
+import appeng.api.storage.ILinkStatus;
+import appeng.api.util.IConfigManager;
+import appeng.menu.ISubMenu;
+import appeng.menu.MenuOpener;
+import appeng.menu.locator.MenuLocators;
+import appeng.parts.reporting.AbstractDisplayPart;
+
+public class QuantumCrafterTerminalPart extends AbstractDisplayPart implements IQuantumCrafterTermMenuHost {
+
+    private final IConfigManager configManager = IConfigManager.builder(() -> {
+                this.getHost().markForSave();
+            })
+            .registerSetting(AAESettings.TERMINAL_SHOW_QUANTUM_CRAFTERS, ShowQuantumCrafters.VISIBLE)
+            .build();
+
+    public QuantumCrafterTerminalPart(IPartItem<?> partItem) {
+        super(partItem, true);
+    }
+
+    @Override
+    public boolean onUseWithoutItem(Player player, Vec3 pos) {
+        if (!super.onUseWithoutItem(player, pos) && !isClientSide()) {
+            MenuOpener.open(AAEMenus.QUANTUM_CRAFTER_TERMINAL.get(), player, MenuLocators.forPart(this));
+        }
+        return true;
+    }
+
+    @Override
+    public IConfigManager getConfigManager() {
+        return this.configManager;
+    }
+
+    @Override
+    public void writeToNBT(ValueOutput data) {
+        super.writeToNBT(data);
+        configManager.writeToNBT(data);
+    }
+
+    @Override
+    public void readFromNBT(ValueInput input) {
+        super.readFromNBT(input);
+        configManager.readFromNBT(input);
+    }
+
+    @Override
+    public ILinkStatus getLinkStatus() {
+        return ILinkStatus.ofManagedNode(getMainNode());
+    }
+
+    @Override
+    public void returnToMainMenu(Player player, ISubMenu subMenu) {
+        MenuOpener.open(AAEMenus.QUANTUM_CRAFTER_TERMINAL.get(), player, subMenu.getLocator());
+    }
+
+    @Override
+    public ItemStack getMainMenuIcon() {
+        return AAEItems.QUANTUM_CRAFTER_TERMINAL.stack();
+    }
+}

@@ -7,7 +7,6 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.logging.LogUtils;
 
 import org.slf4j.Logger;
@@ -104,13 +103,14 @@ public class HotkeyRegistry {
      * Static method to get the default hotkey of an action during hotkey registration.
      * @param modId The MOD_ID of the requesting mod.
      * @param id The id of the hotkey action to be registered.
-     * @return The {@link GLFW} int id of the default hotkey.
+     * @return The InputConstants int id of the default hotkey.
      */
     public static int getDefaultHotkey(String modId, String id) {
         try {
             return HOTKEY_GETTER.get(modId).apply(id);
         } catch (IllegalArgumentException ignored) {
-            return InputConstants.UNKNOWN.getValue();
+            // InputConstants.UNKNOWN, not referenced since that class is client-only
+            return -1;
         }
     }
 }

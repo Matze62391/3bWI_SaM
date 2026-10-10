@@ -1,0 +1,115 @@
+plugins {
+    id 'net.fabricmc.fabric-loom'
+}
+
+// Fabric port of Advanced AE (https://github.com/pedroksl/AdvancedAE), an addon for AE2.
+// Advanced AE is licensed under the LGPL-3.0, see LICENSE.md.
+version = project.advancedae_version
+group = "net.pedroksl.advanced_ae"
+
+base {
+    archivesName = "advancedae-fabric"
+}
+
+repositories {
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = "Modrinth"
+                url = "https://api.modrinth.com/maven"
+            }
+        }
+        filter {
+            includeGroup "maven.modrinth"
+        }
+    }
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = "BlameJared"
+                url = "https://maven.blamejared.com"
+            }
+        }
+        filter {
+            includeGroup "mezz.jei"
+            includeGroup "net.mezzdev.config"
+        }
+    }
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = "TerraformersMC"
+                url = "https://maven.terraformersmc.com/releases"
+            }
+        }
+        filter {
+            includeGroup "com.terraformersmc"
+        }
+    }
+}
+
+sourceSets {
+    main {
+        java {
+            // Data generators are not ported (the generated resources are included)
+            exclude "net/pedroksl/advanced_ae/datagen/**"
+        }
+        resources {
+            srcDir "src/generated/resources"
+            exclude ".cache/**"
+            exclude "META-INF/accesstransformer.cfg"
+        }
+    }
+}
+
+loom {
+    accessWidenerPath = file("src/main/resources/advanced_ae.classtweaker")
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${rootProject.minecraft_version}"
+    implementation "net.fabricmc:fabric-loader:${rootProject.loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${rootProject.fabric_api_version}"
+    compileOnly "com.google.code.findbugs:jsr305:3.0.2"
+
+    implementation project(":")
+    implementation project(":guideme")
+    implementation project(":ae2addonlib")
+    include project(":ae2addonlib")
+
+    compileOnly "teamreborn:energy:${rootProject.tr_energy_version}"
+
+    // GeckoLib animates the quantum armor
+    implementation "maven.modrinth:geckolib:${project.geckolib_version}"
+
+    compileOnly "mezz.jei:jei-${rootProject.minecraft_version}-common-api:${rootProject.jei_version}"
+    compileOnly "mezz.jei:jei-${rootProject.minecraft_version}-fabric-api:${rootProject.jei_version}"
+    compileOnly "maven.modrinth:jade:${rootProject.jade_version}"
+    compileOnly "maven.modrinth:iris:${rootProject.iris_version}"
+    compileOnly "com.terraformersmc:modmenu:${rootProject.modmenu_version}"
+}
+
+processResources {
+    def version = project.version
+    inputs.property "version", version
+    filesMatching("fabric.mod.json") {
+        expand "version": version
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = 25
+    it.options.encoding = "UTF-8"
+    it.options.compilerArgs += ["-Xmaxerrs", "100000"]
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+}
+
+jar {
+    from("LICENSE.md") {
+        rename { "LICENSE_advancedae.md" }
+    }
+}

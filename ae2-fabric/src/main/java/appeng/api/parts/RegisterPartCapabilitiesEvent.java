@@ -26,6 +26,13 @@ public class RegisterPartCapabilitiesEvent {
     /**
      * Fired once during AE2's initialization to collect API registrations for parts.
      */
+    /**
+     * Name of the entrypoint (in {@code fabric.mod.json}) through which addons register their part capabilities. Its
+     * entries implement {@link Listener}. Unlike {@link #EVENT}, it doesn't depend on the order in which Fabric
+     * initializes the mods.
+     */
+    public static final String ENTRYPOINT = "ae2:part_capabilities";
+
     public static final Event<Listener> EVENT = EventFactory.createArrayBacked(Listener.class,
             listeners -> event -> {
                 for (var listener : listeners) {

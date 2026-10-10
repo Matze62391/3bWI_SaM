@@ -3,6 +3,7 @@ package appeng.init;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
+import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.fabric.api.lookup.v1.block.BlockApiLookup;
 import net.fabricmc.fabric.api.transfer.v1.fluid.FluidStorage;
 import net.fabricmc.fabric.api.transfer.v1.item.ItemStorage;
@@ -56,6 +57,11 @@ public final class InitCapabilityProviders {
         partEvent.addHostType(AEBlockEntities.CABLE_BUS.get());
         registerPartCapabilities(partEvent);
         RegisterPartCapabilitiesEvent.EVENT.invoker().register(partEvent);
+        // Addons may initialize after AE2, so they can't rely on the event: they use an entrypoint instead
+        for (var listener : FabricLoader.getInstance().getEntrypoints(RegisterPartCapabilitiesEvent.ENTRYPOINT,
+                RegisterPartCapabilitiesEvent.Listener.class)) {
+            listener.register(partEvent);
+        }
         RegisterPartCapabilitiesEventInternal.register(partEvent, new RegisterPartCapabilitiesEventInternal.ProviderSink() {
             @Override
             public <T, C> void register(BlockApiLookup<T, C> lookup, BlockEntityType<?> hostType,

@@ -141,6 +141,13 @@ public final class FluidStack {
         return new FluidStack(variant, amount);
     }
 
+    /**
+     * Same as {@link #copy()}, for code that used NeoForge's FluidStackTemplate.
+     */
+    public FluidStack create() {
+        return copy();
+    }
+
     public FluidStack copyWithAmount(long amount) {
         return new FluidStack(variant, amount);
     }
