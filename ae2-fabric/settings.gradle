@@ -12,3 +12,5 @@ pluginManagement {
 rootProject.name = 'ae2-fabric'
 
 include 'guideme'
+include 'ae2addonlib'
+include 'advancedae'
