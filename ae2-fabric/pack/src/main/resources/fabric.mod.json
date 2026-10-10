@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "id": "ae2_fabric_pack",
+  "version": "${version}",
+  "name": "AE2 Fabric Pack",
+  "description": "Applied Energistics 2 with Advanced AE and ExtendedAE for Fabric, in one jar. Contains AE2, GuideME, Advanced AE, AE2AddonLib, ExtendedAE, GlodBlock's library, AE2WTLib, GeckoLib and Team Reborn Energy. Every mod keeps its own id and license (see the nested jars).",
+  "authors": [
+    "AlgorithmX2", "TeamAppliedEnergistics", "Pedroksl", "GlodBlock", "Mari_023", "GeckoThePecko"
+  ],
+  "contact": {
+    "sources": "https://github.com/Matze62391/3bWI_SaM"
+  },
+  "license": "LGPL-3.0-only",
+  "icon": "assets/ae2_fabric_pack/icon.png",
+  "environment": "*",
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "minecraft": "~26.3",
+    "java": ">=25",
+    "fabric-api": "*",
+    "ae2": "*",
+    "advanced_ae": "*",
+    "extendedae": "*",
+    "ae2wtlib": "*"
+  },
+  "suggests": {
+    "jei": "*",
+    "jade": "*",
+    "modmenu": "*"
+  }
+}

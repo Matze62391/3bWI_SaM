@@ -137,3 +137,9 @@ jar {
         rename { "${it}_extendedae" }
     }
 }
+
+// The client game test as a jar, so it can also run against the bundle (:pack:prodClientGameTest)
+def gametestJar = tasks.register("gametestJar", Jar) {
+    from sourceSets.gametest.output
+    archiveClassifier = "gametest"
+}
