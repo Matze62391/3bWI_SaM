@@ -22,7 +22,7 @@ public abstract class ServerPlayerMixin extends Player {
     }
 
     @Inject(method = "drop(Z)V", at = @At(value = "TAIL"))
-    public void restockDrop(boolean all, CallbackInfo ci, @Local(name = "selected") ItemStack item) {
+    public void restockDrop(boolean all, CallbackInfo ci, @Local ItemStack item) {
         if (item.isEmpty())
             return;
 

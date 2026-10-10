@@ -63,6 +63,8 @@ public class AE2wtlibCreativeTab {
 
     private static synchronized void buildDisplayItems(CreativeModeTab.ItemDisplayParameters itemDisplayParameters,
             CreativeModeTab.Output output) {
+        // Item stacks can only be created once the registries are complete, so the stacks are created lazily
+        AE2wtlib.addToCreativeTab();
         output.acceptAll(items);
     }
 }

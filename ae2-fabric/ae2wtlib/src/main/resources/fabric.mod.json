@@ -24,11 +24,14 @@
     "ae2:addon": [
       "de.mari_023.ae2wtlib.AE2wtlibFabric"
     ],
+    "client": [
+      "de.mari_023.ae2wtlib.AE2wtlibFabricClient"
+    ],
+    "server": [
+      "de.mari_023.ae2wtlib.AE2wtlibFabricServer"
+    ],
     "jei_mod_plugin": [
       "de.mari_023.ae2wtlib.recipeviewer.JEIPlugin"
-    ],
-    "modmenu": [
-      "de.mari_023.ae2wtlib.AE2wtlibModMenu"
     ]
   },
   "mixins": [

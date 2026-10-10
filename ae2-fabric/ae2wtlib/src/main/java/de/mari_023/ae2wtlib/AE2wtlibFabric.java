@@ -1,13 +1,10 @@
 package de.mari_023.ae2wtlib;
 
-import net.fabricmc.api.EnvType;
 import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -66,9 +63,8 @@ public class AE2wtlibFabric implements ModInitializer {
         registerPowerStorageItem(AE2wtlibItems.PATTERN_ACCESS_TERMINAL.get());
         registerPowerStorageItem(AE2wtlibItems.PATTERN_ENCODING_TERMINAL.get());
 
-        // Other addons add their terminals while they initialize, so the terminals are registered once the game
-        // has started (NeoForge does it while registering items)
-        ServerLifecycleEvents.SERVER_STARTING.register(server -> finishTerminalRegistration());
+        // Other addons add their terminals while they initialize, so the terminals are registered by the server and
+        // client entrypoints, which run after all mods are initialized (NeoForge does it while registering items)
 
         // Restock (NeoForge: PlayerInteractEvent.RightClickBlock and EntityInteractSpecific)
         UseBlockCallback.EVENT.register((player, level, hand, hitResult) -> {
@@ -88,17 +84,10 @@ public class AE2wtlibFabric implements ModInitializer {
             return InteractionResult.PASS;
         });
 
-        if (FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT) {
-            try {
-                Class.forName("de.mari_023.ae2wtlib.AE2wtlibFabricClient").getMethod("init").invoke(null);
-            } catch (ReflectiveOperationException e) {
-                throw new IllegalStateException("Failed to initialize the ae2wtlib client", e);
-            }
-        }
     }
 
     /**
-     * Runs the terminal registrations of ae2wtlib and the addons. Called when the game has started.
+     * Runs the terminal registrations of ae2wtlib and the addons. Called once all mods are initialized.
      */
     public static synchronized void finishTerminalRegistration() {
         if (terminalsRegistered) {
@@ -107,7 +96,6 @@ public class AE2wtlibFabric implements ModInitializer {
         terminalsRegistered = true;
         AddTerminalEvent.run();
         UpgradeHelper.addUpgrades();
-        AE2wtlib.addToCreativeTab();
     }
 
     private static <T extends AE2wtlibPacket> void registerC2S(CustomPacketPayload.Type<T> id,
