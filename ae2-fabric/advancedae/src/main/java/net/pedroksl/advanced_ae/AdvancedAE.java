@@ -26,6 +26,8 @@ import net.pedroksl.ae2addonlib.api.IGridLinkedItem;
 
 import appeng.api.AECapabilities;
 import appeng.api.features.GridLinkables;
+import appeng.hotkeys.HotkeyActions;
+import appeng.items.tools.powered.WirelessTerminalItem;
 import appeng.api.implementations.items.IAEItemPowerStorage;
 import appeng.api.networking.IInWorldGridNodeHost;
 import appeng.api.parts.RegisterPartCapabilitiesEvent;
@@ -102,6 +104,14 @@ public abstract class AdvancedAE {
         GridLinkables.register(AAEItems.QUANTUM_CHESTPLATE, IGridLinkedItem.LINKABLE_HANDLER);
         GridLinkables.register(AAEItems.QUANTUM_LEGGINGS, IGridLinkedItem.LINKABLE_HANDLER);
         GridLinkables.register(AAEItems.QUANTUM_BOOTS, IGridLinkedItem.LINKABLE_HANDLER);
+        GridLinkables.register(AAEItems.QUANTUM_CRAFTER_WIRELESS_TERMINAL, WirelessTerminalItem.LINKABLE_HANDLER);
+
+        // Opens the wireless terminal from the inventory with a key, like AE2's wireless terminals
+        HotkeyActions.register(
+                AAEItems.QUANTUM_CRAFTER_WIRELESS_TERMINAL,
+                (player, locator) ->
+                        AAEItems.QUANTUM_CRAFTER_WIRELESS_TERMINAL.get().openFromInventory(player, locator),
+                "wireless_quantum_crafter_terminal");
     }
 
     private static void initUpgrades() {

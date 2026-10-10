@@ -45,7 +45,7 @@
     "curios.identifier.adv_pattern_encoder": "パターンエンコーダー",
     "emi.category.advanced_ae.EmiReactionChamber": "反応室",
     "emi.text.advanced_ae.AdvPatternProviderEmiDesc": "発展型パターンプロバイダーを容量アップグレードでアップグレードすることで作成されます",
-    "emi.text.advanced_ae.ReactionChamberEnergy": "使用電力: %dk FE",
+    "emi.text.advanced_ae.ReactionChamberEnergy": "使用電力: %dk E",
     "emi.text.advanced_ae.ShatteredSingularityDescription": "このアイテムは反応室内にて行われる化学反応によって作成され、量子コンピューティングに使用されます。",
     "exported_setting.advanced_ae.allowed_output_sides": "Allowed Sides",
     "fluid.advanced_ae.quantum_infusion_flowing": "量子注入液",

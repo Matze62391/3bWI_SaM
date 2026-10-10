@@ -45,7 +45,7 @@
     "curios.identifier.adv_pattern_encoder": "Mintakódoló",
     "emi.category.advanced_ae.EmiReactionChamber": "Reakciókamra",
     "emi.text.advanced_ae.AdvPatternProviderEmiDesc": "A fejlett mintaszolgáltató kapacitás fejlesztésével készül",
-    "emi.text.advanced_ae.ReactionChamberEnergy": "Használt energia: %dk FE",
+    "emi.text.advanced_ae.ReactionChamberEnergy": "Használt energia: %dk E",
     "emi.text.advanced_ae.ShatteredSingularityDescription": "Ez a tárgy a reakciókamrában végzett kémiai reakció eredménye, és több alkalmazása van a kvantumszámítógépekben.",
     "exported_setting.advanced_ae.allowed_output_sides": "Allowed Sides",
     "fluid.advanced_ae.quantum_infusion_flowing": "Kvantuminfúzió",

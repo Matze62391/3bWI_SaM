@@ -1,8 +1,4 @@
 {
     "$schema": "schema.json",
-    "includes": [
-        "quantum_crafter_terminal.json",
-        "common/toolbox.json",
-        "wtlib/universal_terminal.json"
-    ]
+    "includes": ["quantum_crafter_terminal.json", "common/toolbox.json"]
 }

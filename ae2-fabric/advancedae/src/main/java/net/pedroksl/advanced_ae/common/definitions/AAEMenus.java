@@ -1,5 +1,7 @@
 package net.pedroksl.advanced_ae.common.definitions;
 
+import net.pedroksl.advanced_ae.common.helpers.QuantumCrafterWirelessTermMenuHost;
+
 import java.util.function.Supplier;
 
 import net.minecraft.world.inventory.MenuType;
@@ -48,6 +50,11 @@ public class AAEMenus extends MenuRegistry {
             create("quantum_crafter", QuantumCrafterMenu::new, QuantumCrafterEntity.class);
     public static final Supplier<MenuType<QuantumCrafterTermMenu>> QUANTUM_CRAFTER_TERMINAL =
             create("quantum_crafter_terminal", QuantumCrafterTermMenu::new, IQuantumCrafterTermMenuHost.class);
+    public static final Supplier<MenuType<QuantumCrafterWirelessTermMenu>> QUANTUM_CRAFTER_WIRELESS_TERMINAL = create(
+            "wireless_quantum_crafter_terminal",
+            QuantumCrafterWirelessTermMenu::new,
+            QuantumCrafterWirelessTermMenuHost.class);
+
     public static final Supplier<MenuType<StockExportBusMenu>> STOCK_EXPORT_BUS =
             create("stock_export_bus", StockExportBusMenu::new, StockExportBusPart.class);
     public static final Supplier<MenuType<ImportExportBusMenu>> IMPORT_EXPORT_BUS =

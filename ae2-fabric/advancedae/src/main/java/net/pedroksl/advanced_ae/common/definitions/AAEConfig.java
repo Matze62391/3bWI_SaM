@@ -111,6 +111,14 @@ public class AAEConfig extends ConfigRegistry {
         return common.throughputMonitorCacheSize.get();
     }
 
+    public ModConfigSpec getClientSpec() {
+        return client.spec;
+    }
+
+    public ModConfigSpec getCommonSpec() {
+        return common.spec;
+    }
+
     public void save() {
         common.spec.save();
         client.spec.save();

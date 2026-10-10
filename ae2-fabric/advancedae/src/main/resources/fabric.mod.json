@@ -27,6 +27,9 @@
     "ae2:part_capabilities": [
       "net.pedroksl.advanced_ae.AdvancedAE::registerPartCapabilities"
     ],
+    "modmenu": [
+      "net.pedroksl.advanced_ae.xmod.modmenu.ModMenuIntegration"
+    ],
     "jei_mod_plugin": [
       "net.pedroksl.advanced_ae.xmod.jei.JEIPlugin"
     ]

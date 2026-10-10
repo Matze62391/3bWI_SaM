@@ -311,6 +311,14 @@ public class ModConfigSpec {
             return get();
         }
 
+        public double getMin() {
+            return min;
+        }
+
+        public double getMax() {
+            return max;
+        }
+
         @Override
         protected Double validate(Double value) {
             return Math.clamp(value, min, max);
@@ -325,6 +333,10 @@ public class ModConfigSpec {
     public static class EnumValue<T extends Enum<T>> extends ConfigValue<T> {
         EnumValue(String name, T defaultValue) {
             super(name, defaultValue);
+        }
+
+        public Class<T> getEnumClass() {
+            return getDefault().getDeclaringClass();
         }
 
         @Override

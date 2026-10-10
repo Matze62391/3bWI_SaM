@@ -63,7 +63,7 @@ public enum AAEText implements LocalizationEnum {
     QuantumArmorSetting("Setting Config", Type.GUI),
     MagnetRangeSlider("Pickup Range", Type.GUI),
 
-    ReactionChamberEnergy("Used Power: %d" + "k FE", Type.EMI_TEXT),
+    ReactionChamberEnergy("Used Power: %d" + "k E", Type.EMI_TEXT),
     ShatteredSingularityDescription(
             "This item is produced by chemical reaction in the reaction chamber and has "
                     + "several applications in quantum computing.",

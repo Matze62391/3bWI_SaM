@@ -45,7 +45,7 @@
     "curios.identifier.adv_pattern_encoder": "Codificador de Padrões",
     "emi.category.advanced_ae.EmiReactionChamber": "Câmara de Reação",
     "emi.text.advanced_ae.AdvPatternProviderEmiDesc": "Fabricado ao melhorar um Provedor de Padrões Avançado com uma melhoria de capacidade",
-    "emi.text.advanced_ae.ReactionChamberEnergy": "Energia Usada: %dk FE",
+    "emi.text.advanced_ae.ReactionChamberEnergy": "Energia Usada: %dk E",
     "emi.text.advanced_ae.ShatteredSingularityDescription": "Este item é produzido por reação química na câmara de reação e tem várias aplicações em computação quântica.",
     "exported_setting.advanced_ae.allowed_output_sides": "Lados Permitidos",
     "fluid.advanced_ae.quantum_infusion_flowing": "Infusão Quântica",

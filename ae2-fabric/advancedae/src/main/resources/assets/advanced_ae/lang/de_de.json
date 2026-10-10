@@ -45,7 +45,7 @@
     "curios.identifier.adv_pattern_encoder": "Pattern Encoder",
     "emi.category.advanced_ae.EmiReactionChamber": "Reaction Chamber",
     "emi.text.advanced_ae.AdvPatternProviderEmiDesc": "Created by upgrading an Advanced Pattern Provider with a capacity upgrade",
-    "emi.text.advanced_ae.ReactionChamberEnergy": "Used Power: %dk FE",
+    "emi.text.advanced_ae.ReactionChamberEnergy": "Used Power: %dk E",
     "emi.text.advanced_ae.ShatteredSingularityDescription": "This item is produced by chemical reaction in the reaction chamber and has several applications in quantum computing.",
     "exported_setting.advanced_ae.allowed_output_sides": "Allowed Sides",
     "fluid.advanced_ae.quantum_infusion_flowing": "Quantum Infusion",

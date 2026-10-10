@@ -17,6 +17,14 @@ import net.fabricmc.fabric.api.transfer.v1.transaction.Transaction;
 import net.minecraft.client.CameraType;
 import net.minecraft.client.gui.screens.worldselection.WorldCreationUiState;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.GlobalPos;
+import net.minecraft.network.chat.Component;
+import net.pedroksl.advanced_ae.client.gui.QuantumCrafterWirelessTermScreen;
+import net.pedroksl.advanced_ae.client.gui.ReactionChamberScreen;
+import net.pedroksl.advanced_ae.common.definitions.AAEConfig;
+import net.pedroksl.ae2addonlib.client.config.ModConfigScreen;
+import appeng.api.ids.AEComponents;
+import appeng.client.Hotkeys;
 import net.minecraft.core.Direction;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -34,6 +42,7 @@ import net.pedroksl.advanced_ae.common.definitions.AAEFluids;
 import net.pedroksl.advanced_ae.common.definitions.AAEHotkeysRegistry;
 import net.pedroksl.advanced_ae.common.definitions.AAEItems;
 import net.pedroksl.advanced_ae.common.entities.AdvCraftingBlockEntity;
+import net.pedroksl.advanced_ae.common.entities.QuantumCrafterEntity;
 import net.pedroksl.advanced_ae.common.entities.ReactionChamberEntity;
 import net.pedroksl.advanced_ae.common.items.armors.QuantumArmorBase;
 import net.pedroksl.advanced_ae.common.items.upgrades.UpgradeType;
@@ -75,6 +84,18 @@ public class AAEClientGameTest implements FabricClientGameTest {
 
     @Override
     public void runTest(ClientGameTestContext context) {
+        // Config screen (opened through Mod Menu in normal play)
+        context.setScreen(() -> new ModConfigScreen(
+                null,
+                Component.literal("Advanced AE"),
+                List.of(
+                        new ModConfigScreen.Section(Component.literal("Client"), AAEConfig.instance().getClientSpec()),
+                        new ModConfigScreen.Section(
+                                Component.literal("Common"), AAEConfig.instance().getCommonSpec()))));
+        context.waitTicks(10);
+        context.takeScreenshot("aae-config-screen");
+        context.setScreen(() -> null);
+
         try (var world = context.worldBuilder().adjustSettings(settings -> {
             settings.setGameMode(WorldCreationUiState.SelectedGameMode.CREATIVE);
             settings.getNormalPresetList().stream()
@@ -135,6 +156,7 @@ public class AAEClientGameTest implements FabricClientGameTest {
             server.runOnServer(s -> firstPlayer(s).setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY));
 
             testQuantumArmor(context, server);
+            testWirelessTerminal(context, server, origin);
 
             // JEI shows the reaction chamber's recipes
             var runtime = TestJeiPlugin.runtime;
@@ -146,6 +168,10 @@ public class AAEClientGameTest implements FabricClientGameTest {
             context.takeScreenshot("aae-jei-reaction-chamber");
             showJeiRecipes(context, AEItems.FLUIX_CRYSTAL.stack());
             context.takeScreenshot("aae-jei-fluix-crystal");
+            showJeiRecipes(context, AAEItems.SHATTERED_SINGULARITY.stack());
+            context.takeScreenshot("aae-jei-shattered-singularity");
+            context.setScreen(() -> null);
+            testJeiClickArea(context, server, origin);
             context.setScreen(() -> null);
 
             // Advanced AE's pages in AE2's guidebook
@@ -348,6 +374,111 @@ public class AAEClientGameTest implements FabricClientGameTest {
     }
 
     /**
+     * The wireless quantum crafter terminal, linked to a network with a quantum crafter, opened by using it and by
+     * AE2's hotkey.
+     */
+    private static void testWirelessTerminal(ClientGameTestContext context, TestServerContext server, BlockPos origin) {
+        var accessPointPos = origin.offset(-3, 0, 0);
+        setBlock(server, accessPointPos.below(), "ae2:creative_energy_cell");
+        setBlock(server, accessPointPos, "ae2:wireless_access_point[facing=up]");
+        setBlock(server, accessPointPos.below().west(), "advanced_ae:quantum_crafter");
+        context.waitTicks(20);
+        var crafterOnline = server.computeOnServer(s -> s.overworld().getBlockEntity(accessPointPos.below().west())
+                        instanceof QuantumCrafterEntity crafter
+                && crafter.getMainNode().isActive());
+        LOG.info("Quantum crafter for the wireless terminal is online: {}", crafterOnline);
+
+        server.runOnServer(s -> {
+            var player = firstPlayer(s);
+            var stack = AAEItems.QUANTUM_CRAFTER_WIRELESS_TERMINAL.stack();
+            var terminal = AAEItems.QUANTUM_CRAFTER_WIRELESS_TERMINAL.get();
+            terminal.injectAEPower(stack, terminal.getAEMaxPower(stack), Actionable.MODULATE);
+            stack.set(
+                    AEComponents.WIRELESS_LINK_TARGET,
+                    GlobalPos.of(player.level().dimension(), accessPointPos));
+            player.setItemInHand(InteractionHand.MAIN_HAND, stack);
+        });
+        context.waitTicks(5);
+        context.getInput().lookAt(origin.above(30));
+        context.getInput().pressKey(options -> options.keyUse);
+        screenshotOpenedScreen(context, "aae-wireless-quantum-crafter-terminal");
+        assertLastScreen(context, QuantumCrafterWirelessTermScreen.class);
+
+        // AE2's hotkey opens it from anywhere in the inventory
+        server.runOnServer(s -> {
+            var player = firstPlayer(s);
+            var stack = player.getMainHandItem();
+            player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+            player.getInventory().setItem(20, stack);
+        });
+        context.waitTicks(5);
+        var hotkey = Hotkeys.getHotkeyMapping("wireless_quantum_crafter_terminal");
+        if (hotkey == null) {
+            throw new AssertionError("The wireless quantum crafter terminal has no hotkey");
+        }
+        // Like all of AE2's hotkeys, it is unbound by default
+        context.runOnClient(mc -> {
+            hotkey.mapping()
+                    .setKey(com.mojang.blaze3d.platform.InputConstants.Type.KEYBOARD.getOrCreate(
+                            com.mojang.blaze3d.platform.InputConstants.KEY_K));
+            net.minecraft.client.KeyMapping.resetMapping();
+        });
+        context.getInput().pressKey(options -> hotkey.mapping());
+        screenshotOpenedScreen(context, "aae-wireless-quantum-crafter-terminal-hotkey");
+        assertLastScreen(context, QuantumCrafterWirelessTermScreen.class);
+
+        server.runCommand("clear @a");
+        setBlock(server, accessPointPos, "minecraft:air");
+        setBlock(server, accessPointPos.below(), "minecraft:air");
+        setBlock(server, accessPointPos.below().west(), "minecraft:air");
+    }
+
+    /**
+     * Clicking the arrow in the reaction chamber's screen shows its recipes in JEI.
+     */
+    private static void testJeiClickArea(ClientGameTestContext context, TestServerContext server, BlockPos origin) {
+        var pos = origin.offset(0, 0, 3);
+        setBlock(server, pos, "advanced_ae:reaction_chamber");
+        context.waitTicks(5);
+        context.getInput().lookAt(pos);
+        context.getInput().pressKey(options -> options.keyUse);
+        context.waitFor(mc -> mc.gui.screen() instanceof ReactionChamberScreen, 60);
+        context.waitTicks(10);
+        var cursor = context.computeOnClient(mc -> {
+            var screen = (ReactionChamberScreen) mc.gui.screen();
+            var scale = mc.getWindow().getGuiScale();
+            var left = (screen.width - screen.imageWidth) / 2;
+            var top = (screen.height - screen.imageHeight) / 2;
+            return new double[] {(left + 107) * scale, (top + 51) * scale};
+        });
+        context.getInput().setCursorPos(cursor[0], cursor[1]);
+        context.waitTicks(2);
+        context.getInput().pressMouse(com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT);
+        context.waitTicks(20);
+        var screenName = context.computeOnClient(
+                mc -> mc.gui.screen() == null ? "none" : mc.gui.screen().getClass().getName());
+        context.takeScreenshot("aae-jei-click-area");
+        if (!screenName.contains("RecipesGui")) {
+            throw new AssertionError("Clicking the reaction chamber's arrow opened " + screenName);
+        }
+        context.setScreen(() -> null);
+        context.runOnClient(mc -> {
+            if (mc.player != null) {
+                mc.player.closeContainer();
+            }
+        });
+        setBlock(server, pos, "minecraft:air");
+    }
+
+    private static String lastScreen = "";
+
+    private static void assertLastScreen(ClientGameTestContext context, Class<?> screenClass) {
+        if (!lastScreen.equals(screenClass.getName())) {
+            throw new AssertionError("Expected " + screenClass.getSimpleName() + " but got " + lastScreen);
+        }
+    }
+
+    /**
      * Takes a screenshot of the world without the HUD.
      */
     private static void worldScreenshot(ClientGameTestContext context, String name) {
@@ -413,9 +544,10 @@ public class AAEClientGameTest implements FabricClientGameTest {
         try {
             context.waitFor(mc -> mc.gui.screen() != null, 60);
             context.waitTicks(10);
-            LOG.info("Opened screen for {}: {}", name,
-                    context.computeOnClient(mc -> mc.gui.screen().getClass().getName()));
+            lastScreen = context.computeOnClient(mc -> mc.gui.screen().getClass().getName());
+            LOG.info("Opened screen for {}: {}", name, lastScreen);
         } catch (AssertionError e) {
+            lastScreen = "";
             LOG.warn("No screen opened for {}", name);
         }
         context.takeScreenshot(name);

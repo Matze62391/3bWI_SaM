@@ -37,6 +37,7 @@ import net.pedroksl.advanced_ae.common.definitions.AAEMenus;
 import net.pedroksl.advanced_ae.common.parts.ThroughputMonitorPart;
 import net.pedroksl.advanced_ae.gui.AdvancedIOBusMenu;
 import net.pedroksl.advanced_ae.gui.QuantumCrafterTermMenu;
+import net.pedroksl.advanced_ae.gui.QuantumCrafterWirelessTermMenu;
 import net.pedroksl.advanced_ae.gui.StockExportBusMenu;
 import net.pedroksl.ae2addonlib.client.render.WaterBasedFluidModel;
 import net.pedroksl.ae2addonlib.util.WaterBasedFluidType;
@@ -116,6 +117,11 @@ public class AAEClient extends AdvancedAE {
                 AAEMenus.QUANTUM_CRAFTER_TERMINAL.get(),
                 QuantumCrafterTermScreen::new,
                 "/screens/quantum_crafter_terminal.json");
+
+        InitScreens.<QuantumCrafterWirelessTermMenu, QuantumCrafterWirelessTermScreen>register(
+                AAEMenus.QUANTUM_CRAFTER_WIRELESS_TERMINAL.get(),
+                QuantumCrafterWirelessTermScreen::new,
+                "/screens/wireless_quantum_crafter_terminal.json");
 
         InitScreens.<StockExportBusMenu, StockExportBusScreen<StockExportBusMenu>>register(
                 AAEMenus.STOCK_EXPORT_BUS.get(), StockExportBusScreen::new, "/screens/stock_export_bus.json");
