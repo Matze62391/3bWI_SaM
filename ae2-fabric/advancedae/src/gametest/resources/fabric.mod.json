@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "advanced_ae-gametest",
+  "version": "1.0.0",
+  "name": "Advanced AE Game Tests",
+  "description": "Client game tests for the Fabric port of Advanced AE. Not shipped with the mod.",
+  "license": "LGPL-3.0-only",
+  "environment": "*",
+  "entrypoints": {
+    "fabric-client-gametest": [
+      "net.pedroksl.advanced_ae.gametest.AAEClientGameTest"
+    ],
+    "jei_mod_plugin": [
+      "net.pedroksl.advanced_ae.gametest.TestJeiPlugin"
+    ]
+  },
+  "depends": {
+    "advanced_ae": "*"
+  }
+}

@@ -10,6 +10,13 @@ import net.fabricmc.loader.api.FabricLoader;
  * On NeoForge, the {@code @Mod} annotation selects the class per distribution.
  */
 public final class AppEngFabricEntrypoint implements ModInitializer {
+    /**
+     * Entrypoint ({@link ModInitializer}) for addons that use AE2's content while they initialize, for example to
+     * register upgrades for AE2's items. Fabric doesn't order the {@code main} entrypoints of different mods, so these
+     * addons are initialized by AE2 once all of its content is registered.
+     */
+    public static final String ADDON_ENTRYPOINT = "ae2:addon";
+
     @Override
     public void onInitialize() {
         if (FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT) {
@@ -17,6 +24,9 @@ public final class AppEngFabricEntrypoint implements ModInitializer {
         } else {
             new AppEngServer();
         }
+
+        FabricLoader.getInstance().invokeEntrypoints(ADDON_ENTRYPOINT, ModInitializer.class,
+                ModInitializer::onInitialize);
     }
 
     /**

@@ -66,6 +66,18 @@ loom {
     accessWidenerPath = file("src/main/resources/advanced_ae.classtweaker")
 }
 
+fabricApi {
+    // The client game test (src/gametest) builds Advanced AE's machines in a real client and takes screenshots of
+    // them: ./gradlew :advancedae:runClientGameTest
+    configureTests {
+        createSourceSet = true
+        modId = "advanced_ae-gametest"
+        enableGameTests = false
+        enableClientGameTests = true
+        eula = true
+    }
+}
+
 dependencies {
     minecraft "com.mojang:minecraft:${rootProject.minecraft_version}"
     implementation "net.fabricmc:fabric-loader:${rootProject.loader_version}"
@@ -84,9 +96,15 @@ dependencies {
 
     compileOnly "mezz.jei:jei-${rootProject.minecraft_version}-common-api:${rootProject.jei_version}"
     compileOnly "mezz.jei:jei-${rootProject.minecraft_version}-fabric-api:${rootProject.jei_version}"
+    localRuntime "mezz.jei:jei-${rootProject.minecraft_version}-fabric:${rootProject.jei_version}"
     compileOnly "maven.modrinth:jade:${rootProject.jade_version}"
+    localRuntime "maven.modrinth:jade:${rootProject.jade_version}"
     compileOnly "maven.modrinth:iris:${rootProject.iris_version}"
     compileOnly "com.terraformersmc:modmenu:${rootProject.modmenu_version}"
+    localRuntime "com.terraformersmc:modmenu:${rootProject.modmenu_version}"
+
+    // The client game test opens JEI's recipe screens
+    gametestCompileOnly "mezz.jei:jei-${rootProject.minecraft_version}-common-api:${rootProject.jei_version}"
 }
 
 processResources {
@@ -112,4 +130,37 @@ jar {
     from("LICENSE.md") {
         rename { "LICENSE_advancedae.md" }
     }
+}
+
+// Runs the client game test against the built jars in a production environment, the way players install them:
+// ./gradlew :advancedae:prodClientGameTest
+configurations {
+    productionRuntimeMods {
+        transitive = false
+    }
+}
+
+dependencies {
+    productionRuntimeMods "net.fabricmc.fabric-api:fabric-api:${rootProject.fabric_api_version}"
+    // Not part of the Fabric API jar, only needed to run the test
+    productionRuntimeMods fabricApi.module("fabric-client-gametest-api-v1", rootProject.fabric_api_version)
+    productionRuntimeMods "maven.modrinth:geckolib:${project.geckolib_version}"
+    productionRuntimeMods "mezz.jei:jei-${rootProject.minecraft_version}-fabric:${rootProject.jei_version}"
+    productionRuntimeMods "maven.modrinth:jade:${rootProject.jade_version}"
+    productionRuntimeMods "com.terraformersmc:modmenu:${rootProject.modmenu_version}"
+}
+
+def gametestJar = tasks.register("gametestJar", Jar) {
+    from sourceSets.gametest.output
+    archiveClassifier = "gametest"
+}
+
+tasks.register("prodClientGameTest", net.fabricmc.loom.task.prod.ClientProductionRunTask) {
+    mods.from(rootProject.tasks.named("jar"))
+    mods.from(tasks.named("jar"))
+    mods.from(gametestJar)
+    mods.from(configurations.productionRuntimeMods)
+    jvmArgs.add("-Dfabric.client.gametest")
+    runDir = layout.buildDirectory.dir("run/prodClientGameTest")
+    useXVFB = false
 }

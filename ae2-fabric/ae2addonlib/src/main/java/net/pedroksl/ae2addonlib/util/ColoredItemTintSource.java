@@ -12,7 +12,7 @@ import net.minecraft.world.item.ItemStack;
 import net.pedroksl.ae2addonlib.core.AE2AddonLib;
 
 public record ColoredItemTintSource(Colors color) implements net.minecraft.client.color.item.ItemTintSource {
-    public static final Identifier ID = AE2AddonLib.makeId("fluidColor");
+    public static final Identifier ID = AE2AddonLib.makeId("fluid_color");
 
     public static final MapCodec<ColoredItemTintSource> MAP_CODEC = RecordCodecBuilder.mapCodec(
             builder -> builder.group(Colors.CODEC.fieldOf("color").forGetter(ColoredItemTintSource::color))

@@ -21,7 +21,7 @@
   "icon": "logo.png",
   "environment": "*",
   "entrypoints": {
-    "main": [
+    "ae2:addon": [
       "net.pedroksl.advanced_ae.AdvancedAEFabricEntrypoint"
     ],
     "ae2:part_capabilities": [

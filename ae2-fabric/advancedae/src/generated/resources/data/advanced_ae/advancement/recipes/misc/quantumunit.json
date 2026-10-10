@@ -24,7 +24,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "advanced_ae:quantumunit"
+        "recipes": "advanced_ae:quantumunit"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

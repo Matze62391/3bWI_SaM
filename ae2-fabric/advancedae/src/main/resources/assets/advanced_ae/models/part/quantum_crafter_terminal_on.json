@@ -2,7 +2,8 @@
     "textures": {
         "lightsBright": "advanced_ae:part/quantum_crafter_terminal_bright",
         "lightsMedium": "advanced_ae:part/quantum_crafter_terminal_medium",
-        "lightsDark": "advanced_ae:part/quantum_crafter_terminal_dark"
+        "lightsDark": "advanced_ae:part/quantum_crafter_terminal_dark",
+        "particle": "advanced_ae:part/quantum_crafter_terminal_dark"
     },
     "elements": [
         {

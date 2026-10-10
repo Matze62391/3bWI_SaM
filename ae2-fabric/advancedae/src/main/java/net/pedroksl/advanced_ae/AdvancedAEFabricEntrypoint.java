@@ -6,7 +6,7 @@ import net.fabricmc.loader.api.FabricLoader;
 
 /**
  * Creates the client or server side of Advanced AE (on NeoForge, the loader picks one of the two {@code @Mod}
- * classes by distribution).
+ * classes by distribution). Called by AE2 through its {@code ae2:addon} entrypoint once AE2's content is registered.
  */
 public final class AdvancedAEFabricEntrypoint implements ModInitializer {
     @Override
