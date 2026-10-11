@@ -95,8 +95,11 @@ public class CraftingCPUScreen<T extends CraftingCPUMenu> extends AEBaseScreen<T
             final long elapsedTime = status.getElapsedTime();
             final double remainingItems = status.getRemainingItemCount();
             final double startItems = status.getStartItemCount();
-            final long eta = (long) (elapsedTime / Math.max(1d, startItems - remainingItems)
-                    * remainingItems);
+            // Progress is reported in fractions of Integer.MAX_VALUE. Before anything is done, the old formula
+            // multiplied the elapsed time by ~2 billion, which overflowed into an ETA of 2562047:47:16.
+            final double doneItems = startItems - remainingItems;
+            final double etaNanos = doneItems >= 1 ? elapsedTime / doneItems * remainingItems : 0;
+            final long eta = etaNanos < Long.MAX_VALUE / 2 ? (long) etaNanos : 0;
 
             if (eta > 0 && !getVisualEntries().isEmpty()) {
                 final long etaInMilliseconds = TimeUnit.MILLISECONDS.convert(eta, TimeUnit.NANOSECONDS);
