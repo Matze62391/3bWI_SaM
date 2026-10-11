@@ -375,13 +375,15 @@ public class ReactionChamberEntity extends AENetworkedPoweredBlockEntity
                     src.extractAEPower(powerConsumption, Actionable.MODULATE, PowerMultiplier.CONFIG);
                     this.setProcessingTime(this.getProcessingTime() + speedFactor);
                     setShowWarning(false);
-                } else if (powerReq != 0) {
+                } else {
                     var progressRatio = src == this
                             ? powerReq / powerConsumption
                             : (powerReq - 10 * eg.getIdlePowerUsage()) / powerConsumption;
                     var factor = Mth.floor(progressRatio * speedFactor);
 
-                    if (factor > 1) {
+                    // Upstream needed power for at least 2 steps here, so a machine that only got enough for one
+                    // step per tick never made progress
+                    if (factor >= 1) {
                         var extracted = src.extractAEPower(
                                 (double) (powerConsumption * factor) / speedFactor,
                                 Actionable.MODULATE,
@@ -389,7 +391,7 @@ public class ReactionChamberEntity extends AENetworkedPoweredBlockEntity
                         var actualFactor = (int) Math.floor(extracted / powerConsumption * speedFactor);
                         this.setProcessingTime(this.getProcessingTime() + actualFactor);
                     }
-                    // Add warning
+                    // Add warning, also when there is no power at all (upstream showed nothing then)
                     setShowWarning(true);
                 }
             });

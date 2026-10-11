@@ -271,6 +271,84 @@ public class AAEClientGameTest implements FabricClientGameTest {
             }
         });
 
+        // Shattered singularities: singularity, 2 ender dust, 2 sky dust and 100 mB of lava, without and with
+        // 4 acceleration cards
+        for (var speedCards = 0; speedCards <= 4; speedCards += 4) {
+            var cards = speedCards;
+            server.runOnServer(s -> {
+                var chamber = (ReactionChamberEntity) s.overworld().getBlockEntity(pos);
+                chamber.getTank().setStack(0, null);
+                chamber.getOutput().setItemDirect(0, ItemStack.EMPTY);
+                for (var i = 0; i < cards; i++) {
+                    chamber.getUpgrades().addItems(AEItems.SPEED_CARD.stack());
+                }
+                var items = ItemStorage.SIDED.find(s.overworld(), pos, Direction.UP);
+                var fluids = FluidStorage.SIDED.find(s.overworld(), pos, Direction.UP);
+                try (var tx = Transaction.openOuter()) {
+                    insert(items, AEItems.SINGULARITY.stack(), 1, tx);
+                    insert(items, AEItems.ENDER_DUST.stack(), 2, tx);
+                    insert(items, AEItems.SKY_DUST.stack(), 2, tx);
+                    fluids.insert(FluidVariant.of(Fluids.LAVA), FluidConstants.BUCKET / 10, tx);
+                    tx.commit();
+                }
+            });
+            waitForServer(context, server, s -> {
+                var chamber = (ReactionChamberEntity) s.overworld().getBlockEntity(pos);
+                return AAEItems.SHATTERED_SINGULARITY.is(chamber.getOutput().getStackInSlot(0))
+                        && chamber.getOutput().getStackInSlot(0).getCount() == 2;
+            }, 2400, "2 shattered singularities from the reaction chamber (" + cards + " acceleration cards)");
+            LOG.info("The reaction chamber made 2 shattered singularities with {} acceleration cards", cards);
+            openAndScreenshot(context, pos, "aae-reaction-chamber-shattered-" + cards);
+        }
+
+        // Without any power the chamber waits and shows the power warning
+        setBlock(server, pos.below(), "minecraft:air");
+        context.waitTicks(20);
+        server.runOnServer(s -> {
+            var level = s.overworld();
+            var chamber = (ReactionChamberEntity) level.getBlockEntity(pos);
+            chamber.getOutput().setItemDirect(0, ItemStack.EMPTY);
+            var items = ItemStorage.SIDED.find(level, pos, Direction.UP);
+            var fluids = FluidStorage.SIDED.find(level, pos, Direction.UP);
+            try (var tx = Transaction.openOuter()) {
+                insert(items, AEItems.SINGULARITY.stack(), 1, tx);
+                insert(items, AEItems.ENDER_DUST.stack(), 2, tx);
+                insert(items, AEItems.SKY_DUST.stack(), 2, tx);
+                fluids.insert(FluidVariant.of(Fluids.LAVA), FluidConstants.BUCKET / 10, tx);
+                tx.commit();
+            }
+        });
+        context.waitTicks(60);
+        var unpowered = server.computeOnServer(s -> {
+            var chamber = (ReactionChamberEntity) s.overworld().getBlockEntity(pos);
+            return chamber.getProcessingTime() + "/" + chamber.showWarning();
+        });
+        LOG.info("Without power: progress/warning {}", unpowered);
+        if (!unpowered.equals("0/true")) {
+            throw new AssertionError("Unpowered reaction chamber: progress/warning " + unpowered);
+        }
+        openAndScreenshot(context, pos, "aae-reaction-chamber-no-power");
+
+        // 1,500 AE (with 4 acceleration cards one step needs 1,000 AE) still makes progress, a full cell finishes
+        setBlock(server, pos.below(), "ae2:energy_cell");
+        context.waitTicks(20);
+        server.runOnServer(s -> ((appeng.blockentity.networking.EnergyCellBlockEntity) s.overworld()
+                .getBlockEntity(pos.below())).injectAEPower(1500, appeng.api.config.Actionable.MODULATE));
+        context.waitTicks(40);
+        var lowPowerProgress = server.computeOnServer(
+                s -> ((ReactionChamberEntity) s.overworld().getBlockEntity(pos)).getProcessingTime());
+        LOG.info("Progress with 1,500 AE in the network: {}", lowPowerProgress);
+        if (lowPowerProgress <= 0) {
+            throw new AssertionError("No progress with 1,500 AE");
+        }
+        server.runOnServer(s -> ((appeng.blockentity.networking.EnergyCellBlockEntity) s.overworld()
+                .getBlockEntity(pos.below())).injectAEPower(200_000, appeng.api.config.Actionable.MODULATE));
+        waitForServer(context, server, s -> {
+            var chamber = (ReactionChamberEntity) s.overworld().getBlockEntity(pos);
+            return AAEItems.SHATTERED_SINGULARITY.is(chamber.getOutput().getStackInSlot(0));
+        }, 2400, "shattered singularities with a charged energy cell");
+        LOG.info("The reaction chamber made shattered singularities with a charged energy cell");
+
         setBlock(server, pos, "minecraft:air");
         setBlock(server, pos.below(), "minecraft:air");
     }
