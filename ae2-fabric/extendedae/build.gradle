@@ -54,7 +54,6 @@ sourceSets {
             // Data generators are not ported (the generated resources are included)
             exclude "com/glodblock/github/extendedae/datagen/**"
             // Integrations with mods that don't exist for Fabric 26.3
-            exclude "com/glodblock/github/extendedae/xmod/appflux/**"
             exclude "com/glodblock/github/extendedae/xmod/darkmode/**"
             exclude "com/glodblock/github/extendedae/xmod/kjs/**"
         }
@@ -96,6 +95,9 @@ dependencies {
     compileOnly project(":advancedae")
     compileOnly project(":ae2addonlib")
     localRuntime project(":advancedae")
+    // Applied Flux: induction cards for the extended interfaces and pattern providers
+    compileOnly project(":appflux")
+    localRuntime project(":appflux")
     localRuntime project(":ae2addonlib")
     // GeckoLib (needed by Advanced AE) adds interfaces to Minecraft classes, so it must be on the compile classpath too
     compileOnly "maven.modrinth:geckolib:${rootProject.geckolib_version}"

@@ -90,6 +90,11 @@ dependencies {
     include project(":ae2addonlib")
     // The wireless quantum crafter terminal is an ae2wtlib terminal (can be part of the universal terminal)
     implementation project(":ae2wtlib")
+    // Optional: Applied Flux adds induction cards to the advanced pattern providers and charges the quantum armor
+    compileOnly project(":appflux")
+    compileOnly project(":glodium")
+    localRuntime project(":appflux")
+    localRuntime project(":glodium")
 
     compileOnly "teamreborn:energy:${rootProject.tr_energy_version}"
 

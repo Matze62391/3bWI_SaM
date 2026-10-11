@@ -11,7 +11,6 @@ import com.glodblock.github.extendedae.recipe.CrystalFixerRecipeSerializer;
 import com.glodblock.github.extendedae.xmod.wt.ContainerWirelessExPAT;
 import com.glodblock.github.extendedae.xmod.wt.HostWirelessExPAT;
 import com.glodblock.github.glodium.Glodium;
-import com.glodblock.github.glodium.xmod.XModManager;
 import com.mojang.logging.LogUtils;
 import de.mari_023.ae2wtlib.api.gui.Icon;
 import de.mari_023.ae2wtlib.api.registration.AddTerminalEvent;
@@ -52,7 +51,6 @@ public class ExtendedAE implements ModInitializer {
         RecipeSynchronization.synchronizeRecipeSerializer(CrystalAssemblerRecipeSerializer.INSTANCE);
         RecipeSynchronization.synchronizeRecipeSerializer(CrystalFixerRecipeSerializer.INSTANCE);
         EAERegistryHandler.INSTANCE.onInit();
-        XModManager.common(MODID);
     }
 
     public static Identifier id(String id) {

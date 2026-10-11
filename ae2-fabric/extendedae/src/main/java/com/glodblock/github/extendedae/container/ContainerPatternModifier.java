@@ -1,5 +1,9 @@
 package com.glodblock.github.extendedae.container;
 
+import com.glodblock.github.extendedae.xmod.ModConstants;
+import com.glodblock.github.extendedae.xmod.aae.AAEPatterns;
+import net.fabricmc.loader.api.FabricLoader;
+
 import appeng.api.crafting.PatternDetailsHelper;
 import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKey;
@@ -34,6 +38,8 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Arrays;
 
 public class ContainerPatternModifier extends AEBaseMenu implements IPage, IActionHolder {
+
+    private static final boolean AAE_LOADED = FabricLoader.getInstance().isModLoaded(ModConstants.ADV_AE);
 
     private final ActionMap actions = ActionMap.create();
     public static final MenuType<@NotNull ContainerPatternModifier> TYPE = MenuTypeBuilder
@@ -101,6 +107,13 @@ public class ContainerPatternModifier extends AEBaseMenu implements IPage, IActi
         for (var slot : this.getSlots(SlotSemantics.ENCODED_PATTERN)) {
             var stack = slot.getItem();
             var detail = PatternDetailsHelper.decodePattern(stack, this.getPlayer().level());
+            if (AAE_LOADED && detail != null) {
+                var advPattern = AAEPatterns.replace(detail, replace, with, this::replace);
+                if (advPattern != null) {
+                    slot.set(advPattern);
+                    continue;
+                }
+            }
             if (detail instanceof AEProcessingPattern process) {
                 var input = process.getSparseInputs().toArray(new GenericStack[0]);
                 var output = process.getOutputs().toArray(new GenericStack[0]);
@@ -174,6 +187,15 @@ public class ContainerPatternModifier extends AEBaseMenu implements IPage, IActi
         for (var slot : this.getSlots(SlotSemantics.ENCODED_PATTERN)) {
             var stack = slot.getItem();
             var detail = PatternDetailsHelper.decodePattern(stack, this.getPlayer().level());
+            if (AAE_LOADED && detail != null) {
+                var advPattern = AAEPatterns.modify(detail, scale, div, this::checkModify, this::modifyStacks);
+                if (advPattern != null) {
+                    if (!advPattern.isEmpty()) {
+                        slot.set(advPattern);
+                    }
+                    continue;
+                }
+            }
             if (detail instanceof AEProcessingPattern process) {
                 var input = process.getSparseInputs().toArray(new GenericStack[0]);
                 var output = process.getOutputs().toArray(new GenericStack[0]);

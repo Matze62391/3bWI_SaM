@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "id": "appflux",
+  "version": "${version}",
+  "name": "Applied Flux",
+  "description": "Store energy in AE2 storage cells. Fabric port: uses Team Reborn Energy instead of Forge Energy.",
+  "authors": ["GlodBlock"],
+  "contact": {
+    "sources": "https://github.com/GlodBlock/ExtendedAE/tree/appflux/26.1.2-neoforge"
+  },
+  "license": "LGPL-3.0-only",
+  "icon": "logo.png",
+  "environment": "*",
+  "entrypoints": {
+    "ae2:addon": ["com.glodblock.github.appflux.AppFlux"],
+    "client": ["com.glodblock.github.appflux.AppFluxClient"],
+    "ae2:part_capabilities": ["com.glodblock.github.appflux.common.AFRegistryHandler::registerPartCapabilities"],
+    "jade": ["com.glodblock.github.appflux.xmod.jade.JadePlugin"]
+  },
+  "mixins": ["mixins.appflux.json"],
+  "accessWidener": "appflux.classtweaker",
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "fabric-api": "*",
+    "minecraft": "~26.3",
+    "java": ">=25",
+    "ae2": "*",
+    "glodium": "*",
+    "team_reborn_energy": "*"
+  }
+}

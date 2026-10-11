@@ -32,6 +32,9 @@
     ],
     "jei_mod_plugin": [
       "net.pedroksl.advanced_ae.xmod.jei.JEIPlugin"
+    ],
+    "ae2:post_addon": [
+      "net.pedroksl.advanced_ae.xmod.AAEPostAddon"
     ]
   },
   "mixins": [

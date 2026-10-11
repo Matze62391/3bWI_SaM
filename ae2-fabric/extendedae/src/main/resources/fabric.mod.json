@@ -34,11 +34,15 @@
     ],
     "modmenu": [
       "com.glodblock.github.extendedae.xmod.modmenu.ModMenuIntegration"
+    ],
+    "ae2:post_addon": [
+      "com.glodblock.github.extendedae.ExtendedAEPostAddon"
     ]
   },
   "custom": {
     "glodium:xmod": {
-      "advanced_ae": "com.glodblock.github.extendedae.xmod.aae.AAELoader"
+      "advanced_ae": "com.glodblock.github.extendedae.xmod.aae.AAELoader",
+      "appflux": "com.glodblock.github.extendedae.xmod.appflux.AppFluxLoader"
     }
   },
   "mixins": [

@@ -19,6 +19,8 @@ import net.minecraft.world.level.storage.TagValueInput;
 import net.minecraft.world.level.storage.TagValueOutput;
 import net.minecraft.world.phys.Vec3;
 import net.pedroksl.advanced_ae.AdvancedAE;
+import net.pedroksl.advanced_ae.xmod.Addons;
+import net.pedroksl.advanced_ae.xmod.eae.ExtendedAEPlugin;
 import net.pedroksl.advanced_ae.common.definitions.AAEBlockEntities;
 import net.pedroksl.advanced_ae.common.definitions.AAEBlocks;
 import net.pedroksl.advanced_ae.common.definitions.AAEItems;
@@ -52,7 +54,8 @@ public class AdvPatternProviderUpgradeItem extends BlockUpgradeItem {
         if (entity != null) {
             var ctx = new BlockPlaceContext(context);
             var tClazz = entity.getClass();
-            if (tClazz == PatternProviderBlockEntity.class) {
+            if (tClazz == PatternProviderBlockEntity.class
+                    || (Addons.EXTENDEDAE.isLoaded() && ExtendedAEPlugin.isEntityProvider(tClazz))) {
 
                 var originState = world.getBlockState(pos);
                 var isSmall = tClazz == PatternProviderBlockEntity.class;
@@ -88,7 +91,9 @@ public class AdvPatternProviderUpgradeItem extends BlockUpgradeItem {
                 Vec3 hitInBlock = new Vec3(hitVec.x - pos.getX(), hitVec.y - pos.getY(), hitVec.z - pos.getZ());
                 var part = cable.getCableBus().selectPartLocal(hitInBlock).part;
                 if (part instanceof AEBasePart basePart
-                        && part.getClass() == PatternProviderPart.class) {
+                        && (part.getClass() == PatternProviderPart.class
+                                || (Addons.EXTENDEDAE.isLoaded()
+                                        && ExtendedAEPlugin.isPartProvider(part.getClass())))) {
                     var side = basePart.getSide();
 
                     var isSmall = part.getClass() == PatternProviderPart.class;

@@ -17,7 +17,13 @@
         "MixinPatternEncodingTermMenu",
         "MixinPatternProviderLogic",
         "cpu.MixinCraftingCPUMenu",
-        "cpu.MixinCraftingService"
+        "cpu.MixinCraftingService",
+        "appflux.MixinAdvPatternProviderLogic",
+        "appflux.MixinAdvPatternProviderLogicHost",
+        "appflux.MixinAdvPatternProviderMenu"
     ],
-    "client": []
+    "client": [
+        "appflux.MixinAdvPatternProviderScreen",
+        "appflux.MixinSmallAdvPatternProviderScreen"
+    ]
 }

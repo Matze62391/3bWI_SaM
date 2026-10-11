@@ -17,6 +17,13 @@ public final class AppEngFabricEntrypoint implements ModInitializer {
      */
     public static final String ADDON_ENTRYPOINT = "ae2:addon";
 
+    /**
+     * Entrypoint ({@link ModInitializer}) that is called after all {@link #ADDON_ENTRYPOINT addons} were initialized.
+     * Addons use it for integrations with other addons, e.g. to register upgrades for another addon's items, because
+     * the addons themselves are initialized in no particular order.
+     */
+    public static final String POST_ADDON_ENTRYPOINT = "ae2:post_addon";
+
     @Override
     public void onInitialize() {
         if (FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT) {
@@ -26,6 +33,8 @@ public final class AppEngFabricEntrypoint implements ModInitializer {
         }
 
         FabricLoader.getInstance().invokeEntrypoints(ADDON_ENTRYPOINT, ModInitializer.class,
+                ModInitializer::onInitialize);
+        FabricLoader.getInstance().invokeEntrypoints(POST_ADDON_ENTRYPOINT, ModInitializer.class,
                 ModInitializer::onInitialize);
     }
 

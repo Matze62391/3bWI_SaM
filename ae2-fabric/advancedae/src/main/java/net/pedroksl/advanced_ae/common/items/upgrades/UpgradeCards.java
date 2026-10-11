@@ -21,6 +21,10 @@ import net.fabricmc.fabric.api.transfer.v1.context.ContainerItemContext;
 import net.fabricmc.fabric.api.transfer.v1.item.PlayerInventoryStorage;
 import net.fabricmc.fabric.api.transfer.v1.transaction.Transaction;
 import team.reborn.energy.api.EnergyStorage;
+import net.pedroksl.advanced_ae.xmod.Addons;
+import net.pedroksl.advanced_ae.xmod.appflux.AppliedFluxPlugin;
+import appeng.api.networking.IGrid;
+import appeng.api.networking.security.IActionSource;
 import net.pedroksl.advanced_ae.common.definitions.AAEComponents;
 import net.pedroksl.advanced_ae.common.definitions.AAEConfig;
 import net.pedroksl.advanced_ae.common.helpers.MagnetHelpers;
@@ -319,8 +323,15 @@ public class UpgradeCards {
 
                 var currentPower = armor.getAECurrentPower(stack);
                 var rate = armor.getChargeRate(stack);
+                var afRate = Integer.MAX_VALUE;
                 var maxPower = armor.getAEMaxPower(stack);
                 var neededPower = Math.min(rate, maxPower - currentPower);
+
+                // With Applied Flux, the energy (E) stored in the network's cells charges the armor first
+                if (neededPower > 0 && Addons.APPFLUX.isLoaded()) {
+                    neededPower = Math.min(afRate, maxPower - currentPower);
+                    neededPower = AppliedFluxPlugin.rechargeAeStorageItem(grid, neededPower, player, stack, armor);
+                }
 
                 if (neededPower > 0 && energy.getStoredPower() > 0) {
                     var extracted = energy.extractAEPower(rate, Actionable.MODULATE, PowerMultiplier.CONFIG);
@@ -335,12 +346,14 @@ public class UpgradeCards {
                         var item = player.getInventory().getItem(i);
                         if (item.isEmpty()) continue;
 
-                        rechargeItem(ContainerItemContext.ofPlayerSlot(player, inventory.getSlot(i)), rate, energy);
+                        rechargeItem(player, ContainerItemContext.ofPlayerSlot(player, inventory.getSlot(i)), grid, rate, energy);
                     }
 
                     if (!player.getOffhandItem().isEmpty()) {
                         rechargeItem(
+                                player,
                                 ContainerItemContext.ofPlayerSlot(player, inventory.getSlot(Inventory.SLOT_OFFHAND)),
+                                grid,
                                 rate,
                                 energy);
                     }
@@ -351,9 +364,17 @@ public class UpgradeCards {
         return false;
     }
 
-    public static void rechargeItem(ContainerItemContext context, double rate, IEnergyService energyService) {
+    public static void rechargeItem(
+            Player player, ContainerItemContext context, IGrid grid, double rate, IEnergyService energyService) {
         var itemAccess = context.find(EnergyStorage.ITEM);
         if (itemAccess == null || !itemAccess.supportsInsertion()) return;
+
+        if (Addons.APPFLUX.isLoaded()) {
+            try (var tx = Transaction.openOuter()) {
+                AppliedFluxPlugin.rechargeEnergyStorage(
+                        grid, Integer.MAX_VALUE, IActionSource.ofPlayer(player), itemAccess, tx);
+            }
+        }
 
         if (energyService.getStoredPower() > 0) {
             try (var tx = Transaction.openOuter()) {
