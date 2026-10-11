@@ -78,6 +78,10 @@ dependencies {
     include project(":appflux")
     // Storage Drawers (MIT, official Fabric build); works with the AE2 storage bus through the Fabric transfer API
     include "maven.modrinth:storagedrawers:${rootProject.storagedrawers_version}"
+    // Tech Reborn (MIT, contains RebornCore): machines, generators and ore processing; uses the same energy API
+    include "maven.modrinth:techreborn:${rootProject.techreborn_version}"
+    // Effortless Building (LGPL-3.0): building modes (lines, walls, floors, mirror, array)
+    include "maven.modrinth:effortless-building:${rootProject.effortless_building_version}"
 
     // the pack game tests build AE2 networks
     gametestCompileOnly project(":")
