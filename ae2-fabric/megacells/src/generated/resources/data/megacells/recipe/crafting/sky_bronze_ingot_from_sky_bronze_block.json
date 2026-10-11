@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "megacells:sky_bronze_block"
+  ],
+  "result": {
+    "count": 9,
+    "id": "megacells:sky_bronze_ingot"
+  }
+}

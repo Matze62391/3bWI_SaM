@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "#": "#ae2:glass_cable",
+    "C": "#c:ingots/copper",
+    "I": "#c:ingots/iron"
+  },
+  "pattern": [
+    "ICI",
+    " # "
+  ],
+  "result": {
+    "id": "megacells:cell_dock"
+  }
+}

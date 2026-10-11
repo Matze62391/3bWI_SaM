@@ -3,7 +3,7 @@
   "id": "ae2_fabric_pack",
   "version": "${version}",
   "name": "AE2 Fabric Pack",
-  "description": "Applied Energistics 2 with Advanced AE, ExtendedAE, Applied Flux, Storage Drawers, Tech Reborn and Effortless Building for Fabric, in one jar. Contains AE2, GuideME, Advanced AE, AE2AddonLib, ExtendedAE, GlodBlock's library, AE2WTLib, Applied Flux, Storage Drawers, Tech Reborn, RebornCore, Effortless Building, GeckoLib and Team Reborn Energy. Every mod keeps its own id and license (see the nested jars).",
+  "description": "Applied Energistics 2 with Advanced AE, ExtendedAE, Applied Flux, MEGA Cells, Storage Drawers, Tech Reborn and Effortless Building for Fabric, in one jar. Contains AE2, GuideME, Advanced AE, AE2AddonLib, ExtendedAE, GlodBlock's library, AE2WTLib, Applied Flux, MEGA Cells, Storage Drawers, Tech Reborn, RebornCore, Effortless Building, GeckoLib and Team Reborn Energy. Every mod keeps its own id and license (see the nested jars).",
   "authors": [
     "AlgorithmX2",
     "TeamAppliedEnergistics",
@@ -11,6 +11,7 @@
     "GlodBlock",
     "Mari_023",
     "GeckoThePecko",
+    "90",
     "Texelsaur",
     "Tech Reborn Team",
     "Requioss"
@@ -34,6 +35,7 @@
     "extendedae": "*",
     "ae2wtlib": "*",
     "appflux": "*",
+    "megacells": "*",
     "storagedrawers": "*",
     "techreborn": "*",
     "effortlessbuilding": "*"

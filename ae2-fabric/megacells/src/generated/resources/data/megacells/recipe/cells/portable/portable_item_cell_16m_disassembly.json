@@ -1,0 +1,18 @@
+{
+  "type": "ae2:storage_cell_disassembly",
+  "cell": "megacells:portable_item_cell_16m",
+  "cell_disassembly_items": [
+    {
+      "id": "megacells:cell_component_16m"
+    },
+    {
+      "id": "megacells:mega_item_cell_housing"
+    },
+    {
+      "id": "ae2:me_chest"
+    },
+    {
+      "id": "ae2:dense_energy_cell"
+    }
+  ]
+}

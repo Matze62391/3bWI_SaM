@@ -76,6 +76,8 @@ dependencies {
     include project(":extendedae")
     // Applied Flux: energy in storage cells
     include project(":appflux")
+    // MEGA Cells: bigger and bulk storage cells, MEGA crafting CPUs, interfaces and pattern providers
+    include project(":megacells")
     // Storage Drawers (MIT, official Fabric build); works with the AE2 storage bus through the Fabric transfer API
     include "maven.modrinth:storagedrawers:${rootProject.storagedrawers_version}"
     // Tech Reborn (MIT, contains RebornCore): machines, generators and ore processing; uses the same energy API
@@ -126,6 +128,7 @@ tasks.register("prodClientGameTest", net.fabricmc.loom.task.prod.ClientProductio
     mods.from(project(":advancedae").tasks.named("gametestJar"))
     mods.from(project(":extendedae").tasks.named("gametestJar"))
     mods.from(project(":appflux").tasks.named("gametestJar"))
+    mods.from(project(":megacells").tasks.named("gametestJar"))
     mods.from(configurations.productionRuntimeMods)
     jvmArgs.add("-Dfabric.client.gametest")
     runDir = layout.buildDirectory.dir("run/prodClientGameTest")

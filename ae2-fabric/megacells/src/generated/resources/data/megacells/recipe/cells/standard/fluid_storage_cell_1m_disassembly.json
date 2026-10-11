@@ -1,0 +1,12 @@
+{
+  "type": "ae2:storage_cell_disassembly",
+  "cell": "megacells:fluid_storage_cell_1m",
+  "cell_disassembly_items": [
+    {
+      "id": "megacells:cell_component_1m"
+    },
+    {
+      "id": "megacells:mega_fluid_cell_housing"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "C": "megacells:mega_item_cell_housing",
+    "S": "ae2:singularity",
+    "W": "ae2:cell_workbench"
+  },
+  "pattern": [
+    "W",
+    "S",
+    "C"
+  ],
+  "result": {
+    "id": "megacells:portable_cell_workbench"
+  }
+}
