@@ -1,0 +1,21 @@
+pluginManagement {
+    repositories {
+        maven {
+            name = 'Fabric'
+            url = 'https://maven.fabricmc.net/'
+        }
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+rootProject.name = 'ae2-fabric'
+
+include 'guideme'
+include 'ae2addonlib'
+include 'advancedae'
+include 'glodium'
+include 'ae2wtlib'
+include 'extendedae'
+include 'pack'
+include 'appflux'

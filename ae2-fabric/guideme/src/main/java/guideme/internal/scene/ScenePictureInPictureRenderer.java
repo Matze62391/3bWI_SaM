@@ -1,0 +1,54 @@
+package guideme.internal.scene;
+
+import com.mojang.blaze3d.vertex.PoseStack;
+import guideme.color.LightDarkMode;
+import guideme.scene.LytGuidebookScene;
+import java.util.Objects;
+import net.minecraft.client.gui.navigation.ScreenRectangle;
+import net.minecraft.client.gui.render.pip.PictureInPictureRenderer;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.state.gui.pip.PictureInPictureRenderState;
+import org.jetbrains.annotations.Nullable;
+import org.joml.Matrix3x2f;
+
+public class ScenePictureInPictureRenderer extends PictureInPictureRenderer<ScenePictureInPictureRenderer.State> {
+
+    @Override
+    public Class<State> getRenderStateClass() {
+        return State.class;
+    }
+
+    @Override
+    protected void renderToTexture(State state, PoseStack pose, SubmitNodeCollector submitNodeCollector) {
+        // The scene renders itself immediately, so it needs to know which texture the PIP renderer is targeting
+        try (var ignored = SceneRenderTarget.push(Objects.requireNonNull(textureView),
+                Objects.requireNonNull(depthTextureView))) {
+            state.renderer.render(state.lightDarkMode, pose, submitNodeCollector);
+        }
+    }
+
+    @Override
+    protected String getTextureLabel() {
+        return "GuideME game scene";
+    }
+
+    public record State(
+            LightDarkMode lightDarkMode,
+            Matrix3x2f pose,
+            int x0, int y0,
+            int x1, int y1,
+            LytGuidebookScene scene,
+            ScreenRectangle bounds,
+            @Nullable ScreenRectangle scissorArea,
+            Renderer renderer) implements PictureInPictureRenderState {
+        @Override
+        public float scale() {
+            return 1;
+        }
+    }
+
+    @FunctionalInterface
+    public interface Renderer {
+        void render(LightDarkMode lightDarkMode, PoseStack pose, SubmitNodeCollector nodeCollector);
+    }
+}

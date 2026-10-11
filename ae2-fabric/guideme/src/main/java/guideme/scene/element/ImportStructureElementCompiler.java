@@ -1,0 +1,92 @@
+package guideme.scene.element;
+
+import guideme.compiler.IdUtils;
+import guideme.compiler.PageCompiler;
+import guideme.compiler.tags.MdxAttrs;
+import guideme.document.LytErrorSink;
+import guideme.libs.mdast.mdx.model.MdxJsxElementFields;
+import guideme.scene.GuidebookScene;
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Locale;
+import java.util.Set;
+import net.minecraft.IdentifierException;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtAccounter;
+import net.minecraft.nbt.NbtIo;
+import net.minecraft.nbt.NbtUtils;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.datafix.DataFixTypes;
+import net.minecraft.util.datafix.DataFixers;
+import net.minecraft.world.level.levelgen.SingleThreadedRandomSource;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
+
+/**
+ * Imports a structure into the scene.
+ */
+public class ImportStructureElementCompiler implements SceneElementTagCompiler {
+    @Override
+    public Set<String> getTagNames() {
+        return Set.of("ImportStructure");
+    }
+
+    @Override
+    public void compile(GuidebookScene scene,
+            PageCompiler compiler,
+            LytErrorSink errorSink,
+            MdxJsxElementFields el) {
+        var structureSrc = el.getAttributeString("src", null);
+        if (structureSrc == null) {
+            errorSink.appendError(compiler, "Missing src attribute", el);
+            return;
+        }
+
+        var pos = MdxAttrs.getBlockPos(compiler, errorSink, el, "pos", BlockPos.ZERO);
+
+        Identifier absStructureSrc;
+        try {
+            absStructureSrc = IdUtils.resolveLink(structureSrc, compiler.getPageId());
+        } catch (IdentifierException e) {
+            errorSink.appendError(compiler, "Invalid structure path: " + structureSrc, el);
+            return;
+        }
+
+        var structureNbtData = compiler.loadAsset(absStructureSrc);
+        if (structureNbtData == null) {
+            errorSink.appendError(compiler, "Missing structure file", el);
+            return;
+        }
+
+        CompoundTag compoundTag;
+        try {
+            if (absStructureSrc.getPath().toLowerCase(Locale.ROOT).endsWith(".snbt")) {
+                compoundTag = NbtUtils.snbtToStructure(
+                        new String(structureNbtData, StandardCharsets.UTF_8));
+            } else {
+                compoundTag = NbtIo.readCompressed(new ByteArrayInputStream(structureNbtData),
+                        NbtAccounter.unlimitedHeap());
+            }
+        } catch (Exception e) {
+            errorSink.appendError(compiler, "Couldn't read structure: " + e.getMessage(), el);
+            return;
+        }
+
+        var template = new StructureTemplate();
+        var blocks = scene.getLevel().registryAccess().lookupOrThrow(Registries.BLOCK);
+        // Structures may have been saved by older versions, which use a different NBT format for block states
+        var dataVersion = NbtUtils.getDataVersion(compoundTag, 500);
+        template.load(blocks,
+                DataFixTypes.STRUCTURE.updateToCurrentVersion(DataFixers.getDataFixer(), compoundTag, dataVersion));
+        var random = new SingleThreadedRandomSource(0L);
+        var settings = new StructurePlaceSettings();
+        settings.setIgnoreEntities(true); // Entities need a server level in structures
+
+        var fakeServerLevel = new FakeForwardingServerLevel(scene.getLevel());
+        if (!template.placeInWorld(fakeServerLevel, pos, pos, settings, random, 0)) {
+            errorSink.appendError(compiler, "Failed to place structure", el);
+        }
+    }
+}

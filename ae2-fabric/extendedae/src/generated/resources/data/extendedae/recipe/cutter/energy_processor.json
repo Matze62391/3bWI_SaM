@@ -1,0 +1,19 @@
+{
+  "fabric:load_conditions": [
+    {
+      "condition": "fabric:all_mods_loaded",
+      "values": [
+        "appflux"
+      ]
+    }
+  ],
+  "type": "extendedae:circuit_cutter",
+  "energy": 18000,
+  "input": {
+    "ingredient": "appflux:charged_redstone_block"
+  },
+  "output": {
+    "count": 9,
+    "id": "appflux:printed_energy_processor"
+  }
+}

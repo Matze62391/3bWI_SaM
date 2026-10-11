@@ -1,0 +1,23 @@
+{
+  "type": "extendedae:crystal_assembler",
+  "energy": 7000,
+  "input_items": [
+    {
+      "ingredient": "ae2:import_bus"
+    },
+    {
+      "amount": 3,
+      "ingredient": "ae2:speed_card"
+    },
+    {
+      "amount": 2,
+      "ingredient": "minecraft:piston"
+    },
+    {
+      "ingredient": "ae2:annihilation_core"
+    }
+  ],
+  "output": {
+    "id": "extendedae:ex_import_bus_part"
+  }
+}

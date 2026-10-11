@@ -1,0 +1,28 @@
+{
+  "fabric:load_conditions": [
+    {
+      "condition": "fabric:not",
+      "value": {
+        "condition": "fabric:all_mods_loaded",
+        "values": [
+          "extendedae"
+        ]
+      }
+    }
+  ],
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "E": "advanced_ae:shattered_singularity",
+    "S": "ae2:singularity",
+    "U": "advanced_ae:quantum_unit"
+  },
+  "pattern": [
+    "ESE",
+    "SUS",
+    "ESE"
+  ],
+  "result": {
+    "id": "advanced_ae:quantum_accelerator"
+  }
+}

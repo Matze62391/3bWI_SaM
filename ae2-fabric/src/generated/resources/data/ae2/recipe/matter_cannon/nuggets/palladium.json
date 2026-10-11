@@ -1,0 +1,11 @@
+{
+  "fabric:load_conditions": [
+    {
+      "condition": "ae2:tag_not_empty",
+      "tag": "c:nuggets/palladium"
+    }
+  ],
+  "type": "ae2:matter_cannon",
+  "ammo": "#c:nuggets/palladium",
+  "weight": 106.42
+}

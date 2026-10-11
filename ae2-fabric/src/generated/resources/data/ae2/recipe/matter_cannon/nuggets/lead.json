@@ -1,0 +1,11 @@
+{
+  "fabric:load_conditions": [
+    {
+      "condition": "ae2:tag_not_empty",
+      "tag": "c:nuggets/lead"
+    }
+  ],
+  "type": "ae2:matter_cannon",
+  "ammo": "#c:nuggets/lead",
+  "weight": 207.2
+}

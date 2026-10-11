@@ -1,0 +1,22 @@
+{
+  "type": "extendedae:crystal_assembler",
+  "energy": 50000,
+  "input_items": [
+    {
+      "ingredient": "extendedae:assembler_matrix_wall"
+    },
+    {
+      "ingredient": "#extendedae:extended_pattern_provider"
+    },
+    {
+      "amount": 6,
+      "ingredient": "ae2:blue_lumen_paint_ball"
+    },
+    {
+      "ingredient": "ae2:engineering_processor"
+    }
+  ],
+  "output": {
+    "id": "extendedae:assembler_matrix_pattern"
+  }
+}

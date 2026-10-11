@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "appflux-gametest",
+  "version": "1.0.0",
+  "name": "Applied Flux Game Tests",
+  "description": "Client game tests for the Fabric port of Applied Flux. Not shipped with the mod.",
+  "license": "LGPL-3.0-only",
+  "environment": "*",
+  "entrypoints": {
+    "fabric-client-gametest": [
+      "com.glodblock.github.appflux.gametest.AFClientGameTest"
+    ]
+  },
+  "depends": {
+    "appflux": "*"
+  }
+}

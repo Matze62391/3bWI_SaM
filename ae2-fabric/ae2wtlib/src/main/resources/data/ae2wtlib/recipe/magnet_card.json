@@ -1,0 +1,15 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": ["abc", "ded", "ddd"],
+  "key": {
+    "a": "minecraft:redstone_block",
+    "b": "ae2:annihilation_plane",
+    "c": "minecraft:lapis_block",
+    "d": "minecraft:iron_block",
+    "e": "ae2:advanced_card"
+  },
+  "result": {
+    "count": 1,
+    "id": "ae2wtlib:magnet_card"
+  }
+}

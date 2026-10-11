@@ -1,0 +1,542 @@
+package net.pedroksl.ae2addonlib.client.render;
+
+import java.util.*;
+import javax.annotation.ParametersAreNonnullByDefault;
+
+import org.jetbrains.annotations.NotNull;
+import org.joml.Vector3f;
+
+import it.unimi.dsi.fastutil.objects.Object2ReferenceMap;
+import it.unimi.dsi.fastutil.objects.Object2ReferenceOpenHashMap;
+
+import net.minecraft.client.renderer.block.BlockAndTintGetter;
+import net.minecraft.client.renderer.block.dispatch.BlockStateModelPart;
+import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.resources.model.SimpleModelWrapper;
+import net.minecraft.client.resources.model.geometry.BakedQuad;
+import net.minecraft.client.resources.model.geometry.QuadCollection;
+import net.minecraft.client.resources.model.sprite.Material;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.Vec3i;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
+
+import appeng.api.model.ModelProperty;
+import appeng.client.model.DynamicBlockStateModel;
+import appeng.client.render.MaterialUtil;
+
+/**
+ * <p>A base baked model for blocks with connected textures.</p>
+ * Base Baked Model class heavily inspired by <a href="https://github.com/GlodBlock/ExtendedAE/blob/1.21.1-neoforge/src/main/java/com/glodblock/github/extendedae/client/model/AssemblerGlassBakedModel.java">
+ * Extended AE's Assembler Matrix Glass.</a> <br>
+ * The modifications include: <br>
+ * - This model has the option to draw the edges on the inside, useful for translucent blocks. <br>
+ * - All rendered faces/textures can be set to be emissive by themselves <br>
+ * - Made to be extremely generic and customizable, receiving custom connect/light conditions. <br>
+ * The model considers the faces the majority of the block and the sizes are the edges. Rendering is layered to avoid z-fighting,
+ * The face texture should be a full 16x16 texture, while the texture for the sides should follow
+ * <a href="https://github.com/pedroksl/AdvancedAE/blob/master/src/main/resources/assets/advanced_ae/textures/block/crafting/quantum_structure_formed_sides.png?raw=true">this pattern</a>
+ */
+public abstract class ConnectedTexturesBaseBakedModel implements DynamicBlockStateModel {
+    private static final Object2ReferenceMap<FaceCorner, List<Vector3f>> V_MAP = createVertexMap();
+    private static final EnumMap<Direction, List<Vector3f>> F_MAP = createFaceMap();
+    private static final ModelProperty<@NotNull Connect> CONNECT_STATE = new ModelProperty<>();
+    private static final int LU = 0;
+    private static final int RU = 1;
+    private static final int LD = 2;
+    private static final int RD = 4;
+
+    private final Material.Baked face;
+    private final Material.Baked corners;
+    private final Material.Baked poweredSides;
+    private EnumMap<Direction, Material.Baked> faceAnimations;
+
+    private boolean renderOppositeSide = false;
+
+    private RenderType faceRenderType;
+    private RenderType sideRenderType;
+
+    private boolean isFaceEmissive = false;
+    private boolean isSideEmissive = false;
+    private boolean isFaceAnimationEmissive = false;
+
+    /**
+     * Constructs a baked model with a single {@link RenderType} and textures for face, sides and powered textures.
+     * @param renderType The render type use in this model.
+     * @param face The texture atlas of the face.
+     * @param corners The texture atlas of the sides.
+     * @param poweredSides The texture atlas of the sides when powered.
+     */
+    protected ConnectedTexturesBaseBakedModel(
+            RenderType renderType, Material.Baked face, Material.Baked corners, Material.Baked poweredSides) {
+        this(face, corners, poweredSides);
+        this.faceRenderType = renderType;
+        this.sideRenderType = renderType;
+    }
+
+    /**
+     * overload of {@link #ConnectedTexturesBaseBakedModel(RenderType, RenderType, Material.Baked, Material.Baked, Material.Baked)}
+     * that takes different {@link RenderType}s for the face and sides.
+     * @param faceRenderType The render type used to render the faces in this model.
+     * @param sideRenderType The render type used to render the sides in this model.
+     * @param face The texture atlas of the face.
+     * @param corners The texture atlas of the sides.
+     * @param poweredSides The texture atlas of the sides when powered.
+     */
+    protected ConnectedTexturesBaseBakedModel(
+            RenderType faceRenderType,
+            RenderType sideRenderType,
+            Material.Baked face,
+            Material.Baked corners,
+            Material.Baked poweredSides) {
+        this(face, corners, poweredSides);
+        this.faceRenderType = faceRenderType;
+        this.sideRenderType = sideRenderType;
+    }
+
+    private ConnectedTexturesBaseBakedModel(Material.Baked face, Material.Baked corners, Material.Baked poweredSides) {
+        this.face = face;
+        this.corners = corners;
+        this.poweredSides = poweredSides;
+    }
+
+    @Override
+    public Material.Baked particleMaterial() {
+        return this.face;
+    }
+
+    @Override
+    public @BakedQuad.MaterialFlags int materialFlags() {
+        return MaterialUtil.getMaterialFlags(this.face);
+    }
+
+    /**
+     * Sets the face as an emissive texture.
+     * @param faceEmissive Should the face be emissive.
+     */
+    protected void setFaceEmissive(boolean faceEmissive) {
+        this.isFaceEmissive = faceEmissive;
+    }
+
+    /**
+     * Sets the side as an emissive texture.
+     * @param sideEmissive Should the side be emissive.
+     */
+    protected void setSideEmissive(boolean sideEmissive) {
+        this.isSideEmissive = sideEmissive;
+    }
+
+    /**
+     * Sets the face as an animated texture map. <br>
+     * The map should contain a texture for every {@link Direction} or that direction will be ignored during rendering.
+     * @param faceAnimations The texture map for all directions.
+     * @param emissive Should hte animations be emissive.
+     */
+    protected void setFaceAnimation(EnumMap<Direction, Material.Baked> faceAnimations, boolean emissive) {
+        this.faceAnimations = faceAnimations;
+        this.isFaceAnimationEmissive = emissive;
+    }
+
+    /**
+     * Sets the model to render the edges in the interior for translucent blocks.
+     * @param renderOppositeSide If the edges should be rendered.
+     */
+    protected void setRenderOppositeSide(boolean renderOppositeSide) {
+        this.renderOppositeSide = renderOppositeSide;
+    }
+
+    /**
+     * Ask the inheritor class if the connection should happen for the given {@link Block}.
+     * @param block The block trying to connect.
+     * @return If the connection should happen.
+     */
+    protected abstract boolean shouldConnect(Block block);
+
+    /**
+     * Ask the inheritor class if the texture should be emissive for the given {@link BlockState}
+     * @param state The blockstate to evaluate.
+     * @return If the texture should be emissive.
+     */
+    protected abstract boolean shouldBeEmissive(BlockState state);
+
+    @Override
+    @ParametersAreNonnullByDefault
+    public void collectParts(
+            BlockAndTintGetter level,
+            BlockPos pos,
+            BlockState state,
+            RandomSource random,
+            List<BlockStateModelPart> parts) {
+        var connect = new Connect();
+        connect.init(pos);
+        for (int x = -1; x <= 1; x++) {
+            for (int y = -1; y <= 1; y++) {
+                for (int z = -1; z <= 1; z++) {
+                    var offset = pos.offset(x, y, z);
+                    var block = level.getBlockState(offset)
+                            .getAppearance(level, offset, Direction.NORTH, state, pos)
+                            .getBlock();
+                    if (shouldConnect(block)) {
+                        connect.set(x, y, z);
+                    }
+                }
+            }
+        }
+
+        var powered = shouldBeEmissive(state);
+
+        var quadCollection = new QuadCollection.Builder();
+        for (var cullFace : Direction.values()) {
+            // Face
+            this.addQuad(quadCollection, cullFace, connect.getFace(cullFace), powered);
+
+            // Corners
+            if (this.corners != null) {
+                addSides(quadCollection, connect, cullFace, powered);
+
+                if (this.renderOppositeSide) {
+                    addSides(quadCollection, connect, cullFace.getOpposite(), powered, true);
+                }
+            }
+        }
+
+        parts.add(new SimpleModelWrapper(quadCollection.build(), false, this.face));
+    }
+
+    private void addSides(QuadCollection.Builder quads, Connect connect, Direction side, boolean powered) {
+        addSides(quads, connect, side, powered, false);
+    }
+
+    private void addSides(
+            QuadCollection.Builder quads, Connect connect, Direction side, boolean powered, boolean renderOpposite) {
+        this.addQuad(quads, side, connect.getIndex(side, LU), LU, powered, renderOpposite);
+        this.addQuad(quads, side, connect.getIndex(side, RU), RU, powered, renderOpposite);
+        this.addQuad(quads, side, connect.getIndex(side, LD), LD, powered, renderOpposite);
+        this.addQuad(quads, side, connect.getIndex(side, RD), RD, powered, renderOpposite);
+    }
+
+    private List<Vector3f> calculateCorners(Direction face, int corner) {
+        return V_MAP.get(new FaceCorner(face, corner));
+    }
+
+    private void addQuad(QuadCollection.Builder quads, Direction side, int index, boolean powered) {
+        if (index < 0) {
+            return;
+        }
+
+        var cons = F_MAP.get(side);
+        var normal = side.getUnitVec3i();
+        // Render the face a fraction of a pixel inwards to avoid z-fighting
+        var step = new Vector3f(getNormalStep(normal));
+        var c1 = new Vector3f(cons.get(0)).sub(step);
+        var c2 = new Vector3f(cons.get(1)).sub(step);
+        var c3 = new Vector3f(cons.get(2)).sub(step);
+        var c4 = new Vector3f(cons.get(3)).sub(step);
+
+        var builder = new QuadBakingVertexConsumer();
+        builder.setSprite(this.face);
+        builder.setDirection(side);
+        builder.setShade(true);
+        this.putVertex(builder, this.face, normal, c1.x(), c1.y(), c1.z(), 0, 0);
+        this.putVertex(builder, this.face, normal, c2.x(), c2.y(), c2.z(), 0, 1);
+        this.putVertex(builder, this.face, normal, c3.x(), c3.y(), c3.z(), 1, 1);
+        this.putVertex(builder, this.face, normal, c4.x(), c4.y(), c4.z(), 1, 0);
+
+        if (this.isFaceEmissive && powered) {
+            builder.setLightEmission(15);
+        }
+        var quad = builder.bakeQuad();
+        quads.addCulledFace(side, quad);
+
+        if (powered && this.faceAnimations != null && this.faceAnimations.get(side) != null) {
+            var texture = this.faceAnimations.get(side);
+            builder.setSprite(texture);
+            builder.setDirection(side);
+            builder.setShade(true);
+            this.putVertex(builder, texture, normal, c1.x(), c1.y(), c1.z(), 0, 0);
+            this.putVertex(builder, texture, normal, c2.x(), c2.y(), c2.z(), 0, 1);
+            this.putVertex(builder, texture, normal, c3.x(), c3.y(), c3.z(), 1, 1);
+            this.putVertex(builder, texture, normal, c4.x(), c4.y(), c4.z(), 1, 0);
+
+            if (this.isFaceAnimationEmissive) {
+                builder.setLightEmission(15);
+            }
+            var aniQuad = builder.bakeQuad();
+            quads.addCulledFace(side, aniQuad);
+        }
+    }
+
+    private void addQuad(
+            QuadCollection.Builder quads,
+            Direction side,
+            int index,
+            int corner,
+            boolean powered,
+            boolean renderOpposite) {
+        if (index < 0) {
+            return;
+        }
+        var builder = new QuadBakingVertexConsumer();
+
+        var cons = this.calculateCorners(side, corner);
+        var texture = powered ? this.poweredSides : this.corners;
+        builder.setSprite(texture);
+        builder.setDirection(side);
+        builder.setShade(true);
+        var normal = side.getUnitVec3i();
+        var c1 = renderOpposite ? cons.get(3) : cons.get(0);
+        var c2 = renderOpposite ? cons.get(2) : cons.get(1);
+        var c3 = renderOpposite ? cons.get(1) : cons.get(2);
+        var c4 = renderOpposite ? cons.get(0) : cons.get(3);
+        if (renderOpposite) {
+            // Render the face a fraction of a pixel inwards to avoid z-fighting
+            var step = new Vector3f(getNormalStep(normal, 2));
+            c1 = new Vector3f(c1).sub(step);
+            c2 = new Vector3f(c2).sub(step);
+            c3 = new Vector3f(c3).sub(step);
+            c4 = new Vector3f(c4).sub(step);
+        }
+        float u0 = renderOpposite ? this.getU1(index) : this.getU0(index);
+        float u1 = renderOpposite ? this.getU0(index) : this.getU1(index);
+        float v0 = this.getV0(index);
+        float v1 = this.getV1(index);
+        switch (corner) {
+            case LU -> {
+                this.putVertex(builder, texture, normal, c1.x(), c1.y(), c1.z(), u0, v0);
+                this.putVertex(builder, texture, normal, c2.x(), c2.y(), c2.z(), u0, v1);
+                this.putVertex(builder, texture, normal, c3.x(), c3.y(), c3.z(), u1, v1);
+                this.putVertex(builder, texture, normal, c4.x(), c4.y(), c4.z(), u1, v0);
+            }
+            case RU -> {
+                this.putVertex(builder, texture, normal, c1.x(), c1.y(), c1.z(), u1, v0);
+                this.putVertex(builder, texture, normal, c2.x(), c2.y(), c2.z(), u1, v1);
+                this.putVertex(builder, texture, normal, c3.x(), c3.y(), c3.z(), u0, v1);
+                this.putVertex(builder, texture, normal, c4.x(), c4.y(), c4.z(), u0, v0);
+            }
+            case LD -> {
+                this.putVertex(builder, texture, normal, c1.x(), c1.y(), c1.z(), u0, v1);
+                this.putVertex(builder, texture, normal, c2.x(), c2.y(), c2.z(), u0, v0);
+                this.putVertex(builder, texture, normal, c3.x(), c3.y(), c3.z(), u1, v0);
+                this.putVertex(builder, texture, normal, c4.x(), c4.y(), c4.z(), u1, v1);
+            }
+            case RD -> {
+                this.putVertex(builder, texture, normal, c1.x(), c1.y(), c1.z(), u1, v1);
+                this.putVertex(builder, texture, normal, c2.x(), c2.y(), c2.z(), u1, v0);
+                this.putVertex(builder, texture, normal, c3.x(), c3.y(), c3.z(), u0, v0);
+                this.putVertex(builder, texture, normal, c4.x(), c4.y(), c4.z(), u0, v1);
+            }
+        }
+
+        if (this.isSideEmissive && powered) {
+            builder.setLightEmission(15);
+        }
+        var quad = builder.bakeQuad();
+        quads.addCulledFace(side, quad);
+    }
+
+    private static EnumMap<Direction, List<Vector3f>> createFaceMap() {
+        // spotless:off
+        EnumMap<Direction, List<Vector3f>> map = new EnumMap<>(Direction.class);
+        map.put(Direction.EAST, List.of(new Vector3f(1, 1, 1), new Vector3f(1, 0, 1), new Vector3f(1, 0, 0), new Vector3f(1, 1, 0)));
+        map.put(Direction.WEST, List.of(new Vector3f(0, 1, 1), new Vector3f(0, 0, 1), new Vector3f(0, 0, 0), new Vector3f(0, 1, 0)).reversed());
+        map.put(Direction.UP, List.of(new Vector3f(1, 1, 1), new Vector3f(1, 1, 0), new Vector3f(0, 1, 0), new Vector3f(0, 1, 1)));
+        map.put(Direction.DOWN, List.of(new Vector3f(1, 0, 1), new Vector3f(1, 0, 0), new Vector3f(0, 0, 0), new Vector3f(0, 0, 1)).reversed());
+        map.put(Direction.SOUTH, List.of(new Vector3f(0, 1, 1), new Vector3f(0, 0, 1), new Vector3f(1, 0, 1), new Vector3f(1, 1, 1)));
+        map.put(Direction.NORTH, List.of(new Vector3f(0, 1, 0), new Vector3f(0, 0, 0), new Vector3f(1, 0, 0), new Vector3f(1, 1, 0)).reversed());
+        //spotless:on
+        return map;
+    }
+
+    private static Object2ReferenceMap<FaceCorner, List<Vector3f>> createVertexMap() {
+        // spotless:off
+        Object2ReferenceMap<FaceCorner, List<Vector3f>> map = new Object2ReferenceOpenHashMap<>();
+        map.put(new FaceCorner(Direction.EAST, LU), List.of(new Vector3f(1, 1, 1), new Vector3f(1, 0.5f, 1), new Vector3f(1, 0.5f, 0.5f), new Vector3f(1, 1, 0.5f)));
+        map.put(new FaceCorner(Direction.EAST, RU), List.of(new Vector3f(1, 1, 0.5f), new Vector3f(1, 0.5f, 0.5f), new Vector3f(1, 0.5f, 0), new Vector3f(1, 1, 0)));
+        map.put(new FaceCorner(Direction.EAST, LD), List.of(new Vector3f(1, 0.5f, 1), new Vector3f(1, 0, 1), new Vector3f(1, 0, 0.5f), new Vector3f(1, 0.5f, 0.5f)));
+        map.put(new FaceCorner(Direction.EAST, RD), List.of(new Vector3f(1, 0.5f, 0.5f), new Vector3f(1, 0, 0.5f), new Vector3f(1, 0, 0), new Vector3f(1, 0.5f, 0)));
+        map.put(new FaceCorner(Direction.WEST, LU), List.of(new Vector3f(0, 1, 0), new Vector3f(0, 0.5f, 0), new Vector3f(0, 0.5f, 0.5f), new Vector3f(0, 1, 0.5f)));
+        map.put(new FaceCorner(Direction.WEST, RU), List.of(new Vector3f(0, 1, 0.5f), new Vector3f(0, 0.5f, 0.5f), new Vector3f(0, 0.5f, 1), new Vector3f(0, 1, 1)));
+        map.put(new FaceCorner(Direction.WEST, LD), List.of(new Vector3f(0, 0.5f, 0), new Vector3f(0, 0, 0), new Vector3f(0, 0, 0.5f), new Vector3f(0, 0.5f, 0.5f)));
+        map.put(new FaceCorner(Direction.WEST, RD), List.of(new Vector3f(0, 0.5f, 0.5f), new Vector3f(0, 0, 0.5f), new Vector3f(0, 0, 1), new Vector3f(0, 0.5f, 1)));
+        map.put(new FaceCorner(Direction.SOUTH, LU), List.of(new Vector3f(0, 1, 1), new Vector3f(0, 0.5f, 1), new Vector3f(0.5f, 0.5f, 1), new Vector3f(0.5f, 1, 1)));
+        map.put(new FaceCorner(Direction.SOUTH, RU), List.of(new Vector3f(0.5f, 1, 1), new Vector3f(0.5f, 0.5f, 1), new Vector3f(1, 0.5f, 1), new Vector3f(1, 1, 1)));
+        map.put(new FaceCorner(Direction.SOUTH, LD), List.of(new Vector3f(0, 0.5f, 1), new Vector3f(0, 0, 1), new Vector3f(0.5f, 0, 1), new Vector3f(0.5f, 0.5f, 1)));
+        map.put(new FaceCorner(Direction.SOUTH, RD), List.of(new Vector3f(0.5f, 0.5f, 1), new Vector3f(0.5f, 0, 1), new Vector3f(1, 0, 1), new Vector3f(1, 0.5f, 1)));
+        map.put(new FaceCorner(Direction.NORTH, LU), List.of(new Vector3f(1, 1, 0), new Vector3f(1, 0.5f, 0), new Vector3f(0.5f, 0.5f, 0), new Vector3f(0.5f, 1, 0)));
+        map.put(new FaceCorner(Direction.NORTH, RU), List.of(new Vector3f(0.5f, 1, 0), new Vector3f(0.5f, 0.5f, 0), new Vector3f(0, 0.5f, 0), new Vector3f(0, 1, 0)));
+        map.put(new FaceCorner(Direction.NORTH, LD), List.of(new Vector3f(1, 0.5f, 0), new Vector3f(1, 0, 0), new Vector3f(0.5f, 0, 0), new Vector3f(0.5f, 0.5f, 0)));
+        map.put(new FaceCorner(Direction.NORTH, RD), List.of(new Vector3f(0.5f, 0.5f, 0), new Vector3f(0.5f, 0, 0), new Vector3f(0, 0, 0), new Vector3f(0, 0.5f, 0)));
+        map.put(new FaceCorner(Direction.UP, LU), List.of(new Vector3f(0, 1, 1), new Vector3f(0.5f, 1, 1), new Vector3f(0.5f, 1, 0.5f), new Vector3f(0, 1, 0.5f)));
+        map.put(new FaceCorner(Direction.UP, RU), List.of(new Vector3f(0, 1, 0.5f), new Vector3f(0.5f, 1, 0.5f), new Vector3f(0.5f, 1, 0), new Vector3f(0, 1, 0)));
+        map.put(new FaceCorner(Direction.UP, LD), List.of(new Vector3f(0.5f, 1, 1), new Vector3f(1, 1, 1), new Vector3f(1, 1, 0.5f), new Vector3f(0.5f, 1, 0.5f)));
+        map.put(new FaceCorner(Direction.UP, RD), List.of(new Vector3f(0.5f, 1, 0.5f), new Vector3f(1, 1, 0.5f), new Vector3f(1, 1, 0), new Vector3f(0.5f, 1, 0)));
+        map.put(new FaceCorner(Direction.DOWN, LU), List.of(new Vector3f(1, 0, 1), new Vector3f(0.5f, 0, 1), new Vector3f(0.5f, 0, 0.5f), new Vector3f(1, 0, 0.5f)));
+        map.put(new FaceCorner(Direction.DOWN, RU), List.of(new Vector3f(1, 0, 0.5f), new Vector3f(0.5f, 0, 0.5f), new Vector3f(0.5f, 0, 0), new Vector3f(1, 0, 0)));
+        map.put(new FaceCorner(Direction.DOWN, LD), List.of(new Vector3f(0.5f, 0, 1), new Vector3f(0, 0, 1), new Vector3f(0, 0, 0.5f), new Vector3f(0.5f, 0, 0.5f)));
+        map.put(new FaceCorner(Direction.DOWN, RD), List.of(new Vector3f(0.5f, 0, 0.5f), new Vector3f(0, 0, 0.5f), new Vector3f(0, 0, 0), new Vector3f(0.5f, 0, 0)));
+        // spotless:on
+        return map;
+    }
+
+    private void putVertex(
+            QuadBakingVertexConsumer builder,
+            Material.Baked sprite,
+            Vec3i normal,
+            float x,
+            float y,
+            float z,
+            float u,
+            float v) {
+        builder.addVertex(x, y, z);
+        builder.setColor(1.0f, 1.0f, 1.0f, 1.0f);
+        builder.setNormal((float) normal.getX(), (float) normal.getY(), (float) normal.getZ());
+        u = sprite.sprite().getU(u);
+        v = sprite.sprite().getV(v);
+        builder.setUv(u, v);
+    }
+
+    private float getU0(int index) {
+        return switch (index) {
+            case 1, 3 -> 0.5f;
+            default -> 0;
+        };
+    }
+
+    private float getU1(int index) {
+        return switch (index) {
+            case 1, 3 -> 1;
+            default -> 0.5f;
+        };
+    }
+
+    private float getV0(int index) {
+        return switch (index) {
+            case 2, 3 -> 0.5f;
+            default -> 0;
+        };
+    }
+
+    private float getV1(int index) {
+        return switch (index) {
+            case 2, 3 -> 1;
+            default -> 0.5f;
+        };
+    }
+
+    private static class Connect {
+
+        private final boolean[][][] connects = new boolean[3][3][3];
+        private int face;
+
+        int getFace(Direction face) {
+            if (blocked(face)) {
+                return -1;
+            }
+            return this.face;
+        }
+
+        void init(BlockPos pos) {
+            this.face = Math.abs((pos.getX() ^ pos.getY() ^ pos.getZ()) % 3);
+        }
+
+        void set(int x, int y, int z) {
+            this.connects[x + 1][y + 1][z + 1] = true;
+        }
+
+        int getIndex(Direction face, int corner) {
+            if (blocked(face)) {
+                return -1;
+            }
+            return switch (face) {
+                case WEST, EAST: {
+                    yield getIndexX(face, corner);
+                }
+                case DOWN, UP: {
+                    yield getIndexY(face, corner);
+                }
+                case NORTH, SOUTH: {
+                    yield getIndexZ(face, corner);
+                }
+            };
+        }
+
+        boolean blocked(Direction face) {
+            var pos = face.getUnitVec3i().offset(1, 1, 1);
+            return this.connects[pos.getX()][pos.getY()][pos.getZ()];
+        }
+
+        int getIndexX(Direction face, int corner) {
+            int x = face.getStepX();
+            return switch (corner) {
+                case LU -> getIndex(this.connects[1][1][1 + x], this.connects[1][2][1], this.connects[1][2][1 + x]);
+                case RU -> getIndex(this.connects[1][1][1 - x], this.connects[1][2][1], this.connects[1][2][1 - x]);
+                case LD -> getIndex(this.connects[1][1][1 + x], this.connects[1][0][1], this.connects[1][0][1 + x]);
+                case RD -> getIndex(this.connects[1][1][1 - x], this.connects[1][0][1], this.connects[1][0][1 - x]);
+                default -> -1;
+            };
+        }
+
+        int getIndexZ(Direction face, int corner) {
+            int z = face.getStepZ();
+            return switch (corner) {
+                case LU -> getIndex(this.connects[1 - z][1][1], this.connects[1][2][1], this.connects[1 - z][2][1]);
+                case RU -> getIndex(this.connects[1 + z][1][1], this.connects[1][2][1], this.connects[1 + z][2][1]);
+                case LD -> getIndex(this.connects[1 - z][1][1], this.connects[1][0][1], this.connects[1 - z][0][1]);
+                case RD -> getIndex(this.connects[1 + z][1][1], this.connects[1][0][1], this.connects[1 + z][0][1]);
+                default -> -1;
+            };
+        }
+
+        int getIndexY(Direction face, int corner) {
+            int y = face.getStepY();
+            return switch (corner) {
+                case LU -> getIndex(this.connects[1][1][2], this.connects[1 - y][1][1], this.connects[1 - y][1][2]);
+                case RU -> getIndex(this.connects[1][1][0], this.connects[1 - y][1][1], this.connects[1 - y][1][0]);
+                case LD -> getIndex(this.connects[1][1][2], this.connects[1 + y][1][1], this.connects[1 + y][1][2]);
+                case RD -> getIndex(this.connects[1][1][0], this.connects[1 + y][1][1], this.connects[1 + y][1][0]);
+                default -> -1;
+            };
+        }
+
+        /**
+         * cbc <br>
+         * axa <br>
+         * cbc <br>
+         */
+        @SuppressWarnings("ConstantValue")
+        int getIndex(boolean a, boolean b, boolean c) {
+            if (!a && !b) {
+                return 0;
+            }
+            if (a && b && !c) {
+                return 1;
+            }
+            if (!a && b) {
+                return 2;
+            }
+            if (a && !b) {
+                return 3;
+            }
+            return -1;
+        }
+    }
+
+    private Vector3f getNormalStep(Vec3i normal) {
+        return getNormalStep(normal, 1);
+    }
+
+    private Vector3f getNormalStep(Vec3i normal, float multiplier) {
+        return new Vector3f(
+                getNormalStep(normal.getX(), multiplier),
+                getNormalStep(normal.getY(), multiplier),
+                getNormalStep(normal.getZ(), multiplier));
+    }
+
+    private float getNormalStep(int step, float multiplier) {
+        return multiplier * (step > 0 ? 0.002f : step < 0 ? -0.002f : 0);
+    }
+
+    private record FaceCorner(Direction face, int corner) {}
+}

@@ -1,0 +1,707 @@
+package guideme.internal.siteexport;
+
+import com.google.common.io.MoreFiles;
+import com.google.common.io.RecursiveDeleteOption;
+import guideme.Guide;
+import guideme.GuidePage;
+import guideme.compiler.PageCompiler;
+import guideme.compiler.ParsedGuidePage;
+import guideme.indices.CategoryIndex;
+import guideme.indices.ItemIndex;
+import guideme.internal.GuideME;
+import guideme.internal.GuideOnStartup;
+import guideme.internal.siteexport.mdastpostprocess.PageExportPostProcessor;
+import guideme.internal.util.Platform;
+import guideme.navigation.NavigationNode;
+import guideme.siteexport.ExportableResourceProvider;
+import guideme.siteexport.RecipeExporter;
+import guideme.siteexport.ResourceExporter;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.IntUnaryOperator;
+import net.minecraft.ChatFormatting;
+import net.minecraft.DetectedVersion;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.LoadingOverlay;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.renderer.item.ItemStackRenderState;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.client.resources.model.geometry.BakedQuad;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemDisplayContext;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemStackTemplate;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.crafting.AbstractCookingRecipe;
+import net.minecraft.world.item.crafting.CraftingRecipe;
+import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.crafting.RecipeHolder;
+import net.minecraft.world.item.crafting.SingleItemRecipe;
+import net.minecraft.world.item.crafting.SmithingRecipe;
+import net.minecraft.world.item.crafting.display.FurnaceRecipeDisplay;
+import net.minecraft.world.item.crafting.display.RecipeDisplay;
+import net.minecraft.world.item.crafting.display.ShapedCraftingRecipeDisplay;
+import net.minecraft.world.item.crafting.display.ShapelessCraftingRecipeDisplay;
+import net.minecraft.world.item.crafting.display.SlotDisplay;
+import net.minecraft.world.item.crafting.display.SmithingRecipeDisplay;
+import net.minecraft.world.item.crafting.display.StonecutterRecipeDisplay;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.material.Fluid;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.loader.api.FabricLoader;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.mutable.MutableBoolean;
+import org.jetbrains.annotations.ApiStatus;
+import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * Exports a data package for use by the website.
+ */
+public class SiteExporter implements ResourceExporter {
+
+    private static final Logger LOG = LoggerFactory.getLogger(SiteExporter.class);
+
+    private static final int NATIVE_ICON_DIMENSION = 16;
+    private static final int ICON_SCALE = 8;
+    private static final int ICON_DIMENSION = ICON_SCALE * NATIVE_ICON_DIMENSION;
+
+    private final Minecraft client;
+    private final Map<Identifier, String> exportedTextures = new HashMap<>();
+
+    private final Path outputFolder;
+
+    private final Guide guide;
+
+    private ParsedGuidePage currentPage;
+
+    private final Set<RecipeHolder<?>> recipes = new HashSet<>();
+
+    private final Set<Item> items = new HashSet<>();
+
+    private final Set<Fluid> fluids = new HashSet<>();
+
+    private final Map<Identifier, Object> extraData = new HashMap<>();
+
+    private final List<Runnable> cleanupCallbacks = new ArrayList<>();
+
+    public SiteExporter(Minecraft client, Path outputFolder, Guide guide) {
+        this.client = client;
+        this.outputFolder = outputFolder;
+        this.guide = guide;
+
+        // Reference resources used by our own recipe displays
+        referenceItem(Blocks.CRAFTING_TABLE);
+        referenceItem(Blocks.SMITHING_TABLE);
+        referenceItem(Blocks.STONECUTTER);
+        referenceItem(Items.FURNACE);
+    }
+
+    /**
+     * Export on the next tick.
+     */
+    public void exportOnNextTickAndExit(Runnable completionCallback, Consumer<Exception> errorCallback) {
+        var exportDone = new MutableBoolean();
+        // Fabric events cannot be unregistered, so the listener simply does nothing once the export is done
+        ClientTickEvents.END_CLIENT_TICK.register(minecraft -> {
+            if (exportDone.getValue() || client.gui.overlay() instanceof LoadingOverlay) {
+                return; // Do nothing while it's loading
+            }
+
+            exportDone.setTrue();
+            try {
+                export();
+            } catch (Exception e) {
+                errorCallback.accept(e);
+            }
+            completionCallback.run();
+        });
+    }
+
+    public void export(ExportFeedbackSink feedback) {
+        try {
+            export();
+
+            feedback.sendFeedback(Component.literal("Guide data exported to ")
+                    .append(Component.literal("[" + outputFolder.getFileName().toString() + "]")
+                            .withStyle(style -> style
+                                    .withClickEvent(
+                                            new ClickEvent.OpenFile(outputFolder.toString()))
+                                    .withHoverEvent(
+                                            new HoverEvent.ShowText(Component.literal("Click to open export folder")))
+                                    .applyFormats(ChatFormatting.UNDERLINE, ChatFormatting.GREEN))));
+        } catch (Exception e) {
+            e.printStackTrace();
+            feedback.sendError(Component.literal(e.toString()));
+        }
+    }
+
+    @Override
+    public void referenceItem(ItemStack stack) {
+        if (!stack.isEmpty()) {
+            items.add(stack.getItem());
+            if (!stack.getComponentsPatch().isEmpty()) {
+                LOG.error("Couldn't handle stack with NBT tag: {}", stack);
+            }
+        }
+    }
+
+    @Override
+    public void referenceItem(ItemStackTemplate stack) {
+        if (stack != null) {
+            items.add(stack.item().value());
+            if (!stack.components().isEmpty()) {
+                LOG.error("Couldn't handle stack with NBT tag: {}", stack);
+            }
+        }
+    }
+
+    @Override
+    public void referenceFluid(Fluid fluid) {
+        fluids.add(fluid);
+    }
+
+    @Override
+    public void referenceSlotDisplay(SlotDisplay display) {
+        for (var stack : display.resolveForStacks(Platform.getSlotDisplayContext())) {
+            referenceItem(stack);
+        }
+    }
+
+    @Override
+    public void referenceIngredient(Ingredient ingredient) {
+        for (var stack : ingredient.items().toList()) {
+            referenceItem(stack.value());
+        }
+    }
+
+    @Override
+    public void referenceRecipe(RecipeHolder<?> holder) {
+        if (!recipes.add(holder)) {
+            return; // Already added
+        }
+
+        // we use displays to discover items we need to reference
+        for (var recipeDisplay : holder.value().display()) {
+            visitDisplays(recipeDisplay, display -> {
+                display.resolve(Platform.getSlotDisplayContext(), SlotDisplay.ItemStackContentsFactory.INSTANCE)
+                        .forEach(this::referenceItem);
+                // Vanilla has no way to resolve fluids from slot displays (NeoForge adds one)
+            });
+        }
+    }
+
+    @Override
+    public void addExtraData(Identifier key, Object value) {
+        if (extraData.put(key, value) != null) {
+            throw new IllegalStateException("Duplicate key: " + key);
+        }
+    }
+
+    private void visitDisplays(RecipeDisplay recipe, Consumer<SlotDisplay> visitor) {
+        visitor.accept(recipe.result());
+        visitor.accept(recipe.craftingStation());
+
+        switch (recipe) {
+            case ShapedCraftingRecipeDisplay craftingRecipe -> {
+                for (var display : craftingRecipe.ingredients()) {
+                    visitor.accept(display);
+                }
+            }
+            case ShapelessCraftingRecipeDisplay craftingRecipe -> {
+                for (var display : craftingRecipe.ingredients()) {
+                    visitor.accept(display);
+                }
+            }
+            case SmithingRecipeDisplay smithingTransformRecipe -> {
+                visitor.accept(smithingTransformRecipe.base());
+                visitor.accept(smithingTransformRecipe.template());
+                visitor.accept(smithingTransformRecipe.addition());
+            }
+            case FurnaceRecipeDisplay furnaceRecipeDisplay -> {
+                visitor.accept(furnaceRecipeDisplay.ingredient());
+                visitor.accept(furnaceRecipeDisplay.result());
+            }
+            case StonecutterRecipeDisplay stonecutterRecipeDisplay -> {
+                visitor.accept(stonecutterRecipeDisplay.input());
+                visitor.accept(stonecutterRecipeDisplay.result());
+            }
+            default -> {
+            }
+        }
+    }
+
+    private void dumpRecipes(SiteExportWriter writer) {
+        for (var holder : recipes) {
+            var id = holder.id();
+            var recipe = holder.value();
+
+            boolean handled = false;
+            for (var recipeExporter : guide.getExtensions().get(RecipeExporter.EXTENSION_POINT)) {
+                var recipeData = recipeExporter.convertToJson(id, recipe, this);
+                if (recipeData != null) {
+                    writer.addRecipe(id, recipe, recipeData);
+                    handled = true;
+                    break;
+                }
+            }
+
+            if (handled) {
+                continue;
+            }
+
+            if (recipe instanceof CraftingRecipe craftingRecipe) {
+                if (craftingRecipe.isSpecial()) {
+                    continue;
+                }
+                writer.addRecipe(id, craftingRecipe);
+            } else if (recipe instanceof AbstractCookingRecipe cookingRecipe) {
+                writer.addRecipe(id, cookingRecipe);
+            } else if (recipe instanceof SmithingRecipe smithingRecipe) {
+                writer.addRecipe(id, smithingRecipe);
+            } else if (recipe instanceof SingleItemRecipe singleItemRecipe) {
+                writer.addRecipe(id, singleItemRecipe);
+            } else {
+                var recipeFields = getCustomRecipeFields(id, recipe);
+                if (recipeFields != null) {
+                    writer.addRecipe(id, recipe, recipeFields);
+                } else {
+                    LOG.warn("Unable to handle recipe {} of type {}", holder.id(), recipe.getType());
+                }
+            }
+        }
+    }
+
+    /**
+     * Override this method to handle custom recipes by returning additional JSON fields to be added to the exported
+     * recipe object. Returning null will skip exporting this recipe.
+     */
+    @Nullable
+    @ApiStatus.OverrideOnly
+    protected Map<String, Object> getCustomRecipeFields(ResourceKey<Recipe<?>> id, Recipe<?> recipe) {
+        return null;
+    }
+
+    @Override
+    public Path copyResource(Identifier id) {
+        try {
+            var pagePath = getPathForWriting(id);
+            byte[] bytes = guide.loadAsset(id);
+            if (bytes == null) {
+                throw new IllegalArgumentException("Couldn't find asset " + id);
+            }
+            return CacheBusting.writeAsset(pagePath, bytes);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to copy resource " + id, e);
+        }
+    }
+
+    @Override
+    public Path getPathForWriting(Identifier assetId) {
+        try {
+            var path = resolvePath(assetId);
+            Files.createDirectories(path.getParent());
+            return path;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public Path getOutputFolder() {
+        return outputFolder;
+    }
+
+    @Override
+    public Identifier getPageSpecificResourceLocation(String suffix) {
+        var path = currentPage.getId().getPath();
+        var idx = path.lastIndexOf('.');
+        if (idx != -1) {
+            path = path.substring(0, idx);
+        }
+        return Identifier.fromNamespaceAndPath(currentPage.getId().getNamespace(), path + "_" + suffix);
+    }
+
+    @Override
+    public Path getPageSpecificPathForWriting(String suffix) {
+        // Build filename
+        var pageFilename = currentPage.getId().getPath();
+        var filename = FilenameUtils.getBaseName(pageFilename) + "_" + suffix;
+
+        var pagePath = resolvePath(currentPage.getId());
+        var path = pagePath.resolveSibling(filename);
+
+        try {
+            Files.createDirectories(path.getParent());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        return path;
+    }
+
+    @Override
+    public @Nullable Identifier getCurrentPageId() {
+        return currentPage != null ? currentPage.getId() : null;
+    }
+
+    public void export() throws Exception {
+        if (Files.isDirectory(outputFolder)) {
+            MoreFiles.deleteDirectoryContents(outputFolder, RecursiveDeleteOption.ALLOW_INSECURE);
+        } else {
+            Files.createDirectories(outputFolder);
+        }
+
+        // Load data packs if needed
+        if (client.level == null) {
+            LOG.info("Reloading datapacks to get recipes");
+            GuideOnStartup.runDatapackReload();
+            LOG.info("Completed datapack reload");
+        }
+
+        // Reference all navigation node icons
+        guide.getNavigationTree().getRootNodes().forEach(this::visitNavigationNodeIcons);
+
+        var indexWriter = new SiteExportWriter(guide);
+
+        for (var page : guide.getPages()) {
+            currentPage = page;
+
+            LOG.debug("Compiling {}", page);
+            var compiledPage = PageCompiler.compile(guide, guide.getExtensions(), page);
+
+            processPage(indexWriter, page, compiledPage);
+
+            // Post-Process the parsed Markdown AST and export it as JSON into the index directly
+            ExportableResourceProvider.visit(compiledPage.document(), SiteExporter.this);
+        }
+
+        dumpRecipes(indexWriter);
+
+        processItems(client, indexWriter, outputFolder);
+        processFluids(client, indexWriter, outputFolder);
+
+        indexWriter.addIndex(guide, ItemIndex.class);
+        indexWriter.addIndex(guide, CategoryIndex.class);
+
+        var guideContent = outputFolder.resolve("guide.json.gz");
+        byte[] content = indexWriter.toByteArray();
+
+        guideContent = CacheBusting.writeAsset(guideContent, content);
+
+        // Write an uncompressed summary
+        writeSummary(guideContent.getFileName().toString());
+
+        cleanupCallbacks.forEach(Runnable::run);
+        cleanupCallbacks.clear();
+    }
+
+    private void visitNavigationNodeIcons(NavigationNode navigationNode) {
+        referenceItem(navigationNode.icon());
+        navigationNode.children().forEach(this::visitNavigationNodeIcons);
+    }
+
+    private void processPage(SiteExportWriter exportWriter,
+            ParsedGuidePage page,
+            GuidePage compiledPage) {
+
+        // Run post-processors on the AST
+        PageExportPostProcessor.postprocess(this, page, compiledPage);
+
+        exportWriter.addPage(page);
+    }
+
+    private void writeSummary(String guideDataFilename) throws IOException {
+        var modVersion = getModVersion();
+        var guideMeVersion = getGuideMeVersion();
+        var generated = Instant.now().toEpochMilli();
+        var gameVersion = DetectedVersion.tryDetectVersion();
+
+        // This file is not accessed via the CDN and thus doesn't need a cache-busting name
+        try (var writer = Files.newBufferedWriter(outputFolder.resolve("index.json"), StandardCharsets.UTF_8)) {
+            var jsonWriter = SiteExportWriter.GSON.newJsonWriter(writer);
+            jsonWriter.beginObject();
+            jsonWriter.name("format").value(1);
+            jsonWriter.name("generated").value(generated);
+
+            // Since 26.1, it's possible to get a better idea of which major version a target MC version belongs to
+            String gameMajorVersion = gameVersion.id();
+            if (gameMajorVersion.contains("-")) {
+                gameMajorVersion = gameMajorVersion.split("-")[0];
+            }
+            gameMajorVersion = String.join(".", Arrays.asList(gameMajorVersion.split("\\.")).subList(0, 2));
+            jsonWriter.name("gameMajorVersion").value(gameMajorVersion);
+            jsonWriter.name("gameVersion").value(gameVersion.id());
+            jsonWriter.name("gameVersionName").value(gameVersion.name());
+            if (!gameVersion.stable()) {
+                jsonWriter.name("gameVersionStable").value(gameVersion.stable());
+            }
+            jsonWriter.name("modVersion").value(modVersion);
+            jsonWriter.name("guideMeVersion").value(guideMeVersion);
+            jsonWriter.name("guideDataPath").value(guideDataFilename);
+            jsonWriter.endObject();
+        }
+    }
+
+    private String getModVersion() {
+        // Prefer the use of a version set via system property
+        var modVersion = System.getProperty(
+                "guideme.exportModVersion." + guide.getId().getNamespace() + "." + guide.getId().getPath());
+        if (modVersion != null) {
+            return modVersion;
+        }
+
+        return FabricLoader.getInstance().getModContainer(guide.getId().getNamespace())
+                .map(mc -> mc.getMetadata().getVersion().getFriendlyString())
+                .orElse("unknown");
+    }
+
+    private String getGuideMeVersion() {
+        return FabricLoader.getInstance().getModContainer(GuideME.MOD_ID).orElseThrow().getMetadata().getVersion()
+                .getFriendlyString();
+    }
+
+    private Path resolvePath(Identifier id) {
+        return outputFolder.resolve(id.getNamespace() + "/" + id.getPath());
+    }
+
+    private void processItems(Minecraft client,
+            SiteExportWriter siteExport,
+            Path outputFolder) throws IOException {
+        var iconsFolder = outputFolder.resolve("!items");
+        if (Files.exists(iconsFolder)) {
+            MoreFiles.deleteRecursively(iconsFolder, RecursiveDeleteOption.ALLOW_INSECURE);
+        }
+
+        try (var ignored = new IconViewportContext(client);
+                var renderer = new OffScreenRenderer(ICON_DIMENSION, ICON_DIMENSION)) {
+            var guiGraphics = new GuiGraphicsExtractor(client, client.gameRenderer.gameRenderState().guiRenderState,
+                    0, 0);
+
+            LOG.info("Exporting items...");
+            for (var item : items) {
+                var stack = new ItemStack(item);
+
+                var itemId = getItemId(stack.getItem()).toString();
+                var baseName = "!items/" + itemId.replace(':', '/');
+
+                // Guess used sprites from item model
+                var renderState = new ItemStackRenderState();
+                client.getItemModelResolver().appendItemLayers(renderState, stack, ItemDisplayContext.GUI, null, null,
+                        0);
+
+                var quadLists = new HashSet<List<BakedQuad>>();
+                for (var layer : renderState.layers) {
+                    quadLists.add(layer.quads.all());
+                }
+
+                var sprites = guessSprites(quadLists);
+
+                var iconPath = renderAndWrite(renderer, baseName, () -> {
+                    client.gameRenderer.gameRenderState().guiRenderState.reset();
+                    guiGraphics.item(stack, 0, 0);
+                    guiGraphics.itemDecorations(client.font, stack, 0, 0, "");
+                    client.gameRenderer.guiRenderer.render();
+                }, sprites, true);
+
+                String absIconUrl = "/" + outputFolder.relativize(iconPath).toString().replace('\\', '/');
+                siteExport.addItem(itemId, stack, absIconUrl);
+            }
+        }
+    }
+
+    private Set<TextureAtlasSprite> guessSprites(Collection<List<BakedQuad>> quadLists) {
+        var result = Collections.newSetFromMap(new IdentityHashMap<TextureAtlasSprite, Boolean>());
+
+        for (var quadList : quadLists) {
+            for (var quad : quadList) {
+                result.add(quad.materialInfo().sprite());
+            }
+        }
+
+        return result;
+    }
+
+    private void processFluids(Minecraft client,
+            SiteExportWriter siteExport,
+            Path outputFolder) throws IOException {
+        var fluidsFolder = outputFolder.resolve("!fluids");
+        if (Files.exists(fluidsFolder)) {
+            MoreFiles.deleteRecursively(fluidsFolder, RecursiveDeleteOption.ALLOW_INSECURE);
+        }
+
+        try (var ignored = new IconViewportContext(client);
+                var renderer = new OffScreenRenderer(ICON_DIMENSION, ICON_DIMENSION)) {
+            var guiGraphics = new GuiGraphicsExtractor(client, client.gameRenderer.gameRenderState().guiRenderState,
+                    0, 0);
+
+            LOG.info("Exporting fluids...");
+            for (var fluid : fluids) {
+                var model = Minecraft.getInstance()
+                        .getModelManager()
+                        .getFluidStateModelSet()
+                        .get(fluid.defaultFluidState());
+                String fluidId = BuiltInRegistries.FLUID.getKey(fluid).toString();
+
+                var sprite = model.stillMaterial().sprite();
+                var color = model.tintSource() != null ? model.tintSource().color(fluid.defaultFluidState().createLegacyBlock())
+                        : -1;
+
+                var baseName = "!fluids/" + fluidId.replace(':', '/');
+                var iconPath = renderAndWrite(
+                        renderer,
+                        baseName,
+                        () -> {
+                            client.gameRenderer.gameRenderState().guiRenderState.reset();
+                            guiGraphics.blitSprite(RenderPipelines.GUI_TEXTURED, sprite, 0, 0, 16, 16, color);
+                            client.gameRenderer.guiRenderer.render();
+                        },
+                        Set.of(sprite),
+                        false /*
+                               * no alpha for fluids since water is translucent but there's nothing behind it in our
+                               * icons
+                               */
+                );
+
+                String absIconUrl = "/" + outputFolder.relativize(iconPath).toString().replace('\\', '/');
+                siteExport.addFluid(fluidId, FluidVariant.of(fluid), absIconUrl);
+            }
+        }
+
+    }
+
+    public Path renderAndWrite(OffScreenRenderer renderer,
+            String baseName,
+            Runnable renderRunnable,
+            Collection<TextureAtlasSprite> sprites,
+            boolean withAlpha) throws IOException {
+        String extension;
+        byte[] content;
+        if (renderer.isAnimated(sprites)) {
+            extension = ".webp";
+            content = renderer.captureAsWebp(
+                    renderRunnable,
+                    sprites,
+                    withAlpha ? WebPExporter.Format.LOSSLESS_ALPHA : WebPExporter.Format.LOSSLESS);
+        } else {
+            extension = ".png";
+            content = renderer.captureAsPng(renderRunnable);
+        }
+
+        var iconPath = outputFolder.resolve(baseName + extension);
+        Files.createDirectories(iconPath.getParent());
+        return CacheBusting.writeAsset(iconPath, content);
+    }
+
+    @Override
+    public String exportTexture(Identifier textureId) {
+        var exportedPath = exportedTextures.get(textureId);
+        if (exportedPath != null) {
+            return exportedPath;
+        }
+
+        Identifier id = textureId;
+        if (!id.getPath().endsWith(".png")) {
+            id = Identifier.fromNamespaceAndPath(id.getNamespace(), id.getPath() + ".png");
+        }
+
+        var outputPath = getPathForWriting(id);
+
+        var texture = Minecraft.getInstance().getTextureManager().getTexture(textureId);
+
+        byte[] imageContent;
+        try (var nativeImage = TextureDownloader.downloadTexture(texture.getTexture(), 0,
+                IntUnaryOperator.identity())) {
+            imageContent = Platform.exportAsPng(nativeImage);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        try {
+            outputPath = CacheBusting.writeAsset(outputPath, imageContent);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to export texture " + textureId, e);
+        }
+        exportedPath = getPathRelativeFromOutputFolder(outputPath);
+        exportedTextures.put(textureId, exportedPath);
+        return exportedPath;
+    }
+
+    private static Identifier getItemId(Item item) {
+        return BuiltInRegistries.ITEM.getKey(item);
+    }
+
+    private static Identifier getFluidId(Fluid fluid) {
+        return BuiltInRegistries.FLUID.getKey(fluid);
+    }
+
+    @Override
+    public void addCleanupCallback(Runnable runnable) {
+        cleanupCallbacks.add(runnable);
+    }
+
+    /**
+     * Sizes the window to a single icon at {@link #ICON_SCALE}, so GUI rendering fills the scaled-up buffer
+     */
+    private static final class IconViewportContext implements AutoCloseable {
+        private final Minecraft client;
+        private final int previousWidth;
+        private final int previousHeight;
+        private final int previousScale;
+
+        IconViewportContext(Minecraft client) {
+            this.client = client;
+
+            var window = client.getWindow();
+            previousWidth = window.getWidth();
+            previousHeight = window.getHeight();
+            previousScale = window.getGuiScale();
+
+            apply(ICON_DIMENSION, ICON_DIMENSION, ICON_SCALE);
+        }
+
+        private void apply(int width, int height, int guiScale) {
+            // GuiGraphicsExtractor uses the Window
+            var window = client.getWindow();
+            window.setWidth(width);
+            window.setHeight(height);
+            window.setGuiScale(guiScale);
+
+            // GuiRenderer uses this per-frame snapshot, normally only refreshed at the start of each frame
+            var windowState = client.gameRenderer.gameRenderState().windowRenderState;
+            windowState.width = width;
+            windowState.height = height;
+            windowState.guiScale = guiScale;
+        }
+
+        @Override
+        public void close() {
+            apply(previousWidth, previousHeight, previousScale);
+        }
+    }
+
+}

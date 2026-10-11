@@ -1,0 +1,115 @@
+plugins {
+    id 'net.fabricmc.fabric-loom'
+}
+
+// One jar that contains AE2 and all ported addons as nested jars (Fabric's jar-in-jar). Each mod keeps its own mod
+// id, config and data, so worlds are compatible with installing the mods separately.
+// ./gradlew :pack:build -> pack/build/libs/ae2-fabric-pack-<version>.jar
+version = project.pack_version
+group = "appeng"
+
+base {
+    archivesName = "ae2-fabric-pack"
+}
+
+repositories {
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = "Modrinth"
+                url = "https://api.modrinth.com/maven"
+            }
+        }
+        filter {
+            includeGroup "maven.modrinth"
+        }
+    }
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = "BlameJared"
+                url = "https://maven.blamejared.com"
+            }
+        }
+        filter {
+            includeGroup "mezz.jei"
+            includeGroup "net.mezzdev.config"
+        }
+    }
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = "TerraformersMC"
+                url = "https://maven.terraformersmc.com/releases"
+            }
+        }
+        filter {
+            includeGroup "com.terraformersmc"
+        }
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${rootProject.minecraft_version}"
+    implementation "net.fabricmc:fabric-loader:${rootProject.loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${rootProject.fabric_api_version}"
+
+    // AE2 (contains GuideME and Team Reborn Energy)
+    include project(":")
+    // Advanced AE (contains AE2AddonLib) and GeckoLib (MIT), which it needs for the quantum armor
+    include project(":advancedae")
+    include "maven.modrinth:geckolib:${rootProject.geckolib_version}"
+    // ExtendedAE with GlodBlock's library and ae2wtlib
+    include project(":glodium")
+    include project(":ae2wtlib")
+    include project(":extendedae")
+    // Applied Flux: energy in storage cells
+    include project(":appflux")
+}
+
+processResources {
+    def version = project.version
+    inputs.property "version", version
+    filesMatching("fabric.mod.json") {
+        expand "version": version
+    }
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+}
+
+// Runs the client game tests of Advanced AE, ExtendedAE and Applied Flux against the bundle, the way players install it:
+// ./gradlew :pack:prodClientGameTest
+configurations {
+    productionRuntimeMods {
+        transitive = false
+    }
+}
+
+dependencies {
+    productionRuntimeMods "net.fabricmc.fabric-api:fabric-api:${rootProject.fabric_api_version}"
+    productionRuntimeMods fabricApi.module("fabric-client-gametest-api-v1", rootProject.fabric_api_version)
+    productionRuntimeMods "mezz.jei:jei-${rootProject.minecraft_version}-fabric:${rootProject.jei_version}"
+    productionRuntimeMods "maven.modrinth:jade:${rootProject.jade_version}"
+    productionRuntimeMods "com.terraformersmc:modmenu:${rootProject.modmenu_version}"
+}
+
+tasks.register("prodClientGameTest", net.fabricmc.loom.task.prod.ClientProductionRunTask) {
+    mods.from(tasks.named("jar"))
+    mods.from(project(":advancedae").tasks.named("gametestJar"))
+    mods.from(project(":extendedae").tasks.named("gametestJar"))
+    mods.from(project(":appflux").tasks.named("gametestJar"))
+    mods.from(configurations.productionRuntimeMods)
+    jvmArgs.add("-Dfabric.client.gametest")
+    runDir = layout.buildDirectory.dir("run/prodClientGameTest")
+    useXVFB = false
+}
+
+// Starts a dedicated server with the bundle: ./gradlew :pack:prodServer
+tasks.register("prodServer", net.fabricmc.loom.task.prod.ServerProductionRunTask) {
+    mods.from(tasks.named("jar"))
+    mods.from(configurations.productionRuntimeMods)
+    runDir = layout.buildDirectory.dir("run/prodServer")
+}

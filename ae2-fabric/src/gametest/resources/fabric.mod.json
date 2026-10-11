@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "ae2-gametest",
+  "version": "1.0.0",
+  "name": "Applied Energistics 2 Game Tests",
+  "description": "Client game tests for the Fabric port of Applied Energistics 2. Not shipped with the mod.",
+  "license": "LGPL-3.0-only",
+  "environment": "*",
+  "entrypoints": {
+    "fabric-client-gametest": [
+      "appeng.gametest.AE2ClientGameTest"
+    ],
+    "jei_mod_plugin": [
+      "appeng.gametest.TestJeiPlugin"
+    ]
+  },
+  "depends": {
+    "ae2": "*"
+  }
+}

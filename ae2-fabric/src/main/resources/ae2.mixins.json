@@ -1,0 +1,40 @@
+{
+  "required": true,
+  "minVersion": "0.8.3",
+  "package": "appeng.mixins",
+  "compatibilityLevel": "JAVA_21",
+  "plugin": "appeng.mixins.ConfigPlugin",
+  "mixins": [
+    "chunkloading.ChunkMapMixin",
+    "spatial.MinecraftServerMixin",
+    "AnvilMenuMixin",
+    "EnchantmentHelperMixin",
+    "ItemEntityMixin",
+    "tests.TestInstanceBlockEntityMixin",
+    "tests.TestCommandMixin",
+    "tests.GameTestRegistrationMixin",
+    "StructureTemplateMixin",
+    "PlayerDestroySpeedMixin",
+    "LivingEntityClimbableMixin",
+    "LevelOutputSignalMixin",
+    "FireBlockMixin",
+    "GiveGiftToHeroMixin"
+  ],
+  "client": [
+    "client.AbstractContainerScreenMixin",
+    "client.GuiGraphicsMixin",
+    "client.WrappedGenericStackTooltipModIdMixin",
+    "client.PickColorMixin",
+    "client.PonderWorldMixin",
+    "client.PartModelLoaderMixin",
+    "client.ClientLevelParticlesMixin",
+    "client.SpatialStorageSkyMixin",
+    "client.SpatialStorageCloudsMixin",
+    "client.SpatialStorageWeatherMixin",
+    "client.MouseScrollMixin"
+  ],
+  "server": [],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

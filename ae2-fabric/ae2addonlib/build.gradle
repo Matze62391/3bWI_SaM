@@ -1,0 +1,63 @@
+plugins {
+    id 'net.fabricmc.fabric-loom'
+}
+
+// Fabric port of AE2AddonLib (https://github.com/pedroksl/AE2AddonLib), a library used by Advanced AE.
+// AE2AddonLib is licensed under the GPL-3.0, see LICENSE.
+version = project.ae2addonlib_version
+group = "io.github.pedroksl"
+
+base {
+    archivesName = "ae2addonlib-fabric"
+}
+
+sourceSets {
+    main {
+        java {
+            // Data generators are not ported (Advanced AE ships its generated resources); LibText is used at runtime
+            exclude "net/pedroksl/ae2addonlib/datagen/AE2AddonModelProvider.java"
+            exclude "net/pedroksl/ae2addonlib/datagen/DataGen.java"
+            exclude "net/pedroksl/ae2addonlib/datagen/LibLanguageProvider.java"
+            exclude "net/pedroksl/ae2addonlib/datagen/TestModelProvider.java"
+        }
+    }
+}
+
+loom {
+    accessWidenerPath = file("src/main/resources/ae2addonlib.classtweaker")
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${rootProject.minecraft_version}"
+    implementation "net.fabricmc:fabric-loader:${rootProject.loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${rootProject.fabric_api_version}"
+    compileOnly "com.google.code.findbugs:jsr305:3.0.2"
+
+    implementation project(":")
+    implementation project(":guideme")
+}
+
+processResources {
+    def version = project.version
+    inputs.property "version", version
+    filesMatching("fabric.mod.json") {
+        expand "version": version
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = 25
+    it.options.encoding = "UTF-8"
+    it.options.compilerArgs += ["-Xmaxerrs", "100000"]
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+}
+
+jar {
+    from("LICENSE") {
+        rename { "${it}_ae2addonlib" }
+    }
+}

@@ -1,0 +1,12 @@
+{
+  "type": "ae2:inscriber",
+  "ingredients": {
+    "bottom": "ae2:printed_silicon",
+    "middle": "#c:dusts/redstone",
+    "top": "extendedae:concurrent_processor_print"
+  },
+  "mode": "press",
+  "result": {
+    "id": "extendedae:concurrent_processor"
+  }
+}

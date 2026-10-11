@@ -1,0 +1,158 @@
+package guideme.render;
+
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
+import guideme.color.ColorValue;
+import guideme.color.LightDarkMode;
+import guideme.document.LytRect;
+import guideme.internal.GuideMEClient;
+import java.util.ArrayList;
+import java.util.List;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.render.TextureSetup;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.ItemStack;
+import org.joml.Matrix3x2f;
+import org.joml.Vector2f;
+
+public final class SimpleRenderContext implements RenderContext {
+    private final List<LytRect> viewportStack = new ArrayList<>();
+    private final GuiGraphicsExtractor guiGraphics;
+    private final LightDarkMode lightDarkMode;
+
+    public SimpleRenderContext(
+            LytRect viewport,
+            GuiGraphicsExtractor guiGraphics,
+            LightDarkMode lightDarkMode) {
+        this.viewportStack.add(viewport);
+        this.guiGraphics = guiGraphics;
+        this.lightDarkMode = lightDarkMode;
+    }
+
+    public SimpleRenderContext(LytRect viewport, GuiGraphicsExtractor guiGraphics) {
+        this(viewport, guiGraphics, GuideMEClient.currentLightDarkMode());
+    }
+
+    public SimpleRenderContext(GuiGraphicsExtractor guiGraphics) {
+        this(getDefaultViewport(), guiGraphics, GuideMEClient.currentLightDarkMode());
+    }
+
+    private static LytRect getDefaultViewport() {
+        var width = Minecraft.getInstance().getWindow().getGuiScaledWidth();
+        var height = Minecraft.getInstance().getWindow().getGuiScaledHeight();
+        return new LytRect(0, 0, width, height);
+    }
+
+    @Override
+    public int resolveColor(ColorValue ref) {
+        return ref.resolve(lightDarkMode);
+    }
+
+    @Override
+    public void fillRect(RenderPipeline pipeline, LytRect rect, ColorValue topLeft, ColorValue topRight,
+            ColorValue bottomRight,
+            ColorValue bottomLeft) {
+
+        guiGraphics.guiRenderState.addGuiElement(new GradientColoredRectangleRenderState(
+                pipeline,
+                TextureSetup.noTexture(),
+                new Matrix3x2f(poseStack()),
+                rect.x(),
+                rect.y(),
+                rect.right(),
+                rect.bottom(),
+                resolveColor(topLeft),
+                resolveColor(topRight),
+                resolveColor(bottomRight),
+                resolveColor(bottomLeft),
+                guiGraphics().scissorStack.peek()));
+    }
+
+    @Override
+    public void fillTexturedRect(LytRect rect, Identifier textureId, ColorValue topLeft, ColorValue topRight,
+            ColorValue bottomRight, ColorValue bottomLeft, float u0, float v0, float u1, float v1) {
+
+        var texture = Minecraft.getInstance().getTextureManager().getTexture(textureId);
+        guiGraphics.guiRenderState.addGuiElement(new GradientBlitRenderState(
+                RenderPipelines.GUI_TEXTURED,
+                TextureSetup.singleTexture(texture.getTextureView(), texture.getSampler()),
+                new Matrix3x2f(poseStack()),
+                rect.x(),
+                rect.y(),
+                rect.right(),
+                rect.bottom(),
+                u0,
+                v0,
+                u1,
+                v1,
+                resolveColor(topLeft),
+                resolveColor(topRight),
+                resolveColor(bottomRight),
+                resolveColor(bottomLeft),
+                guiGraphics().scissorStack.peek()));
+    }
+
+    @Override
+    public void fillTriangle(Vector2f p1, Vector2f p2, Vector2f p3, ColorValue color) {
+        guiGraphics.guiRenderState.addGuiElement(new FillTriangleRenderState(
+                RenderPipelines.GUI,
+                TextureSetup.noTexture(),
+                new Matrix3x2f(poseStack()),
+                p1,
+                p2,
+                p3,
+                resolveColor(color),
+                guiGraphics().scissorStack.peek()));
+    }
+
+    @Override
+    public void renderItem(ItemStack stack, int x, int y, int z, float width, float height) {
+        var pose = poseStack();
+        pose.pushMatrix();
+        pose.translate(x, y);
+        // Purposefully do NOT scale the normals!
+        // this happens on non-uniform scales when calling the normal scale method
+        pose.scale(width / 16, height / 16);
+        guiGraphics().item(stack, 0, 0);
+        guiGraphics().itemDecorations(font(), stack, 0, 0);
+        pose.popMatrix();
+    }
+
+    @Override
+    public void pushScissor(LytRect bounds) {
+
+        var rootBounds = bounds.transform(poseStack());
+
+        viewportStack.add(rootBounds);
+        RenderContext.super.pushScissor(bounds);
+    }
+
+    @Override
+    public void popScissor() {
+        if (viewportStack.size() <= 1) {
+            throw new IllegalStateException("There is no active scissor rectangle.");
+        }
+        viewportStack.removeLast();
+        RenderContext.super.popScissor();
+    }
+
+    @Override
+    public LytRect viewport() {
+        var viewport = viewportStack.getLast();
+        var pose = new Matrix3x2f(guiGraphics().pose());
+        pose.invert();
+        var vp = viewport.transform(pose);
+        return vp;
+    }
+
+    @Override
+    public GuiGraphicsExtractor guiGraphics() {
+        return guiGraphics;
+    }
+
+    @Override
+    public LightDarkMode lightDarkMode() {
+        return lightDarkMode;
+    }
+}
