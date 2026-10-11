@@ -3,14 +3,15 @@
   "id": "ae2_fabric_pack",
   "version": "${version}",
   "name": "AE2 Fabric Pack",
-  "description": "Applied Energistics 2 with Advanced AE, ExtendedAE and Applied Flux for Fabric, in one jar. Contains AE2, GuideME, Advanced AE, AE2AddonLib, ExtendedAE, GlodBlock's library, AE2WTLib, Applied Flux, GeckoLib and Team Reborn Energy. Every mod keeps its own id and license (see the nested jars).",
+  "description": "Applied Energistics 2 with Advanced AE, ExtendedAE, Applied Flux and Storage Drawers for Fabric, in one jar. Contains AE2, GuideME, Advanced AE, AE2AddonLib, ExtendedAE, GlodBlock's library, AE2WTLib, Applied Flux, Storage Drawers, GeckoLib and Team Reborn Energy. Every mod keeps its own id and license (see the nested jars).",
   "authors": [
     "AlgorithmX2",
     "TeamAppliedEnergistics",
     "Pedroksl",
     "GlodBlock",
     "Mari_023",
-    "GeckoThePecko"
+    "GeckoThePecko",
+    "Texelsaur"
   ],
   "contact": {
     "sources": "https://github.com/Matze62391/3bWI_SaM"
@@ -27,7 +28,8 @@
     "advanced_ae": "*",
     "extendedae": "*",
     "ae2wtlib": "*",
-    "appflux": "*"
+    "appflux": "*",
+    "storagedrawers": "*"
   },
   "suggests": {
     "jei": "*",

@@ -76,6 +76,11 @@ dependencies {
     include project(":extendedae")
     // Applied Flux: energy in storage cells
     include project(":appflux")
+    // Storage Drawers (MIT, official Fabric build); works with the AE2 storage bus through the Fabric transfer API
+    include "maven.modrinth:storagedrawers:${rootProject.storagedrawers_version}"
+
+    // the pack game tests build AE2 networks
+    gametestCompileOnly project(":")
 }
 
 processResources {
