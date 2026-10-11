@@ -49,6 +49,17 @@ repositories {
     }
 }
 
+fabricApi {
+    // ./gradlew :pack:prodWorldTest creates a normal world with only the pack installed
+    configureTests {
+        createSourceSet = true
+        modId = "ae2_fabric_pack-gametest"
+        enableGameTests = false
+        enableClientGameTests = true
+        eula = true
+    }
+}
+
 dependencies {
     minecraft "com.mojang:minecraft:${rootProject.minecraft_version}"
     implementation "net.fabricmc:fabric-loader:${rootProject.loader_version}"
@@ -112,4 +123,18 @@ tasks.register("prodServer", net.fabricmc.loom.task.prod.ServerProductionRunTask
     mods.from(tasks.named("jar"))
     mods.from(configurations.productionRuntimeMods)
     runDir = layout.buildDirectory.dir("run/prodServer")
+}
+
+def packGametestJar = tasks.register("gametestJar", Jar) {
+    from sourceSets.gametest.output
+    archiveClassifier = "gametest"
+}
+
+tasks.register("prodWorldTest", net.fabricmc.loom.task.prod.ClientProductionRunTask) {
+    mods.from(tasks.named("jar"))
+    mods.from(packGametestJar)
+    mods.from(configurations.productionRuntimeMods)
+    jvmArgs.add("-Dfabric.client.gametest")
+    runDir = layout.buildDirectory.dir("run/prodWorldTest")
+    useXVFB = false
 }
