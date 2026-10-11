@@ -110,7 +110,7 @@ public class HotkeyRegistry {
             return HOTKEY_GETTER.get(modId).apply(id);
         } catch (IllegalArgumentException ignored) {
             // InputConstants.UNKNOWN, not referenced since that class is client-only
-            return -1;
+            return 0; // SDL_SCANCODE_UNKNOWN since 26.3
         }
     }
 }

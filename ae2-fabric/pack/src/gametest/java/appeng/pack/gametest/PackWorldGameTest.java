@@ -1,6 +1,9 @@
 package appeng.pack.gametest;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.minecraft.client.KeyMapping;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.minecraft.client.gui.screens.worldselection.WorldCreationUiState;
 import net.minecraft.world.level.levelgen.presets.WorldPresets;
@@ -15,6 +18,28 @@ public class PackWorldGameTest implements FabricClientGameTest {
 
     @Override
     public void runTest(ClientGameTestContext context) {
+        context.runOnClient(client -> {
+            for (var mapping : client.options.keyMappings) {
+                var key = KeyMappingHelper.getBoundKeyOf(mapping);
+                if (key.getType() == InputConstants.Type.KEYBOARD && key.getValue() < 0) {
+                    throw new AssertionError("Key mapping " + mapping.getName() + " bound to invalid key " + key);
+                }
+            }
+            // Simulate an options.txt written by an older version with "key.keyboard.-1"
+            var mapping = client.options.keyMappings[client.options.keyMappings.length - 1];
+            var old = KeyMappingHelper.getBoundKeyOf(mapping);
+            mapping.setKey(InputConstants.Type.KEYBOARD.getOrCreate(-1));
+            client.options.save();
+            client.options.load();
+            var migrated = KeyMappingHelper.getBoundKeyOf(mapping);
+            if (migrated.getValue() != InputConstants.UNKNOWN.getValue()) {
+                throw new AssertionError("key.keyboard.-1 was not migrated: " + migrated);
+            }
+            mapping.setKey(old);
+            KeyMapping.resetMapping();
+            client.options.save();
+            LOG.info("Legacy key.keyboard.-1 binding migrated");
+        });
         var start = System.currentTimeMillis();
         try (var world = context.worldBuilder().adjustSettings(settings -> {
             settings.setGameMode(WorldCreationUiState.SelectedGameMode.SURVIVAL);
@@ -25,6 +50,17 @@ public class PackWorldGameTest implements FabricClientGameTest {
         }).create()) {
             LOG.info("Normal world created in {} ms", System.currentTimeMillis() - start);
             context.waitTicks(100);
+            // A key bound to an out-of-range scancode used to crash KeyMapping.setAll() when the mouse got grabbed.
+            context.runOnClient(client -> {
+                var mapping = client.options.keyMappings[client.options.keyMappings.length - 1];
+                var old = KeyMappingHelper.getBoundKeyOf(mapping);
+                mapping.setKey(InputConstants.Type.KEYBOARD.getOrCreate(1073742049));
+                KeyMapping.resetMapping();
+                KeyMapping.setAll();
+                mapping.setKey(old);
+                KeyMapping.resetMapping();
+                LOG.info("Invalid key binding handled without crash");
+            });
             context.takeScreenshot("pack-normal-world");
         }
     }

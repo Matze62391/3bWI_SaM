@@ -20,7 +20,7 @@ public final class AAEHotkeysRegistry extends HotkeyRegistry {
     }
 
     // InputConstants.UNKNOWN, not referenced here since that class is client-only
-    private static final int UNKNOWN_KEY = -1;
+    private static final int UNKNOWN_KEY = 0; // SDL_SCANCODE_UNKNOWN since 26.3
 
     public enum Keys {
         ARMOR_CONFIG("quantum_armor_config", "Open Quantum Armor Configuration", InputConstants.KEY_Z),

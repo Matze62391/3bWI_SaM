@@ -31,7 +31,9 @@
     "client.SpatialStorageSkyMixin",
     "client.SpatialStorageCloudsMixin",
     "client.SpatialStorageWeatherMixin",
-    "client.MouseScrollMixin"
+    "client.MouseScrollMixin",
+    "client.InputConstantsKeyDownMixin",
+    "client.OptionsInvalidKeyMixin"
   ],
   "server": [],
   "injectors": {
