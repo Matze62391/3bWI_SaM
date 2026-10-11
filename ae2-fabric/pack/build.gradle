@@ -9,7 +9,7 @@ version = project.pack_version
 group = "appeng"
 
 base {
-    archivesName = "ae2-fabric-pack"
+    archivesName = project.hasProperty("separateTechReborn") ? "ae2-fabric-pack-without-techreborn" : "ae2-fabric-pack"
 }
 
 repositories {
@@ -80,8 +80,12 @@ dependencies {
     include project(":megacells")
     // Storage Drawers (MIT, official Fabric build); works with the AE2 storage bus through the Fabric transfer API
     include "maven.modrinth:storagedrawers:${rootProject.storagedrawers_version}"
-    // Tech Reborn (MIT, contains RebornCore): machines, generators and ore processing; uses the same energy API
-    include "maven.modrinth:techreborn:${rootProject.techreborn_version}"
+    // Tech Reborn (MIT, contains RebornCore): machines, generators and ore processing; uses the same energy API.
+    // -PseparateTechReborn builds the pack without it (it then has to be installed next to the pack), which keeps
+    // the jar under 30 MB.
+    if (!project.hasProperty("separateTechReborn")) {
+        include "maven.modrinth:techreborn:${rootProject.techreborn_version}"
+    }
     // Effortless Building (LGPL-3.0): building modes (lines, walls, floors, mirror, array)
     include "maven.modrinth:effortless-building:${rootProject.effortless_building_version}"
 
@@ -121,6 +125,9 @@ dependencies {
     productionRuntimeMods "mezz.jei:jei-${rootProject.minecraft_version}-fabric:${rootProject.jei_version}"
     productionRuntimeMods "maven.modrinth:jade:${rootProject.jade_version}"
     productionRuntimeMods "com.terraformersmc:modmenu:${rootProject.modmenu_version}"
+    if (project.hasProperty("separateTechReborn")) {
+        productionRuntimeMods "maven.modrinth:techreborn:${rootProject.techreborn_version}"
+    }
 }
 
 tasks.register("prodClientGameTest", net.fabricmc.loom.task.prod.ClientProductionRunTask) {
