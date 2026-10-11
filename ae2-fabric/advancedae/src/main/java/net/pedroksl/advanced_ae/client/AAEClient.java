@@ -78,6 +78,8 @@ public class AAEClient extends AdvancedAE {
         ClientTickEvents.END_CLIENT_TICK.register(client -> AAEHotkeys.INSTANCE.checkHotkeys());
 
         ClientRecipeSynchronizedEvent.EVENT.register((client, recipes) -> receiveRecipes(recipes));
+
+        net.pedroksl.advanced_ae.xmod.iris.IrisPlugin.assignPipelines();
     }
 
     public RecipeMap getRecipeMapForType(Level level, RecipeType<?> recipeType) {

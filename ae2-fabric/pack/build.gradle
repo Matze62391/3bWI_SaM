@@ -81,6 +81,9 @@ dependencies {
 
     // the pack game tests build AE2 networks
     gametestCompileOnly project(":")
+    gametestCompileOnly project(":advancedae")
+    gametestCompileOnly project(":ae2addonlib")
+    gametestCompileOnly "maven.modrinth:geckolib:${rootProject.geckolib_version}"
 }
 
 processResources {
@@ -155,4 +158,45 @@ tasks.register("prodWorldTest", net.fabricmc.loom.task.prod.ClientProductionRunT
     jvmArgs.add("-Dfabric.client.gametest")
     runDir = layout.buildDirectory.dir("run/prodWorldTest")
     useXVFB = false
+}
+
+// The pack's client tests with Sodium and Iris, like many players have them, optionally with an Iris shader pack:
+// ./gradlew :pack:prodShaderTest [-PshaderPack=<zip>]
+configurations {
+    shaderTestMods {
+        transitive = false
+    }
+}
+
+dependencies {
+    shaderTestMods "maven.modrinth:sodium:${rootProject.sodium_version}"
+    shaderTestMods "maven.modrinth:iris:${rootProject.iris_version}"
+}
+
+tasks.register("prodShaderTest", net.fabricmc.loom.task.prod.ClientProductionRunTask) {
+    mods.from(tasks.named("jar"))
+    mods.from(packGametestJar)
+    mods.from(configurations.productionRuntimeMods)
+    mods.from(configurations.worldTestMods)
+    mods.from(configurations.shaderTestMods)
+    jvmArgs.add("-Dfabric.client.gametest")
+    def shaderRunDir = layout.buildDirectory.dir("run/prodShaderTest")
+    def shaderPack = project.findProperty("shaderPack")
+    runDir = shaderRunDir
+    useXVFB = false
+    doFirst {
+        def dir = shaderRunDir.get().asFile
+        def config = new File(dir, "config/iris.properties")
+        config.parentFile.mkdirs()
+        if (shaderPack != null) {
+            def pack = file(shaderPack)
+            copy {
+                from pack
+                into new File(dir, "shaderpacks")
+            }
+            config.text = "enableShaders=true\nshaderPack=${pack.name}\n"
+        } else {
+            config.text = "enableShaders=false\n"
+        }
+    }
 }

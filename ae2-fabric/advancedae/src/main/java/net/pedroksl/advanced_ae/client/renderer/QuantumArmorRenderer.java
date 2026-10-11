@@ -64,6 +64,13 @@ public class QuantumArmorRenderer<R extends HumanoidRenderState & GeoRenderState
         withRenderLayer(new QuantumArmorTintGlowingLayer<>(this));
     }
 
+    /**
+     * GeckoLib's pipeline for the glowing layers (glowmask textures), shared by all GeckoLib models.
+     */
+    public static com.mojang.renderpearl.api.pipeline.RenderPipeline emissivePipeline() {
+        return QuantumArmorTintGlowingLayer.pipeline();
+    }
+
     public void setBoneVisible(Bones bone, boolean visible) {
         visibilityMap.put(bone, visible);
     }
@@ -155,6 +162,10 @@ public class QuantumArmorRenderer<R extends HumanoidRenderState & GeoRenderState
 
         public QuantumArmorTintGlowingLayer(GeoRenderer<T, O, R> renderer) {
             super(renderer);
+        }
+
+        static com.mojang.renderpearl.api.pipeline.RenderPipeline pipeline() {
+            return RENDER_PIPELINE;
         }
 
         @Override
