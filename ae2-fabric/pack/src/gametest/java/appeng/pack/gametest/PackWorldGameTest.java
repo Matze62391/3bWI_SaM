@@ -106,6 +106,30 @@ public class PackWorldGameTest implements FabricClientGameTest {
             context.takeScreenshot("pack-universal-terminal");
             context.runOnClient(mc -> mc.gui.setScreen(null));
 
+            // An item cell filled by command with 1,000,000 white wool and 1,000,000 glowstone dust
+            server.runCommand("clear @a");
+            server.runCommand("give @a ae2:item_storage_cell_256k[ae2:storage_cell_inv=["
+                    + "{\"#t\":\"ae2:i\",id:\"minecraft:white_wool\",\"#\":1000000L},"
+                    + "{\"#t\":\"ae2:i\",id:\"minecraft:glowstone_dust\",\"#\":1000000L}]]");
+            context.waitTicks(5);
+            var itemCell = server.computeOnServer(s -> {
+                var player = s.getPlayerList().getPlayers().getFirst();
+                for (var stack : player.getInventory().getNonEquipmentItems()) {
+                    var cell = appeng.api.storage.StorageCells.getCellInventory(stack, null);
+                    if (cell != null) {
+                        var stacks = cell.getAvailableStacks();
+                        return stacks.get(appeng.api.stacks.AEItemKey.of(net.minecraft.core.registries.BuiltInRegistries.ITEM.getValue(net.minecraft.resources.Identifier.parse("minecraft:white_wool"))))
+                                + "/" + stacks.get(appeng.api.stacks.AEItemKey.of(
+                                        net.minecraft.world.item.Items.GLOWSTONE_DUST));
+                    }
+                }
+                return "none";
+            });
+            LOG.info("The given item cell holds wool/glowstone dust {}", itemCell);
+            if (!itemCell.equals("1000000/1000000")) {
+                throw new AssertionError("Item cell from /give holds " + itemCell);
+            }
+
             // Fluid cells filled by command (1,000,000 buckets in droplets): lava and Advanced AE's quantum infusion
             for (var fluidId : java.util.List.of("minecraft:lava", "advanced_ae:quantum_infusion_source")) {
                 server.runCommand("clear @a");
