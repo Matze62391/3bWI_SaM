@@ -141,6 +141,8 @@ public class EAESingletons {
     public static DeferredItem<@NotNull PartItem<PartExInterface>> EX_INTERFACE_PART;
     public static DeferredItem<@NotNull ItemInfinityCell> INFINITY_WATER_CELL;
     public static DeferredItem<@NotNull ItemInfinityCell> INFINITY_COBBLESTONE_CELL;
+    public static DeferredItem<@NotNull ItemInfinityCell> INFINITY_FLUID_CELL;
+    public static DeferredDataComponentType<appeng.api.stacks.AEKey> INFINITY_RECORD;
     public static DeferredItem<@NotNull PartItem<PartExExportBus>> EX_EXPORT_BUS;
     public static DeferredItem<@NotNull PartItem<PartExImportBus>> EX_IMPORT_BUS;
     public static DeferredItem<@NotNull PartItem<PartExPatternAccessTerminal>> EX_PATTERN_TERMINAL;
@@ -195,6 +197,7 @@ public class EAESingletons {
         TAPE_TILE_DATA = regHandler.comp("tape_tile_data", ItemMEPackingTape.TilePackageData.CODEC, ItemMEPackingTape.TilePackageData.STREAM_CODEC);
         STACK_TAG = regHandler.comp("generic_nbt", CompoundTag.CODEC, GlodCodecs.NBT_STREAM_CODEC);
         MOD_EXPRESS = regHandler.comp("mod_express", Codec.STRING, ByteBufCodecs.STRING_UTF8);
+        INFINITY_RECORD = regHandler.comp("infinity_record", appeng.api.stacks.AEKey.CODEC, appeng.api.stacks.AEKey.STREAM_CODEC);
         TAG_EXPRESS = regHandler.comp("tag_express", GlodCodecs.pair(Codec.STRING, Codec.STRING), GlodCodecs.pair(ByteBufCodecs.STRING_UTF8, ByteBufCodecs.STRING_UTF8));
         EXTRA_SETTING = regHandler.comp("extra_setting", CompoundTag.CODEC, GlodCodecs.NBT_STREAM_CODEC);
         THRESHOLD_DATA = regHandler.comp("threshold_data", GlodCodecs.pair(Codec.LONG, Codec.LONG), GlodCodecs.pair(ByteBufCodecs.VAR_LONG, ByteBufCodecs.VAR_LONG));
@@ -248,6 +251,7 @@ public class EAESingletons {
         EX_INTERFACE_PART = regHandler.item("ex_interface_part", PartExInterface.class, PartExInterface::new);
         INFINITY_WATER_CELL = regHandler.item("infinity_water_cell", properties -> new ItemInfinityCell(() -> AEFluidKey.of(Fluids.WATER), properties));
         INFINITY_COBBLESTONE_CELL = regHandler.item("infinity_cobblestone_cell", properties -> new ItemInfinityCell(() -> AEItemKey.of(Blocks.COBBLESTONE), properties));
+        INFINITY_FLUID_CELL = regHandler.item("infinity_fluid_cell", ItemInfinityCell::new);
         EX_EXPORT_BUS = regHandler.item("ex_export_bus_part", PartExExportBus.class, PartExExportBus::new);
         EX_IMPORT_BUS = regHandler.item("ex_import_bus_part", PartExImportBus.class, PartExImportBus::new);
         EX_PATTERN_TERMINAL = regHandler.item("ex_pattern_access_part", PartExPatternAccessTerminal.class, PartExPatternAccessTerminal::new);

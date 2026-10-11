@@ -127,6 +127,54 @@ public class PackWorldGameTest implements FabricClientGameTest {
             context.takeScreenshot("pack-universal-terminal");
             context.runOnClient(mc -> mc.gui.setScreen(null));
 
+            // Infinite fluid cells (ExtendedAE): one for every fluid, by command or from the creative tab
+            for (var fluidId : java.util.List.of("minecraft:lava", "advanced_ae:quantum_infusion_source")) {
+                server.runCommand("clear @a");
+                server.runCommand("give @a extendedae:infinity_fluid_cell[extendedae:infinity_record="
+                        + "{\"#t\":\"ae2:f\",id:\"" + fluidId + "\"}]");
+                context.waitTicks(5);
+                var fluid = net.minecraft.core.registries.BuiltInRegistries.FLUID.getValue(
+                        net.minecraft.resources.Identifier.parse(fluidId));
+                var key = appeng.api.stacks.AEFluidKey.of(fluid);
+                var result = server.computeOnServer(s -> {
+                    var stack = s.getPlayerList().getPlayers().getFirst().getInventory().getNonEquipmentItems()
+                            .stream().filter(st -> !st.isEmpty()).findFirst().orElseThrow();
+                    var cell = appeng.api.storage.StorageCells.getCellInventory(stack, null);
+                    if (cell == null) {
+                        return "no cell for " + stack;
+                    }
+                    var source = appeng.api.networking.security.IActionSource.empty();
+                    var taken = 0L;
+                    for (var i = 0; i < 3; i++) {
+                        taken += cell.extract(key, 1_000_000L * 81000, appeng.api.config.Actionable.MODULATE, source);
+                    }
+                    return stack.getHoverName().getString() + "/" + (taken / 81000) + "/"
+                            + (cell.getAvailableStacks().get(key) > 0);
+                });
+                LOG.info("Infinity fluid cell: {}", result);
+                if (!result.endsWith("/3000000/true")) {
+                    throw new AssertionError("Infinity fluid cell with " + fluidId + ": " + result);
+                }
+            }
+            var creativeCells = server.computeOnServer(s -> {
+                var cells = new java.util.ArrayList<String>();
+                var cellItem = (com.glodblock.github.extendedae.common.items.ItemInfinityCell) net.minecraft.core
+                        .registries.BuiltInRegistries.ITEM.getValue(net.minecraft.resources.Identifier.parse(
+                                "extendedae:infinity_fluid_cell"));
+                cellItem.addToMainCreativeTab(null, new net.minecraft.world.item.CreativeModeTab.Output() {
+                    @Override
+                    public void accept(net.minecraft.world.item.ItemStack stack,
+                            net.minecraft.world.item.CreativeModeTab.TabVisibility visibility) {
+                        cells.add(String.valueOf(cellItem.getRecord(stack)));
+                    }
+                });
+                return cells;
+            });
+            LOG.info("Infinity fluid cells in the creative tab: {}", creativeCells);
+            if (creativeCells.size() < 3) {
+                throw new AssertionError("Only " + creativeCells + " infinity fluid cells in the creative tab");
+            }
+
             // An item cell filled by command with 1,000,000 white wool and 1,000,000 glowstone dust
             server.runCommand("clear @a");
             server.runCommand("give @a ae2:item_storage_cell_256k[ae2:storage_cell_inv=["

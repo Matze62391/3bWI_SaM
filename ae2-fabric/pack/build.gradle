@@ -87,6 +87,8 @@ dependencies {
     gametestCompileOnly project(":")
     gametestCompileOnly project(":advancedae")
     gametestCompileOnly project(":ae2addonlib")
+    gametestCompileOnly project(":extendedae")
+    gametestCompileOnly project(":glodium")
     gametestCompileOnly "maven.modrinth:geckolib:${rootProject.geckolib_version}"
 }
 

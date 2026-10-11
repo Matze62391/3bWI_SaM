@@ -25,7 +25,7 @@ public class InfinityCellInventory implements StorageCell {
             throw new IllegalArgumentException("Cell isn't an infinity cell!");
         }
         this.stack = stack;
-        this.record = ((ItemInfinityCell) stack.getItem()).getRecord();
+        this.record = ((ItemInfinityCell) stack.getItem()).getRecord(stack);
     }
 
     @Override
@@ -83,7 +83,9 @@ public class InfinityCellInventory implements StorageCell {
 
         @Override
         public @Nullable StorageCell getCellInventory(ItemStack is, @Nullable ISaveProvider host) {
-            return isCell(is) ? new InfinityCellInventory(is) : null;
+            return isCell(is) && ((ItemInfinityCell) is.getItem()).getRecord(is) != null
+                    ? new InfinityCellInventory(is)
+                    : null;
         }
     }
 

@@ -139,6 +139,7 @@ public class ClientRegistryHandler {
         CustomUnbakedBlockStateModel.register(ExtendedAE.id("assembler_matrix_glass"), AssemblerGlassModel.MAP_CODEC);
         StorageCellModels.registerModel(EAESingletons.INFINITY_WATER_CELL, ExtendedAE.id("block/drive/infinity_water_cell"));
         StorageCellModels.registerModel(EAESingletons.INFINITY_COBBLESTONE_CELL, ExtendedAE.id("block/drive/infinity_cobblestone_cell"));
+        StorageCellModels.registerModel(EAESingletons.INFINITY_FLUID_CELL, ExtendedAE.id("block/drive/infinity_water_cell"));
         StorageCellModels.registerModel(EAESingletons.VOID_CELL, ExtendedAE.id("block/drive/void_cell"));
     }
 
