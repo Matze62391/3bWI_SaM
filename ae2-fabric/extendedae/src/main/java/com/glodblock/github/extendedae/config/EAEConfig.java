@@ -115,10 +115,29 @@ public class EAEConfig {
      * Loads the config file (creating it with the default values if it is missing) and updates the cached values.
      */
     public static void load() {
-        var file = FabricLoader.getInstance().getConfigDir().resolve(ExtendedAE.MODID + ".json");
+        var file = configFile();
         read(file);
         write(file);
         onLoad();
+    }
+
+    /**
+     * Writes the current values (changed in the config screen) to the config file and updates the cached values.
+     */
+    public static void save() {
+        write(configFile());
+        onLoad();
+    }
+
+    /**
+     * All options, in the order of the config file. Used by the config screen.
+     */
+    public static List<Entry> entries() {
+        return List.copyOf(OPTIONS.values());
+    }
+
+    private static Path configFile() {
+        return FabricLoader.getInstance().getConfigDir().resolve(ExtendedAE.MODID + ".json");
     }
 
     private static void onLoad() {
@@ -209,15 +228,18 @@ public class EAEConfig {
     }
 
     private static Option<Integer> intOption(String name, String comment, int def, int min, int max) {
-        return add(new Option<>(name, comment, def, JsonPrimitive::new, e -> Math.clamp(e.getAsInt(), min, max)));
+        return add(new Option<>(name, comment + " (" + min + " ~ " + max + ")", def, JsonPrimitive::new,
+                e -> Math.clamp(e.getAsInt(), min, max), Kind.NUMBER, min, max));
     }
 
     private static Option<Double> doubleOption(String name, String comment, double def, double min, double max) {
-        return add(new Option<>(name, comment, def, JsonPrimitive::new, e -> Math.clamp(e.getAsDouble(), min, max)));
+        return add(new Option<>(name, comment + " (" + min + " ~ " + max + ")", def, JsonPrimitive::new,
+                e -> Math.clamp(e.getAsDouble(), min, max), Kind.NUMBER, min, max));
     }
 
     private static Option<Boolean> boolOption(String name, String comment, boolean def) {
-        return add(new Option<>(name, comment, def, JsonPrimitive::new, JsonElement::getAsBoolean));
+        return add(new Option<>(name, comment, def, JsonPrimitive::new, JsonElement::getAsBoolean, Kind.BOOLEAN,
+                Double.NaN, Double.NaN));
     }
 
     private static <T> Option<List<T>> listOption(String name, String comment, List<T> def,
@@ -232,7 +254,7 @@ public class EAEConfig {
                 list.add(reader.apply(element));
             }
             return List.copyOf(list);
-        }));
+        }, Kind.LIST, Double.NaN, Double.NaN));
     }
 
     private static <T> Option<T> add(Option<T> option) {
@@ -240,22 +262,58 @@ public class EAEConfig {
         return option;
     }
 
-    private static final class Option<T> {
+    public enum Kind {
+        BOOLEAN, NUMBER, LIST
+    }
+
+    /**
+     * An option as the config screen sees it. Values are edited as text: numbers as they are, lists as comma separated
+     * values.
+     */
+    public interface Entry {
+        /**
+         * The section and key, e.g. {@code device.oversize_interface_multiplier}.
+         */
+        String name();
+
+        String comment();
+
+        Kind kind();
+
+        String valueAsText();
+
+        boolean isDefault();
+
+        void resetToDefault();
+
+        /**
+         * @throws IllegalArgumentException if the text is not a valid value for this option.
+         */
+        void setFromText(String text);
+    }
+
+    private static final class Option<T> implements Entry {
         private final String name;
         private final String comment;
         private final T defaultValue;
         private final Function<T, JsonElement> writer;
         private final Function<JsonElement, T> reader;
+        private final Kind kind;
+        private final double min;
+        private final double max;
         private T value;
 
         private Option(String name, String comment, T defaultValue, Function<T, JsonElement> writer,
-                       Function<JsonElement, T> reader) {
+                       Function<JsonElement, T> reader, Kind kind, double min, double max) {
             this.name = name;
             this.comment = comment;
             this.defaultValue = defaultValue;
             this.value = defaultValue;
             this.writer = writer;
             this.reader = reader;
+            this.kind = kind;
+            this.min = min;
+            this.max = max;
         }
 
         T get() {
@@ -272,6 +330,81 @@ public class EAEConfig {
 
         JsonElement writeDefault() {
             return writer.apply(defaultValue);
+        }
+
+        @Override
+        public String name() {
+            return name;
+        }
+
+        @Override
+        public String comment() {
+            return comment;
+        }
+
+        @Override
+        public Kind kind() {
+            return kind;
+        }
+
+        @Override
+        public String valueAsText() {
+            var json = writeValue();
+            if (json instanceof JsonArray array) {
+                var parts = new ArrayList<String>();
+                array.forEach(e -> parts.add(e.getAsString()));
+                return String.join(", ", parts);
+            }
+            return json.getAsString();
+        }
+
+        @Override
+        public boolean isDefault() {
+            return value.equals(defaultValue);
+        }
+
+        @Override
+        public void resetToDefault() {
+            this.value = defaultValue;
+        }
+
+        @Override
+        public void setFromText(String text) {
+            JsonElement json;
+            switch (kind) {
+                case BOOLEAN -> json = new JsonPrimitive(Boolean.parseBoolean(text.trim()));
+                case NUMBER -> {
+                    double number;
+                    try {
+                        number = Double.parseDouble(text.trim());
+                    } catch (NumberFormatException e) {
+                        throw new IllegalArgumentException(e);
+                    }
+                    if (!(number >= min && number <= max)) {
+                        throw new IllegalArgumentException("Out of range: " + text);
+                    }
+                    if (defaultValue instanceof Integer && number != Math.rint(number)) {
+                        throw new IllegalArgumentException("Not an integer: " + text);
+                    }
+                    json = defaultValue instanceof Integer ? new JsonPrimitive((int) number) : new JsonPrimitive(number);
+                }
+                default -> {
+                    var array = new JsonArray();
+                    for (var part : text.split(",")) {
+                        if (!part.isBlank()) {
+                            array.add(part.trim());
+                        }
+                    }
+                    json = array;
+                }
+            }
+            T parsed;
+            try {
+                parsed = Objects.requireNonNull(reader.apply(json));
+            } catch (RuntimeException e) {
+                throw new IllegalArgumentException(e);
+            }
+            this.value = parsed;
         }
     }
 

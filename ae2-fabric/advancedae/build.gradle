@@ -88,6 +88,8 @@ dependencies {
     implementation project(":guideme")
     implementation project(":ae2addonlib")
     include project(":ae2addonlib")
+    // The wireless quantum crafter terminal is an ae2wtlib terminal (can be part of the universal terminal)
+    implementation project(":ae2wtlib")
 
     compileOnly "teamreborn:energy:${rootProject.tr_energy_version}"
 
@@ -158,6 +160,7 @@ def gametestJar = tasks.register("gametestJar", Jar) {
 tasks.register("prodClientGameTest", net.fabricmc.loom.task.prod.ClientProductionRunTask) {
     mods.from(rootProject.tasks.named("jar"))
     mods.from(tasks.named("jar"))
+    mods.from(project(":ae2wtlib").tasks.named("jar"))
     mods.from(gametestJar)
     mods.from(configurations.productionRuntimeMods)
     jvmArgs.add("-Dfabric.client.gametest")

@@ -7,6 +7,8 @@ import appeng.core.AppEng;
 import appeng.core.definitions.AEBlocks;
 import appeng.items.parts.PartItem;
 import com.glodblock.github.extendedae.ExtendedAE;
+import com.glodblock.github.extendedae.client.gui.config.EAEConfigScreen;
+import com.glodblock.github.extendedae.config.EAEConfig;
 import com.glodblock.github.extendedae.common.EAESingletons;
 import com.glodblock.github.extendedae.common.tileentities.TileCircuitCutter;
 import com.glodblock.github.extendedae.xmod.jei.recipe.CircuitCutterCategory;
@@ -62,6 +64,8 @@ public class EAEClientGameTest implements FabricClientGameTest {
 
     @Override
     public void runTest(ClientGameTestContext context) {
+        testConfigScreen(context);
+
         try (var world = context.worldBuilder().adjustSettings(settings -> {
             settings.setGameMode(WorldCreationUiState.SelectedGameMode.CREATIVE);
             settings.getNormalPresetList().stream()
@@ -171,6 +175,44 @@ public class EAEClientGameTest implements FabricClientGameTest {
                 throw new AssertionError("Failed: " + failures);
             }
         }
+    }
+
+    /**
+     * The config screen (opened through Mod Menu) shows all options and saves changes when it is closed.
+     */
+    private static void testConfigScreen(ClientGameTestContext context) {
+        context.setScreen(() -> new EAEConfigScreen(null));
+        context.waitTicks(10);
+        context.takeScreenshot("eae-config-screen");
+        var busSpeed = EAEConfig.entries().stream()
+                .filter(e -> e.name().equals("device.extended_io_bus_multiplier"))
+                .findFirst()
+                .orElseThrow();
+        var invalid = false;
+        try {
+            busSpeed.setFromText("100000");
+        } catch (IllegalArgumentException e) {
+            invalid = true;
+        }
+        if (!invalid) {
+            throw new AssertionError("The config accepted a value out of range");
+        }
+        context.runOnClient(mc -> busSpeed.setFromText("16"));
+        context.setScreen(() -> null);
+        context.waitTicks(2);
+        if (EAEConfig.busSpeed != 16) {
+            throw new AssertionError("The config screen didn't apply the bus speed: " + EAEConfig.busSpeed);
+        }
+        try {
+            var file = net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve("extendedae.json");
+            if (!java.nio.file.Files.readString(file).contains("\"extended_io_bus_multiplier\": 16")) {
+                throw new AssertionError("The config screen didn't save the config file");
+            }
+        } catch (java.io.IOException e) {
+            throw new AssertionError(e);
+        }
+        busSpeed.resetToDefault();
+        EAEConfig.save();
     }
 
     private static List<DeferredItem<? extends PartItem<?>>> partItems() {

@@ -6,7 +6,9 @@ import java.util.function.Consumer;
 
 import com.mojang.serialization.Codec;
 
+import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponentType;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -34,6 +36,7 @@ public class AE2wtlibComponents {
                     (buf) -> (ItemMenuHostLocator) MenuLocators.readFromPacket(buf));
 
     public static final Map<Identifier, DataComponentType<?>> DR = new HashMap<>();
+    private static boolean registered;
 
     public static final DataComponentType<WTDefinition> CURRENT_TERMINAL = register("current_terminal",
             builder -> builder.persistent(WTDefinition.CODEC).networkSynchronized(WTDefinition.STREAM_CODEC));
@@ -63,7 +66,25 @@ public class AE2wtlibComponents {
         customizer.accept(builder);
         var componentType = builder.build();
         DR.put(AE2wtlibAPI.id(name), componentType);
+        if (registered) {
+            // The components of terminals are created when the terminals are registered, which happens after the
+            // other components were registered (see registerAll)
+            Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE, AE2wtlibAPI.id(name), componentType);
+        }
         return componentType;
+    }
+
+    /**
+     * Registers the components created so far. Components created later are registered immediately.
+     */
+    public static synchronized void registerAll() {
+        if (registered) {
+            return;
+        }
+        registered = true;
+        for (var entry : DR.entrySet()) {
+            Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE, entry.getKey(), entry.getValue());
+        }
     }
 
     private static boolean includeExcludeToBoolean(IncludeExclude includeExclude) {

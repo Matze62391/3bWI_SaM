@@ -31,6 +31,9 @@
     ],
     "jade": [
       "com.glodblock.github.extendedae.xmod.jade.JadePlugin"
+    ],
+    "modmenu": [
+      "com.glodblock.github.extendedae.xmod.modmenu.ModMenuIntegration"
     ]
   },
   "custom": {

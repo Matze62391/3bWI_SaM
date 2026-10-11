@@ -8,6 +8,10 @@ import appeng.menu.SlotSemantics;
 import appeng.menu.ToolboxMenu;
 import appeng.menu.slot.RestrictedInputSlot;
 
+import de.mari_023.ae2wtlib.api.gui.AE2wtlibSlotSemantics;
+import de.mari_023.ae2wtlib.api.terminal.ItemWUT;
+import de.mari_023.ae2wtlib.api.terminal.WTMenuHost;
+
 public class QuantumCrafterWirelessTermMenu extends QuantumCrafterTermMenu {
 
     private final QuantumCrafterWirelessTermMenuHost host;
@@ -24,6 +28,17 @@ public class QuantumCrafterWirelessTermMenu extends QuantumCrafterTermMenu {
             slot.setNotDraggable();
             addSlot(slot, SlotSemantics.UPGRADE);
         }
+
+        addSlot(
+                new RestrictedInputSlot(
+                        RestrictedInputSlot.PlacableItemType.QE_SINGULARITY,
+                        this.host.getSubInventory(WTMenuHost.INV_SINGULARITY),
+                        0),
+                AE2wtlibSlotSemantics.SINGULARITY);
+    }
+
+    public boolean isWUT() {
+        return this.host.getItemStack().getItem() instanceof ItemWUT;
     }
 
     @Override

@@ -41,9 +41,7 @@ public class AE2wtlibFabric implements ModInitializer {
 
         // Data components first, items use them
         AE2wtlibAdditionalComponents.init();
-        for (var entry : AE2wtlibComponents.DR.entrySet()) {
-            Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE, entry.getKey(), entry.getValue());
-        }
+        AE2wtlibComponents.registerAll();
         AE2wtlibItems.DR.register();
         AE2wtlib.registerMenus();
         AE2wtlib.registerTerminals();

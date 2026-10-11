@@ -57,6 +57,12 @@ import guideme.compiler.ParsedGuidePage;
 import guideme.internal.screen.GuideScreen;
 
 import appeng.api.config.Actionable;
+
+import de.mari_023.ae2wtlib.AE2wtlibItems;
+import de.mari_023.ae2wtlib.api.AE2wtlibComponents;
+import de.mari_023.ae2wtlib.api.registration.WTDefinition;
+import de.mari_023.ae2wtlib.wut.recipe.Common;
+import net.pedroksl.advanced_ae.xmod.wtlib.AE2wtlibPlugin;
 import appeng.api.parts.PartHelper;
 import appeng.api.stacks.AEFluidKey;
 import appeng.core.AppEng;
@@ -426,6 +432,46 @@ public class AAEClientGameTest implements FabricClientGameTest {
         context.getInput().pressKey(options -> hotkey.mapping());
         screenshotOpenedScreen(context, "aae-wireless-quantum-crafter-terminal-hotkey");
         assertLastScreen(context, QuantumCrafterWirelessTermScreen.class);
+
+        // ae2wtlib's recipes that combine it with the other terminals into a universal terminal
+        for (var recipe : List.of("wt_combine_crafting", "wt_combine_encoding", "wt_combine_access",
+                "wt_upgrade_quantum_crafter_terminal")) {
+            var key = net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.RECIPE,
+                    AdvancedAE.makeId(recipe));
+            if (!server.computeOnServer(s -> s.getRecipeManager().byKey(key).isPresent())) {
+                throw new AssertionError("Recipe " + recipe + " is not loaded");
+            }
+        }
+
+        // Combined into ae2wtlib's universal terminal together with the wireless crafting terminal
+        server.runCommand("clear @a");
+        server.runOnServer(s -> {
+            var player = firstPlayer(s);
+            var wut = new ItemStack(AE2wtlibItems.UNIVERSAL_TERMINAL.get());
+            wut = Common.mergeTerminal(wut, AAEItems.QUANTUM_CRAFTER_WIRELESS_TERMINAL.stack(),
+                    WTDefinition.of(AE2wtlibPlugin.TERMINAL_ID));
+            wut = Common.mergeTerminal(wut, AEItems.WIRELESS_CRAFTING_TERMINAL.stack(), WTDefinition.of("crafting"));
+            wut.set(AE2wtlibComponents.CURRENT_TERMINAL, WTDefinition.of(AE2wtlibPlugin.TERMINAL_ID));
+            var item = AE2wtlibItems.UNIVERSAL_TERMINAL.get();
+            item.injectAEPower(wut, item.getAEMaxPower(wut), Actionable.MODULATE);
+            wut.set(AEComponents.WIRELESS_LINK_TARGET, GlobalPos.of(player.level().dimension(), accessPointPos));
+            player.setItemInHand(InteractionHand.MAIN_HAND, wut);
+        });
+        context.waitTicks(5);
+        context.getInput().lookAt(origin.above(30));
+        context.getInput().pressKey(options -> options.keyUse);
+        context.waitFor(mc -> mc.gui.screen() instanceof QuantumCrafterWirelessTermScreen, 60);
+        context.waitTicks(10);
+        context.takeScreenshot("aae-universal-terminal-quantum-crafter");
+        // The cycle button switches to the next terminal in the universal terminal
+        context.runOnClient(mc -> ((QuantumCrafterWirelessTermScreen) mc.gui.screen()).cycleTerminal());
+        context.waitFor(mc -> mc.gui.screen() != null
+                && !(mc.gui.screen() instanceof QuantumCrafterWirelessTermScreen)
+                && mc.gui.screen().getClass().getSimpleName().equals("WCTScreen"), 60);
+        context.waitTicks(10);
+        context.takeScreenshot("aae-universal-terminal-crafting");
+        context.runOnClient(mc -> mc.player.closeContainer());
+        context.waitTicks(5);
 
         server.runCommand("clear @a");
         setBlock(server, accessPointPos, "minecraft:air");

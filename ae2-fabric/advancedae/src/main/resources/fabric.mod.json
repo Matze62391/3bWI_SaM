@@ -9,7 +9,7 @@
   ],
   "contributors": [
     "Ridanisaurus Rid (texture style)",
-    "Jm³ and Sea_Kerman (models)",
+    "Jm\u00b3 and Sea_Kerman (models)",
     "Fabric port: 3bWI SaM"
   ],
   "contact": {
@@ -45,7 +45,8 @@
     "java": ">=25",
     "ae2": "*",
     "ae2addonlib": "*",
-    "geckolib": "*"
+    "geckolib": "*",
+    "ae2wtlib": "*"
   },
   "suggests": {
     "jei": "*"
