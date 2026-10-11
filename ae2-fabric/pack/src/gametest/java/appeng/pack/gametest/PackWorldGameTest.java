@@ -62,6 +62,27 @@ public class PackWorldGameTest implements FabricClientGameTest {
                 LOG.info("Invalid key binding handled without crash");
             });
             context.takeScreenshot("pack-normal-world");
+
+            // A fluid cell filled with lava by command (1,000,000 buckets in droplets)
+            var server = world.getServer();
+            server.runCommand("give @a ae2:fluid_storage_cell_256k[ae2:storage_cell_inv=[{\"#t\":\"ae2:f\","
+                    + "id:\"minecraft:lava\",\"#\":81000000000L}]]");
+            context.waitTicks(5);
+            var lava = server.computeOnServer(s -> {
+                var player = s.getPlayerList().getPlayers().getFirst();
+                for (var stack : player.getInventory().getNonEquipmentItems()) {
+                    var cell = appeng.api.storage.StorageCells.getCellInventory(stack, null);
+                    if (cell != null) {
+                        return cell.getAvailableStacks().get(appeng.api.stacks.AEFluidKey.of(
+                                net.minecraft.world.level.material.Fluids.LAVA));
+                    }
+                }
+                return -1L;
+            });
+            LOG.info("The given fluid cell holds {} buckets of lava", lava / 81000);
+            if (lava != 81_000_000_000L) {
+                throw new AssertionError("Lava cell from /give holds " + lava + " droplets");
+            }
         }
     }
 }
