@@ -63,8 +63,50 @@ public class PackWorldGameTest implements FabricClientGameTest {
             });
             context.takeScreenshot("pack-normal-world");
 
-            // Fluid cells filled by command (1,000,000 buckets in droplets): lava and Advanced AE's quantum infusion
             var server = world.getServer();
+            // The universal terminal in one step: receiver, the three terminals and a dense energy cell
+            var wut = server.computeOnServer(s -> {
+                var level = s.overworld();
+                java.util.function.Function<String, net.minecraft.world.item.ItemStack> item = id ->
+                        new net.minecraft.world.item.ItemStack(net.minecraft.core.registries.BuiltInRegistries.ITEM
+                                .getValue(net.minecraft.resources.Identifier.parse(id)));
+                var empty = net.minecraft.world.item.ItemStack.EMPTY;
+                var input = net.minecraft.world.item.crafting.CraftingInput.of(3, 3, java.util.List.of(
+                        empty, item.apply("ae2:wireless_receiver"), empty,
+                        item.apply("ae2:crafting_terminal"), item.apply("ae2:pattern_encoding_terminal"),
+                        item.apply("ae2:pattern_access_terminal"),
+                        empty, item.apply("ae2:dense_energy_cell"), empty));
+                return s.getRecipeManager().getRecipeFor(net.minecraft.world.item.crafting.RecipeType.CRAFTING,
+                        input, level).map(r -> r.value().assemble(input)).orElse(empty);
+            });
+            var terminals = wut.getComponents().keySet().stream()
+                    .map(type -> net.minecraft.core.registries.BuiltInRegistries.DATA_COMPONENT_TYPE.getKey(type))
+                    .filter(id -> id != null && id.getPath().startsWith("has_"))
+                    .map(Object::toString).sorted().toList();
+            LOG.info("Crafted {} with {}", wut.getItem(), terminals);
+            if (!terminals.equals(java.util.List.of("ae2wtlib:has_crafting_terminal",
+                    "ae2wtlib:has_pattern_access_terminal", "ae2wtlib:has_pattern_encoding_terminal"))) {
+                throw new AssertionError("Universal terminal recipe gave " + wut + " with " + terminals);
+            }
+            server.runCommand("clear @a");
+            server.runCommand("give @a ae2wtlib:wireless_universal_terminal[ae2wtlib:has_crafting_terminal={},"
+                    + "ae2wtlib:has_pattern_encoding_terminal={},ae2wtlib:has_pattern_access_terminal={}]");
+            context.waitTicks(5);
+            var given = server.computeOnServer(s -> s.getPlayerList().getPlayers().getFirst().getInventory()
+                    .getNonEquipmentItems().stream().filter(st -> !st.isEmpty()).findFirst()
+                    .map(st -> st.getComponents().keySet().stream().filter(t -> {
+                        var id = net.minecraft.core.registries.BuiltInRegistries.DATA_COMPONENT_TYPE.getKey(t);
+                        return id != null && id.getPath().startsWith("has_");
+                    }).count()).orElse(0L));
+            if (given != 3) {
+                throw new AssertionError("/give universal terminal has " + given + " terminals");
+            }
+            context.getInput().pressKey(options -> options.keyUse);
+            context.waitFor(mc -> mc.gui.screen() != null, 100);
+            context.takeScreenshot("pack-universal-terminal");
+            context.runOnClient(mc -> mc.gui.setScreen(null));
+
+            // Fluid cells filled by command (1,000,000 buckets in droplets): lava and Advanced AE's quantum infusion
             for (var fluidId : java.util.List.of("minecraft:lava", "advanced_ae:quantum_infusion_source")) {
                 server.runCommand("clear @a");
                 server.runCommand("give @a ae2:fluid_storage_cell_256k[ae2:storage_cell_inv=[{\"#t\":\"ae2:f\","

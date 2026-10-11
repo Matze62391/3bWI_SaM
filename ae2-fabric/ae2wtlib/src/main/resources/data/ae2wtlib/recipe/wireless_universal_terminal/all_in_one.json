@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    " r ",
+    "cep",
+    " d "
+  ],
+  "key": {
+    "r": "ae2:wireless_receiver",
+    "c": ["ae2:crafting_terminal", "ae2:wireless_crafting_terminal"],
+    "e": ["ae2:pattern_encoding_terminal", "ae2wtlib:wireless_pattern_encoding_terminal"],
+    "p": ["ae2:pattern_access_terminal", "ae2wtlib:wireless_pattern_access_terminal"],
+    "d": "ae2:dense_energy_cell"
+  },
+  "result": {
+    "id": "ae2wtlib:wireless_universal_terminal",
+    "components": {
+      "ae2wtlib:has_crafting_terminal": {},
+      "ae2wtlib:has_pattern_encoding_terminal": {},
+      "ae2wtlib:has_pattern_access_terminal": {}
+    }
+  }
+}
