@@ -131,6 +131,9 @@ public class EAEClientGameTest implements FabricClientGameTest {
             fill(server, origin.offset(-12, 0, 5), origin.offset(12, 1, 5), "minecraft:air");
 
             testCircuitCutter(context, server, origin.offset(3, 0, 3));
+            if (!testCutterAutocraft(context, server, origin.offset(-8, 2, 12), "ae2:pattern_provider")) {
+                failures.add("autocrafting with circuit cutters around a pattern provider");
+            }
             for (var provider : List.of("ae2:pattern_provider")) {
                 if (!testCutterAutoExport(context, server, origin.offset(-4, 0, 8), provider)) {
                     failures.add("circuit cutter auto export into " + provider);
@@ -261,6 +264,102 @@ public class EAEClientGameTest implements FabricClientGameTest {
         openAndScreenshot(context, pos, "eae-circuit-cutter-output");
         setBlock(server, pos, "minecraft:air");
         setBlock(server, pos.below(), "minecraft:air");
+    }
+
+    /**
+     * The usual press automation: a pattern provider with circuit cutters on its four sides and below it, the top open,
+     * and the network only connected to the bottom cutter. A crafting request for printed calculation circuits goes
+     * through the provider into the cutters, and auto export returns the results through the provider.
+     */
+    private static boolean testCutterAutocraft(ClientGameTestContext context, TestServerContext server,
+            BlockPos provider, String providerBlock) {
+        var bottom = provider.below();
+        var energy = bottom.below();
+        var drive = energy.north();
+        var cpu = energy.south();
+        var cutters = List.of(provider.north(), provider.south(), provider.east(), provider.west(), bottom);
+        setBlock(server, energy, "ae2:creative_energy_cell");
+        setBlock(server, drive, "ae2:drive");
+        setBlock(server, cpu, "ae2:1k_crafting_storage");
+        setBlock(server, provider, providerBlock);
+        for (var cutter : cutters) {
+            setBlock(server, cutter, "extendedae:circuit_cutter");
+        }
+        context.waitTicks(20);
+        var quartz = appeng.api.stacks.AEItemKey.of(AEBlocks.QUARTZ_BLOCK.asItem());
+        var printed = appeng.api.stacks.AEItemKey.of(appeng.core.definitions.AEItems.CALCULATION_PROCESSOR_PRINT.asItem());
+        server.runOnServer(s -> {
+            var level = s.overworld();
+            ((appeng.blockentity.storage.DriveBlockEntity) level.getBlockEntity(drive)).getInternalInventory()
+                    .insertItem(0, appeng.core.definitions.AEItems.ITEM_CELL_1K.stack(), false);
+            for (var cutter : cutters) {
+                ((TileCircuitCutter) level.getBlockEntity(cutter)).getConfigManager()
+                        .putSetting(appeng.api.config.Settings.AUTO_EXPORT, appeng.api.config.YesNo.YES);
+            }
+            var host = (appeng.helpers.patternprovider.PatternProviderLogicHost) level.getBlockEntity(provider);
+            host.getLogic().getPatternInv().addItems(appeng.api.crafting.PatternDetailsHelper.encodeProcessingPattern(
+                    List.of(new appeng.api.stacks.GenericStack(quartz, 1)),
+                    List.of(new appeng.api.stacks.GenericStack(printed, 4))));
+        });
+        context.waitTicks(20);
+        // quartz blocks for the job
+        server.runOnServer(s -> grid(s, drive).getStorageService().getInventory().insert(quartz, 8,
+                Actionable.MODULATE, new appeng.me.helpers.BaseActionSource()));
+        waitFor(context, server, s -> grid(s, drive).getCraftingService().isCraftable(printed), 200);
+        var plan = server.computeOnServer(s -> {
+            var grid = grid(s, drive);
+            var src = new appeng.me.helpers.MachineSource(grid::getPivot);
+            return grid.getCraftingService().beginCraftingCalculation(s.overworld(), () -> src, printed, 32,
+                    appeng.api.networking.crafting.CalculationStrategy.REPORT_MISSING_ITEMS);
+        });
+        for (var i = 0; i < 40 && !plan.isDone(); i++) {
+            context.waitTicks(5);
+        }
+        var submitted = server.computeOnServer(s -> {
+            try {
+                var p = plan.get();
+                if (p.simulation()) {
+                    var missing = new StringBuilder();
+                    for (var e : p.missingItems()) missing.append(e.getKey()).append('x').append(e.getLongValue()).append(' ');
+                    var pg = ((appeng.me.helpers.IGridConnectedBlockEntity) s.overworld().getBlockEntity(provider)).getMainNode().getGrid();
+                    var cg = ((appeng.me.helpers.IGridConnectedBlockEntity) s.overworld().getBlockEntity(bottom)).getMainNode().getGrid();
+                    var host = (appeng.helpers.patternprovider.PatternProviderLogicHost) s.overworld().getBlockEntity(provider);
+                    return "simulation only, missing " + missing + "; provider on drive's grid=" + (pg == grid(s, drive))
+                            + " bottom cutter on drive's grid=" + (cg == grid(s, drive))
+                            + " patterns=" + host.getLogic().getAvailablePatterns().size()
+                            + " craftable=" + grid(s, drive).getCraftingService().isCraftable(printed)
+                            + " patternTimes=" + p.patternTimes().size() + " used=" + p.usedItems().size()
+                            + " bytes=" + p.bytes();
+                }
+                var result = grid(s, drive).getCraftingService().submitJob(p, null, null, true,
+                        new appeng.me.helpers.BaseActionSource());
+                return result.successful() ? "ok" : "failed: " + result.errorCode() + " " + result.errorDetail();
+            } catch (Exception e) {
+                return "error: " + e;
+            }
+        });
+        LOG.info("Circuit cutter autocraft job: {}", submitted);
+        var ok = "ok".equals(submitted) && waitFor(context, server,
+                s -> grid(s, drive).getStorageService().getInventory().getAvailableStacks().get(printed) >= 32, 1600);
+        var state = server.computeOnServer(s -> "printed=" + grid(s, drive).getStorageService().getInventory()
+                .getAvailableStacks().get(printed) + " quartz=" + grid(s, drive).getStorageService().getInventory()
+                .getAvailableStacks().get(quartz));
+        LOG.info("Circuit cutter autocraft with {}: {} ({})", providerBlock, ok ? "ok" : "FAILED", state);
+        context.getInput().lookAt(provider);
+        context.waitTicks(5);
+        worldScreenshot(context, "eae-cutter-autocraft");
+        for (var pos : cutters) {
+            setBlock(server, pos, "minecraft:air");
+        }
+        for (var pos : List.of(provider, drive, cpu, energy)) {
+            setBlock(server, pos, "minecraft:air");
+        }
+        return ok;
+    }
+
+    private static appeng.api.networking.IGrid grid(MinecraftServer server, BlockPos pos) {
+        var be = (appeng.me.helpers.IGridConnectedBlockEntity) server.overworld().getBlockEntity(pos);
+        return be.getMainNode().getGrid();
     }
 
     /**
