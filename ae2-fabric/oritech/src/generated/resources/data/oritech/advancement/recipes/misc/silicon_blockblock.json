@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:silicon_blockblock"
+        "recipes": "oritech:silicon_blockblock"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

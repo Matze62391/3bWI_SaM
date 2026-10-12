@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/addon/steamboiler"
+        "recipes": "oritech:crafting/addon/steamboiler"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

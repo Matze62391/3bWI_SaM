@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:copper_reinforced_plating_stairs"
+        "recipes": "oritech:copper_reinforced_plating_stairs"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

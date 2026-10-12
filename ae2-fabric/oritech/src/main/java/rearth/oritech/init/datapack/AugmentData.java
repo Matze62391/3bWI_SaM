@@ -48,6 +48,10 @@ public record AugmentData(boolean toggleable, List<SizedIngredient> researchCost
                         BuiltInRegistries.MOB_EFFECT.get(effectDefinition.potionEffectId).orElseThrow(),
                         effectDefinition.effectStrength);
             }
+            case ModifierDefinition modifierDefinition when modifierDefinition.entityAttributeId().equals(rearth.oritech.block.entity.augmenter.api.FlightAugment.ATTRIBUTE_ID) -> {
+                // NeoForge's creative flight attribute doesn't exist on Fabric
+                return new rearth.oritech.block.entity.augmenter.api.FlightAugment(augmentId, this.toggleable);
+            }
             case ModifierDefinition modifierDefinition -> {
                 return new ModifierAugment(
                         augmentId,

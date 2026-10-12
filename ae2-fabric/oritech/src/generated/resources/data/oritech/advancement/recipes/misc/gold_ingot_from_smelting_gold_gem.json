@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:gold_ingot_from_smelting_gold_gem"
+        "recipes": "oritech:gold_ingot_from_smelting_gold_gem"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/centrifuge"
+        "recipes": "oritech:crafting/centrifuge"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

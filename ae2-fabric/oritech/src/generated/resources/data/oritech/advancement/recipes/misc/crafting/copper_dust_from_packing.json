@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/copper_dust_from_packing"
+        "recipes": "oritech:crafting/copper_dust_from_packing"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/centrifugealt"
+        "recipes": "oritech:crafting/centrifugealt"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

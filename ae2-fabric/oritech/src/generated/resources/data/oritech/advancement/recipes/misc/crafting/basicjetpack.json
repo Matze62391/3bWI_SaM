@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/basicjetpack"
+        "recipes": "oritech:crafting/basicjetpack"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

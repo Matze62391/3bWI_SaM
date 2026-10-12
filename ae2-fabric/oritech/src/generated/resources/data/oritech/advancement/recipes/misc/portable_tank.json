@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:portable_tank"
+        "recipes": "oritech:portable_tank"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

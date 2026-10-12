@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/nickel_dust_from_packing"
+        "recipes": "oritech:crafting/nickel_dust_from_packing"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/core2alt"
+        "recipes": "oritech:crafting/core2alt"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

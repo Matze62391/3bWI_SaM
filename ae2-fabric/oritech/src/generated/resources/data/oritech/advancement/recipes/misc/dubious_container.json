@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:dubious_container"
+        "recipes": "oritech:dubious_container"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

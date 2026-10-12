@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:framed_energy_pipe"
+        "recipes": "oritech:framed_energy_pipe"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

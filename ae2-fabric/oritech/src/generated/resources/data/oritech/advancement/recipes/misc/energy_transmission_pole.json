@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:energy_transmission_pole"
+        "recipes": "oritech:energy_transmission_pole"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

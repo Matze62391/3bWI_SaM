@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:clay_catalyst_beads"
+        "recipes": "oritech:clay_catalyst_beads"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

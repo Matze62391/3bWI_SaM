@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/addon/burst"
+        "recipes": "oritech:crafting/addon/burst"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

@@ -3,7 +3,7 @@
   "criteria": {
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/packed_wheat_from_packing"
+        "recipes": "oritech:crafting/packed_wheat_from_packing"
       },
       "trigger": "minecraft:recipe_unlocked"
     },

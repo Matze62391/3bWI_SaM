@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:steelblock"
+        "recipes": "oritech:steelblock"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

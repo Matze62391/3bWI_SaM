@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/particlecontroller"
+        "recipes": "oritech:crafting/particlecontroller"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

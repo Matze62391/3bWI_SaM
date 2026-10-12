@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/pulverizeralt"
+        "recipes": "oritech:crafting/pulverizeralt"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

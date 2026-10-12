@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:reactor_rod"
+        "recipes": "oritech:reactor_rod"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

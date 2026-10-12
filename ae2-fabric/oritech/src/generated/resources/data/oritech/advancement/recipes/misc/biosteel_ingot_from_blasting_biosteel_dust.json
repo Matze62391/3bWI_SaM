@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:biosteel_ingot_from_blasting_biosteel_dust"
+        "recipes": "oritech:biosteel_ingot_from_blasting_biosteel_dust"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

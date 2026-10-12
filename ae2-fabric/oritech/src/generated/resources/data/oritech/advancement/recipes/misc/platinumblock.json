@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:platinumblock"
+        "recipes": "oritech:platinumblock"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

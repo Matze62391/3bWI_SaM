@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:duratiumblockinv"
+        "recipes": "oritech:duratiumblockinv"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

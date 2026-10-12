@@ -3,7 +3,7 @@
   "criteria": {
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/tree_cutter"
+        "recipes": "oritech:crafting/tree_cutter"
       },
       "trigger": "minecraft:recipe_unlocked"
     },

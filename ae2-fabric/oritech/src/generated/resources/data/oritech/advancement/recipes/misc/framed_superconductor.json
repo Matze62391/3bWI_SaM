@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:framed_superconductor"
+        "recipes": "oritech:framed_superconductor"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

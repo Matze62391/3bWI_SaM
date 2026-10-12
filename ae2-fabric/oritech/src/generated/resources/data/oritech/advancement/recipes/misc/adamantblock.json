@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:adamantblock"
+        "recipes": "oritech:adamantblock"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

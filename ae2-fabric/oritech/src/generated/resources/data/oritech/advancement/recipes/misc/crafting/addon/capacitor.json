@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/addon/capacitor"
+        "recipes": "oritech:crafting/addon/capacitor"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

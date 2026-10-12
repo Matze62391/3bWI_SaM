@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/addon/yield"
+        "recipes": "oritech:crafting/addon/yield"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

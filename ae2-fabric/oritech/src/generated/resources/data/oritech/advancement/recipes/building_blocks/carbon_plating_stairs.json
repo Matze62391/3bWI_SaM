@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:carbon_plating_stairs"
+        "recipes": "oritech:carbon_plating_stairs"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

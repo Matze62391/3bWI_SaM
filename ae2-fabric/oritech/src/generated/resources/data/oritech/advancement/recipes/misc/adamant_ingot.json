@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:adamant_ingot"
+        "recipes": "oritech:adamant_ingot"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

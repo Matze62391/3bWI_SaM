@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/catalyst_alt"
+        "recipes": "oritech:crafting/catalyst_alt"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

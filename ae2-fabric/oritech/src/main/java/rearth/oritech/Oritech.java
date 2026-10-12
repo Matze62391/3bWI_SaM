@@ -145,6 +145,16 @@ public final class Oritech implements ModInitializer {
             addFeature(BiomeTags.IS_OVERWORLD, "resource_node_rare", GenerationStep.Decoration.TOP_LAYER_MODIFICATION);
         }
 
+        // compostables (a NeoForge data map upstream)
+        var compostables = java.util.Map.of(
+                "banana", net.minecraft.world.level.storage.loot.providers.number.ints.ContextIntProviders.COMPOSTABLE_MEDIUM,
+                "biomass", net.minecraft.world.level.storage.loot.providers.number.ints.ContextIntProviders.COMPOSTABLE_LOW,
+                "biomass_block", net.minecraft.world.level.storage.loot.providers.number.ints.ContextIntProviders.COMPOSTABLE_ALWAYS_ADD_ONE,
+                "packed_wheat", net.minecraft.world.level.storage.loot.providers.number.ints.ContextIntProviders.COMPOSTABLE_ALWAYS_ADD_ONE);
+        net.fabricmc.fabric.api.item.v1.DefaultItemComponentEvents.MODIFY.register(context -> compostables.forEach((name, chance) ->
+                net.minecraft.core.registries.BuiltInRegistries.ITEM.getOptional(id(name)).ifPresent(item -> context.modify(item, components ->
+                        components.set(net.minecraft.core.component.DataComponents.COMPOSTABLE, new net.minecraft.world.item.component.Compostable(chance))))));
+
         // former common setup
         EndericLaserBlockBehavior.registerDefaults();
         EndericLaserEntityBehavior.registerDefaults();

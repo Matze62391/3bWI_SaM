@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:plutonium_pelletblockinv"
+        "recipes": "oritech:plutonium_pelletblockinv"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

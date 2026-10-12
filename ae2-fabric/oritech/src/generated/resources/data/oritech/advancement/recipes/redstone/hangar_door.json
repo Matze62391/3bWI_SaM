@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:hangar_door"
+        "recipes": "oritech:hangar_door"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

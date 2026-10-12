@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:reactor_wall"
+        "recipes": "oritech:reactor_wall"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

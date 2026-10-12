@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:electrumblockinv"
+        "recipes": "oritech:electrumblockinv"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:hand_drill"
+        "recipes": "oritech:hand_drill"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:fluid_pipe"
+        "recipes": "oritech:fluid_pipe"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

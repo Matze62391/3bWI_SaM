@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/unframe_fluid"
+        "recipes": "oritech:crafting/unframe_fluid"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

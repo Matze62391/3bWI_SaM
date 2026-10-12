@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:iron_ingot_from_blasting_iron_dust"
+        "recipes": "oritech:iron_ingot_from_blasting_iron_dust"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

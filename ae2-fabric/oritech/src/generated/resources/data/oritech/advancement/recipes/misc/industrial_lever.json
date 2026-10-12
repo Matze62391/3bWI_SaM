@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:industrial_lever"
+        "recipes": "oritech:industrial_lever"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

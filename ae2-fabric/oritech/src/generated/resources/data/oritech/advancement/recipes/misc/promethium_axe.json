@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:promethium_axe"
+        "recipes": "oritech:promethium_axe"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:electric_mace"
+        "recipes": "oritech:electric_mace"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

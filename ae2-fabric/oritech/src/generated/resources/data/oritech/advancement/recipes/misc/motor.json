@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:motor"
+        "recipes": "oritech:motor"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

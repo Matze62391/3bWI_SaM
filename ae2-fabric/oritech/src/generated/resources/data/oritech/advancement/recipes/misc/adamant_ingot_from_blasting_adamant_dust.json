@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:adamant_ingot_from_blasting_adamant_dust"
+        "recipes": "oritech:adamant_ingot_from_blasting_adamant_dust"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:electrum_ingot"
+        "recipes": "oritech:electrum_ingot"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

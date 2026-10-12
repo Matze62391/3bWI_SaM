@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:reactor_double_rod"
+        "recipes": "oritech:reactor_double_rod"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

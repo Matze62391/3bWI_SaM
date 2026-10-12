@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:manhattan_module"
+        "recipes": "oritech:manhattan_module"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

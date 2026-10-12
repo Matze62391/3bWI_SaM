@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:accelerator_ring"
+        "recipes": "oritech:accelerator_ring"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

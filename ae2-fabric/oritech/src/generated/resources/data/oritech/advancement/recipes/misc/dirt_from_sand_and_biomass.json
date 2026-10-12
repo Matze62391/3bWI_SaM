@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:dirt_from_sand_and_biomass"
+        "recipes": "oritech:dirt_from_sand_and_biomass"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/smallstorage"
+        "recipes": "oritech:crafting/smallstorage"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:copper_ingot_from_blasting_copper_gem"
+        "recipes": "oritech:copper_ingot_from_blasting_copper_gem"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

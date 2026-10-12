@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:reactor_heat_absorber"
+        "recipes": "oritech:reactor_heat_absorber"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

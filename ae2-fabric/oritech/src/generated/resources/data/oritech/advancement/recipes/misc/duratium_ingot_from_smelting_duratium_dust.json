@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:duratium_ingot_from_smelting_duratium_dust"
+        "recipes": "oritech:duratium_ingot_from_smelting_duratium_dust"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

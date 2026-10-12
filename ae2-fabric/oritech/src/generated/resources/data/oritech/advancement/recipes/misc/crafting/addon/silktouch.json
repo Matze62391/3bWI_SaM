@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/addon/silktouch"
+        "recipes": "oritech:crafting/addon/silktouch"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

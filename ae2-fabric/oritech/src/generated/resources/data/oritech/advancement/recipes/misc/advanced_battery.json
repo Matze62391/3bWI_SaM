@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:advanced_battery"
+        "recipes": "oritech:advanced_battery"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

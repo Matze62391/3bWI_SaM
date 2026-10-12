@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/laserarm"
+        "recipes": "oritech:crafting/laserarm"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

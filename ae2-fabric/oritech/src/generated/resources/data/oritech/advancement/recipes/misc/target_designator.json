@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:target_designator"
+        "recipes": "oritech:target_designator"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/placer"
+        "recipes": "oritech:crafting/placer"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

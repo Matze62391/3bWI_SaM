@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/assembleralt"
+        "recipes": "oritech:crafting/assembleralt"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

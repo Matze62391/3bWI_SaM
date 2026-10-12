@@ -9,7 +9,7 @@
     "type": "modifier",
     "amount": 1.0,
     "attributeOperationType": 0,
-    "entityAttributeId": "neoforge:creative_flight"
+    "entityAttributeId": "oritech:creative_flight"
   },
   "requiredStation": "oritech:arcane_augment_station",
   "requirements": [

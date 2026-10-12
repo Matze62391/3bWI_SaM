@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:reactor_heat_pipe"
+        "recipes": "oritech:reactor_heat_pipe"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

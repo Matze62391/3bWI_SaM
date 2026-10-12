@@ -3,7 +3,7 @@
   "criteria": {
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:uraniumblockinv"
+        "recipes": "oritech:uraniumblockinv"
       },
       "trigger": "minecraft:recipe_unlocked"
     },

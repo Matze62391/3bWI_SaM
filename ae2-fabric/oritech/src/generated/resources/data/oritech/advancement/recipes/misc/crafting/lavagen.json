@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/lavagen"
+        "recipes": "oritech:crafting/lavagen"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

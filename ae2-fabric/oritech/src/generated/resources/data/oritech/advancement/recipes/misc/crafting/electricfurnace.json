@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/electricfurnace"
+        "recipes": "oritech:crafting/electricfurnace"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

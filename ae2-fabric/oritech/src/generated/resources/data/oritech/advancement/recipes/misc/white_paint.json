@@ -3,7 +3,7 @@
   "criteria": {
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:white_paint"
+        "recipes": "oritech:white_paint"
       },
       "trigger": "minecraft:recipe_unlocked"
     },

@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:uranium_pelletblock"
+        "recipes": "oritech:uranium_pelletblock"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

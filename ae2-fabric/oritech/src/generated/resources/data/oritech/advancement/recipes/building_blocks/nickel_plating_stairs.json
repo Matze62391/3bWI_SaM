@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:nickel_plating_stairs"
+        "recipes": "oritech:nickel_plating_stairs"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

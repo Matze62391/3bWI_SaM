@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:copper_nugget_from_smelting_small_copper_dust"
+        "recipes": "oritech:copper_nugget_from_smelting_small_copper_dust"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

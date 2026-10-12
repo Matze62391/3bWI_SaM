@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:fluxite_blockblockinv"
+        "recipes": "oritech:fluxite_blockblockinv"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

@@ -3,7 +3,7 @@
   "criteria": {
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/totransparent"
+        "recipes": "oritech:crafting/totransparent"
       },
       "trigger": "minecraft:recipe_unlocked"
     },

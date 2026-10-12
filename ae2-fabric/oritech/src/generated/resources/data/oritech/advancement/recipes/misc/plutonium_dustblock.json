@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:plutonium_dustblock"
+        "recipes": "oritech:plutonium_dustblock"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

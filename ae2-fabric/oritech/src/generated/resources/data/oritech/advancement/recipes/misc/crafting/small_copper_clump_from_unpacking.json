@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/small_copper_clump_from_unpacking"
+        "recipes": "oritech:crafting/small_copper_clump_from_unpacking"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

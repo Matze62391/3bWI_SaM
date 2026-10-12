@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:machine_frame"
+        "recipes": "oritech:machine_frame"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

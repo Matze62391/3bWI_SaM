@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:energy_pipe_duct"
+        "recipes": "oritech:energy_pipe_duct"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

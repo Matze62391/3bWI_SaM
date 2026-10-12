@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:addon_splicer"
+        "recipes": "oritech:addon_splicer"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

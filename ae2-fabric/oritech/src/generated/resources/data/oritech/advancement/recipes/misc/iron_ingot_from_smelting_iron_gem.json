@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:iron_ingot_from_smelting_iron_gem"
+        "recipes": "oritech:iron_ingot_from_smelting_iron_gem"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

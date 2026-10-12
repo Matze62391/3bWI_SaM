@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/gold_clump_from_packing"
+        "recipes": "oritech:crafting/gold_clump_from_packing"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

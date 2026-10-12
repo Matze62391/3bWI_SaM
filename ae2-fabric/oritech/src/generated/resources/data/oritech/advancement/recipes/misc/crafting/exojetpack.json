@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/exojetpack"
+        "recipes": "oritech:crafting/exojetpack"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

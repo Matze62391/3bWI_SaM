@@ -3,7 +3,7 @@
   "criteria": {
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:transparent_item_pipe"
+        "recipes": "oritech:transparent_item_pipe"
       },
       "trigger": "minecraft:recipe_unlocked"
     },

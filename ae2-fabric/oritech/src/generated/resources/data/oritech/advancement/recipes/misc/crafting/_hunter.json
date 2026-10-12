@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/_hunter"
+        "recipes": "oritech:crafting/_hunter"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

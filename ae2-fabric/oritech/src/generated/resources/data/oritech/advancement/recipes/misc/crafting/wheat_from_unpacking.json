@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/wheat_from_unpacking"
+        "recipes": "oritech:crafting/wheat_from_unpacking"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:nickel_plating_slab"
+        "recipes": "oritech:nickel_plating_slab"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

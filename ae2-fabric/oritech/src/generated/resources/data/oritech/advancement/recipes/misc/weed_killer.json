@@ -3,7 +3,7 @@
   "criteria": {
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:weed_killer"
+        "recipes": "oritech:weed_killer"
       },
       "trigger": "minecraft:recipe_unlocked"
     },

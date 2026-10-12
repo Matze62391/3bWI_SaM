@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/bigstorage"
+        "recipes": "oritech:crafting/bigstorage"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

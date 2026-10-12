@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:machine_extender"
+        "recipes": "oritech:machine_extender"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

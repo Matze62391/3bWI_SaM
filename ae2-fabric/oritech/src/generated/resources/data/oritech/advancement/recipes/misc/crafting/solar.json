@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/solar"
+        "recipes": "oritech:crafting/solar"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

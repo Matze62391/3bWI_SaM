@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/smart_splitter"
+        "recipes": "oritech:crafting/smart_splitter"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

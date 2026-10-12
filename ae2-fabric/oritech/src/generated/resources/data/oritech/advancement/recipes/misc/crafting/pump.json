@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/pump"
+        "recipes": "oritech:crafting/pump"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:energite_ingot_from_blasting_energite_dust"
+        "recipes": "oritech:energite_ingot_from_blasting_energite_dust"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

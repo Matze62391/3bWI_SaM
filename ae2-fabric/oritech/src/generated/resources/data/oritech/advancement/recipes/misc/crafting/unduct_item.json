@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/unduct_item"
+        "recipes": "oritech:crafting/unduct_item"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

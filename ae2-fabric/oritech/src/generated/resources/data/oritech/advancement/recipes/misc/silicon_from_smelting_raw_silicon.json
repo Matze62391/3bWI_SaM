@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:silicon_from_smelting_raw_silicon"
+        "recipes": "oritech:silicon_from_smelting_raw_silicon"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

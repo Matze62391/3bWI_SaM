@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/stabilized_enchanter"
+        "recipes": "oritech:crafting/stabilized_enchanter"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

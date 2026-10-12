@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:nuclear_reactor_controller"
+        "recipes": "oritech:nuclear_reactor_controller"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

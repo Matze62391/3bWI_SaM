@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:chainsaw"
+        "recipes": "oritech:chainsaw"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

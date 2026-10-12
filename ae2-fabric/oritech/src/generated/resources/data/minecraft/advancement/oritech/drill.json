@@ -13,7 +13,6 @@
     }
   },
   "display": {
-    "background": "minecraft:gui/advancements/backgrounds/adventure",
     "description": {
       "translate": "advancements.oritech.drill.description"
     },

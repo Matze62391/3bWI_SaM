@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/exoboostedelytraalt"
+        "recipes": "oritech:crafting/exoboostedelytraalt"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

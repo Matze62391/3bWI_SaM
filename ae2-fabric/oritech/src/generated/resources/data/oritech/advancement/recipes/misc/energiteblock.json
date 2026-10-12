@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:energiteblock"
+        "recipes": "oritech:energiteblock"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

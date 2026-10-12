@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/addon/acceptor"
+        "recipes": "oritech:crafting/addon/acceptor"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

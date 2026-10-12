@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:electrum_ingot_from_blasting_electrum_dust"
+        "recipes": "oritech:electrum_ingot_from_blasting_electrum_dust"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

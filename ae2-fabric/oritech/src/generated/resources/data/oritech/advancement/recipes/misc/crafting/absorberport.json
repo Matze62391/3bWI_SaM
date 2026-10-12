@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/absorberport"
+        "recipes": "oritech:crafting/absorberport"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

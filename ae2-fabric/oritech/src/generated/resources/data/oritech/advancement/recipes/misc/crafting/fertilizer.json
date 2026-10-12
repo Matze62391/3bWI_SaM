@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/fertilizer"
+        "recipes": "oritech:crafting/fertilizer"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

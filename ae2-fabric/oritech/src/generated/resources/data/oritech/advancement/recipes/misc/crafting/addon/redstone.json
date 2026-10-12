@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/addon/redstone"
+        "recipes": "oritech:crafting/addon/redstone"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

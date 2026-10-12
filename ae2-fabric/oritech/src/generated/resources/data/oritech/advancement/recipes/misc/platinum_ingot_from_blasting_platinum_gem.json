@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:platinum_ingot_from_blasting_platinum_gem"
+        "recipes": "oritech:platinum_ingot_from_blasting_platinum_gem"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

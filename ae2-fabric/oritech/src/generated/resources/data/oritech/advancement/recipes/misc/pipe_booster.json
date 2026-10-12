@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:pipe_booster"
+        "recipes": "oritech:pipe_booster"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:industrial_light_hanging"
+        "recipes": "oritech:industrial_light_hanging"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

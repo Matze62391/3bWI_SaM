@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/core3"
+        "recipes": "oritech:crafting/core3"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

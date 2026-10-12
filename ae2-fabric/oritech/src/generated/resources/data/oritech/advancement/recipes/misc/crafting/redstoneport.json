@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/redstoneport"
+        "recipes": "oritech:crafting/redstoneport"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

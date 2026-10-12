@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/steamgen"
+        "recipes": "oritech:crafting/steamgen"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

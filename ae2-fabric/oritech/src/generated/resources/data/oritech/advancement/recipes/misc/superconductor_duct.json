@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:superconductor_duct"
+        "recipes": "oritech:superconductor_duct"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

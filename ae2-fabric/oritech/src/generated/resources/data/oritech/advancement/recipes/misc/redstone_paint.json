@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:redstone_paint"
+        "recipes": "oritech:redstone_paint"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

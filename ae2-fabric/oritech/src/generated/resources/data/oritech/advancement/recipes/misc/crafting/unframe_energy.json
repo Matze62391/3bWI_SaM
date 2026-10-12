@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/unframe_energy"
+        "recipes": "oritech:crafting/unframe_energy"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

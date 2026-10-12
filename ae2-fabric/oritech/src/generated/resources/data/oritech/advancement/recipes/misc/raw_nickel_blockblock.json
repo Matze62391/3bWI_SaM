@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:raw_nickel_blockblock"
+        "recipes": "oritech:raw_nickel_blockblock"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:steel_ingot"
+        "recipes": "oritech:steel_ingot"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/foundry"
+        "recipes": "oritech:crafting/foundry"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

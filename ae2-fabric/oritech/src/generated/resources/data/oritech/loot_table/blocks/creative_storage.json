@@ -2,24 +2,19 @@
   "type": "minecraft:block",
   "pools": [
     {
-      "bonus_rolls": 0.0,
-      "conditions": [
-        {
-          "condition": "minecraft:survives_explosion"
-        }
-      ],
       "entries": [
         {
           "type": "minecraft:item",
-          "functions": [
-            {
-              "function": "oritech:nbt_block_loot_function"
-            }
-          ],
-          "name": "oritech:creative_storage"
+          "name": "oritech:creative_storage",
+          "modifier": {
+            "type": "oritech:nbt_block_loot_function"
+          }
         }
       ],
-      "rolls": 1.0
+      "rolls": 1.0,
+      "condition": {
+        "type": "minecraft:survives_explosion"
+      }
     }
   ],
   "random_sequence": "oritech:blocks/creative_storage"

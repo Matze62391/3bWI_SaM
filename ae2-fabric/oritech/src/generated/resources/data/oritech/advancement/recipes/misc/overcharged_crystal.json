@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:overcharged_crystal"
+        "recipes": "oritech:overcharged_crystal"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

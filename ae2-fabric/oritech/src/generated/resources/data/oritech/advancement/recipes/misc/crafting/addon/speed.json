@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/addon/speed"
+        "recipes": "oritech:crafting/addon/speed"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

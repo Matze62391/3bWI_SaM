@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/fuelgen"
+        "recipes": "oritech:crafting/fuelgen"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

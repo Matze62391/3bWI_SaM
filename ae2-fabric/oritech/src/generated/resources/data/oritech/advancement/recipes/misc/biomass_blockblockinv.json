@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:biomass_blockblockinv"
+        "recipes": "oritech:biomass_blockblockinv"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:industrial_support_beam"
+        "recipes": "oritech:industrial_support_beam"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

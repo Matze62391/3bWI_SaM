@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/refinery"
+        "recipes": "oritech:crafting/refinery"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

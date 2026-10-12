@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/refinerymodulealt"
+        "recipes": "oritech:crafting/refinerymodulealt"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

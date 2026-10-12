@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:low_yield_nuclear_explosion_device"
+        "recipes": "oritech:low_yield_nuclear_explosion_device"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

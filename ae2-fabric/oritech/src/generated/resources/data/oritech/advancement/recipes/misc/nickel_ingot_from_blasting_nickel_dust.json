@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:nickel_ingot_from_blasting_nickel_dust"
+        "recipes": "oritech:nickel_ingot_from_blasting_nickel_dust"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

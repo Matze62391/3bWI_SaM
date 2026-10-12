@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:fluid_pipe_duct"
+        "recipes": "oritech:fluid_pipe_duct"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

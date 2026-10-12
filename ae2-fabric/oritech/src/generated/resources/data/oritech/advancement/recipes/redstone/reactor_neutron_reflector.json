@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:reactor_neutron_reflector"
+        "recipes": "oritech:reactor_neutron_reflector"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

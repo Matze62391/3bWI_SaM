@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:industrial_light"
+        "recipes": "oritech:industrial_light"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

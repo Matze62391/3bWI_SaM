@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:sculk_paint"
+        "recipes": "oritech:sculk_paint"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

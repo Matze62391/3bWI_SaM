@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "oritech:crafting/biogen"
+        "recipes": "oritech:crafting/biogen"
       },
       "trigger": "minecraft:recipe_unlocked"
     }
