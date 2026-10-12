@@ -1,0 +1,34 @@
+{
+  "parent": "minecraft:oritech/centrifuge",
+  "criteria": {
+    "got_augmenter": {
+      "conditions": {
+        "items": [
+          {
+            "items": "oritech:cybernetic_augmentation_center"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    }
+  },
+  "display": {
+    "background": "minecraft:gui/advancements/backgrounds/adventure",
+    "description": {
+      "translate": "advancements.oritech.augmenter.description"
+    },
+    "frame": "goal",
+    "icon": {
+      "id": "oritech:cybernetic_augmentation_center"
+    },
+    "title": {
+      "translate": "advancements.oritech.augmenter"
+    }
+  },
+  "requirements": [
+    [
+      "got_augmenter"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

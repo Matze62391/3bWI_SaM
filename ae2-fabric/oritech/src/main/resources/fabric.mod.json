@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "id": "oritech",
+  "version": "${version}",
+  "name": "Oritech",
+  "description": "A technology mod with animated machines, multiblocks, energy, fluids and processing chains. Fabric port.",
+  "authors": ["Rearth"],
+  "contact": {
+    "sources": "https://github.com/Rearth/Oritech"
+  },
+  "license": "CC0-1.0",
+  "icon": "assets/oritech/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["rearth.oritech.Oritech"],
+    "client": ["rearth.oritech.OritechClient"],
+    "jei_mod_plugin": ["rearth.oritech.init.compat.jei.OritechJeiPlugin"]
+  },
+  "mixins": ["oritech.mixins.json"],
+  "accessWidener": "oritech.classtweaker",
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "fabric-api": "*",
+    "minecraft": "~26.3",
+    "java": ">=25",
+    "geckolib": "*",
+    "team_reborn_energy": "*"
+  }
+}

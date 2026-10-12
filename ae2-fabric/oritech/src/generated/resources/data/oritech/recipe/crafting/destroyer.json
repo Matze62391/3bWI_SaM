@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "b": "#oritech:plating",
+    "c": "oritech:pulverizer",
+    "f": "oritech:motor",
+    "m": "oritech:motor",
+    "s": "oritech:enderic_laser"
+  },
+  "pattern": [
+    "fsf",
+    "mcm",
+    "bbb"
+  ],
+  "result": {
+    "id": "oritech:destroyer"
+  }
+}

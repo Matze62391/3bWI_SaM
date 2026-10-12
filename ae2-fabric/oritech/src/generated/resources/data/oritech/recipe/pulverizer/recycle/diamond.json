@@ -1,0 +1,12 @@
+{
+  "type": "oritech:pulverizer",
+  "itemInputs": [
+    "#oritech:recyclable/diamond"
+  ],
+  "itemResults": [
+    {
+      "id": "minecraft:diamond"
+    }
+  ],
+  "time": 100
+}

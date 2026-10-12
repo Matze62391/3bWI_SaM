@@ -1,0 +1,12 @@
+{
+  "type": "oritech:pulverizer",
+  "itemInputs": [
+    "#oritech:recyclable/copper_dust"
+  ],
+  "itemResults": [
+    {
+      "id": "oritech:copper_dust"
+    }
+  ],
+  "time": 100
+}

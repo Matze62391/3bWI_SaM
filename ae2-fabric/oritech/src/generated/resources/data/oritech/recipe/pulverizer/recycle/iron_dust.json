@@ -1,0 +1,12 @@
+{
+  "type": "oritech:pulverizer",
+  "itemInputs": [
+    "#oritech:recyclable/iron_dust"
+  ],
+  "itemResults": [
+    {
+      "id": "oritech:iron_dust"
+    }
+  ],
+  "time": 100
+}

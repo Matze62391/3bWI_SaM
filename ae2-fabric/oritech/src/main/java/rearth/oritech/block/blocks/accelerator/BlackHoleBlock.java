@@ -1,0 +1,84 @@
+package rearth.oritech.block.blocks.accelerator;
+
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponentGetter;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.InsideBlockEffectApplier;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.TooltipProvider;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.EntityBlock;
+import net.minecraft.world.level.block.RenderShape;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityTicker;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.VoxelShape;
+import org.jetbrains.annotations.Nullable;
+import rearth.oritech.block.entity.accelerator.BlackHoleBlockEntity;
+import rearth.oritech.client.init.ParticleContent;
+
+import java.util.function.Consumer;
+
+public class BlackHoleBlock extends Block implements EntityBlock, TooltipProvider {
+
+    public BlackHoleBlock(Properties settings) {
+        super(settings);
+    }
+
+    @Nullable
+    @Override
+    public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
+        return new BlackHoleBlockEntity(pos, state);
+    }
+
+    @Override
+    protected VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+        return Block.box(3, 3, 3, 13, 13, 13);
+    }
+
+    @Override
+    protected RenderShape getRenderShape(BlockState state) {
+        return RenderShape.INVISIBLE;
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    @Nullable
+    @Override
+    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> type) {
+        return (world1, pos, state1, blockEntity) -> {
+            if (blockEntity instanceof BlockEntityTicker ticker)
+                ticker.tick(world1, pos, state1, blockEntity);
+        };
+    }
+
+    @Override
+    protected void entityInside(BlockState state, Level level, BlockPos pos, Entity entity, InsideBlockEffectApplier effectApplier, boolean isPrecise) {
+        // yes this will also kill creative players. This is intentional. Don't annoy me about this by opening a bugfix PR
+        // (looking at you jshipley)
+        if (level instanceof ServerLevel serverLevel)
+            entity.kill(serverLevel);
+    }
+
+    @Override
+    public void animateTick(BlockState state, Level level, BlockPos pos, RandomSource random) {
+        double d = (double) pos.getX() + random.nextDouble();
+        double e = (double) pos.getY() + 0.8;
+        double f = (double) pos.getZ() + random.nextDouble();
+        ParticleContent.addParticle(level, ParticleTypes.SMOKE, d, e, f, 0.0, 0.0, 0.0);
+    }
+
+    @Override
+    public void addToTooltip(Item.TooltipContext tooltipContext, Consumer<Component> consumer, TooltipFlag tooltipFlag, DataComponentGetter dataComponentGetter) {
+        consumer.accept(Component.translatable("tooltip.oritech.black_hole").withStyle(ChatFormatting.GOLD));
+    }
+}

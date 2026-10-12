@@ -1,0 +1,33 @@
+{
+  "parent": "minecraft:oritech/centrifuge",
+  "criteria": {
+    "got_laser": {
+      "conditions": {
+        "items": [
+          {
+            "items": "oritech:enderic_laser"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    }
+  },
+  "display": {
+    "background": "minecraft:gui/advancements/backgrounds/adventure",
+    "description": {
+      "translate": "advancements.oritech.laser.description"
+    },
+    "icon": {
+      "id": "oritech:enderic_laser"
+    },
+    "title": {
+      "translate": "advancements.oritech.laser"
+    }
+  },
+  "requirements": [
+    [
+      "got_laser"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

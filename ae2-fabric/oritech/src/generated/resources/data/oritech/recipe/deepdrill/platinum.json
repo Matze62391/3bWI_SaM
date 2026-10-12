@@ -1,0 +1,12 @@
+{
+  "type": "oritech:bedrock_extractor",
+  "itemInputs": [
+    "oritech:platinum_resource_node"
+  ],
+  "itemResults": [
+    {
+      "id": "oritech:raw_platinum"
+    }
+  ],
+  "time": 1
+}

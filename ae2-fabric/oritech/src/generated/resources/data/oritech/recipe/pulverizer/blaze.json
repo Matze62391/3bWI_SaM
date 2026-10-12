@@ -1,0 +1,13 @@
+{
+  "type": "oritech:pulverizer",
+  "itemInputs": [
+    "minecraft:blaze_rod"
+  ],
+  "itemResults": [
+    {
+      "count": 3,
+      "id": "minecraft:blaze_powder"
+    }
+  ],
+  "time": 100
+}

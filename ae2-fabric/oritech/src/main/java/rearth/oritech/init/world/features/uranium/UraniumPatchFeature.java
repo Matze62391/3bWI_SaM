@@ -1,0 +1,165 @@
+package rearth.oritech.init.world.features.uranium;
+
+import com.mojang.serialization.Codec;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.Vec3i;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.WorldGenLevel;
+import net.minecraft.world.level.block.AmethystClusterBlock;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.levelgen.feature.Feature;
+import rearth.oritech.init.world.features.FeatureContext;
+import com.mojang.serialization.MapCodec;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.WorldGenLevel;
+import net.minecraft.world.level.chunk.ChunkGenerator;
+import org.joml.Vector2d;
+import rearth.oritech.util.Geometry;
+
+import java.util.List;
+
+public class UraniumPatchFeature implements Feature {
+    public static final MapCodec<UraniumPatchFeature> CODEC = MapCodec.assumeMapUnsafe(UraniumPatchFeatureConfig.CODEC).xmap(UraniumPatchFeature::new, feature -> feature.config);
+
+    private final UraniumPatchFeatureConfig config;
+
+    public UraniumPatchFeature(UraniumPatchFeatureConfig config) {
+        this.config = config;
+    }
+
+    @Override
+    public MapCodec<UraniumPatchFeature> codec() {
+        return CODEC;
+    }
+
+    @Override
+    public boolean place(WorldGenLevel level, ChunkGenerator chunkGenerator, RandomSource random, BlockPos origin) {
+        return placeFeature(new FeatureContext<>(level, chunkGenerator, random, origin, config));
+    }
+
+
+    private static boolean isAirOrWater(BlockState state) {
+        return state.isAir() || state.is(Blocks.WATER);
+    }
+
+        private boolean placeFeature(FeatureContext<UraniumPatchFeatureConfig> context) {
+
+        var level = context.level();
+        var origin = context.origin();
+
+        if (level.isClientSide()) return false;
+
+        var testPos = rearth.oritech.util.BlockPosHelper.of(origin.below(3));
+        if (isAirOrWater(level.getBlockState(testPos)))
+            placeStructure(testPos, context);
+
+        return false;
+    }
+
+    private void placeStructure(BlockPos pos, FeatureContext<UraniumPatchFeatureConfig> context) {
+
+        var random = context.random();
+        var config = context.config();
+        var state = BuiltInRegistries.BLOCK.get(config.blockId()).get().value().defaultBlockState();
+        var crystalBlock = BuiltInRegistries.BLOCK.get(config.crystalId()).get().value();
+        var level = context.level();
+
+        var range = config.number();
+        var closestWall = pos;
+
+        // find closest wall
+        for (var candidate : rearth.oritech.util.BlockPosHelper.withinManhattan(pos, range, range, range)) {
+            var candidateState = level.getBlockState(candidate);
+            if (isAirOrWater(candidateState)) continue;
+            closestWall = candidate;
+            break;
+        }
+
+        if (closestWall.equals(pos)) return;
+
+        var closestWallDir = closestWall.subtract(pos);
+        var forward = getBiggestDirection(closestWallDir);
+        var facing = Direction.getNearest(forward.getX(), forward.getY(), forward.getZ(), Direction.UP);
+
+        var right = Geometry.getRight(facing);
+        var up = Geometry.getUp(facing);
+
+        var veinCount = 3;
+        for (int i = 0; i < veinCount; i++) {
+            var randomDir = new Vector2d(random.nextFloat() * 2 - 1, random.nextFloat() * 2 - 1).normalize();
+            var veinLength = random.nextIntBetweenInclusive(5, 9);
+
+            // move along vein
+            for (int j = 0; j < veinLength; j++) {
+                var test = pos.offset(right.multiply((int) (randomDir.x * j))).offset(up.multiply((int) (randomDir.y * j)));
+                var test2 = pos.offset(right.multiply((int) (randomDir.x * j + 0.5))).offset(up.multiply((int) (randomDir.y * j + 0.5)));
+
+                // project onto first non-air block in forward direction
+                for (int k = 0; k < 5; k++) {
+                    var projected = test.offset(forward.multiply(k));
+                    var projected2 = test2.offset(forward.multiply(k));
+                    var testState = level.getBlockState(projected);
+                    var testState2 = level.getBlockState(projected2);
+                    if (isValidReplacementBloc(testState)) {
+                        createCrystals(projected, level, random, crystalBlock);
+                        level.setBlock(projected, state, Block.UPDATE_CLIENTS, 0);
+                        break;
+                    }
+                    if (isValidReplacementBloc(testState2)) {
+                        level.setBlock(projected2, state, Block.UPDATE_CLIENTS, 0);
+                        break;
+                    }
+
+                }
+
+                randomDir = randomDir.add(random.nextFloat() * 0.2, random.nextFloat() * 0.2).normalize();
+            }
+
+        }
+    }
+
+    private boolean isValidReplacementBloc(BlockState state) {
+        return state.is(BlockTags.DEEPSLATE_ORE_REPLACEABLES) || state.is(BlockTags.STONE_ORE_REPLACEABLES);
+    }
+
+    private void createCrystals(BlockPos pos, WorldGenLevel level, RandomSource random, Block crystal) {
+        for (var neighborPos : getNeighbors(pos)) {
+            var neighborState = level.getBlockState(neighborPos);
+
+            var isValid = neighborState.isAir() || neighborState.is(Blocks.WATER);
+            if (!isValid || random.nextFloat() < 0.7) continue;
+
+            var waterLogged = neighborState.is(Blocks.WATER);
+            var facing = Geometry.fromVector(neighborPos.subtract(pos));
+            if (facing == null) continue;
+            var targetState = crystal.defaultBlockState()
+                    .setValue(AmethystClusterBlock.WATERLOGGED, waterLogged)
+                    .setValue(AmethystClusterBlock.FACING, facing);
+            level.setBlock(neighborPos, targetState, Block.UPDATE_CLIENTS, 0);
+        }
+    }
+
+    private List<BlockPos> getNeighbors(BlockPos pos) {
+        return List.of(pos.below(), pos.above(), pos.north(), pos.east(), pos.south(), pos.west());
+    }
+
+    private Vec3i getBiggestDirection(Vec3i source) {
+        var x = Math.abs(source.getX());
+        var y = Math.abs(source.getY());
+        var z = Math.abs(source.getZ());
+
+        if (x > y && x > z) {
+            return new Vec3i(Math.clamp(source.getX(), -1, 1), 0, 0);
+        } else if (y > x && y > z) {
+            return new Vec3i(0, Math.clamp(source.getY(), -1, 1), 0);
+        } else {
+            return new Vec3i(0, 0, Math.clamp(source.getZ(), -1, 1));
+        }
+
+    }
+}

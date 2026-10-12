@@ -1,0 +1,55 @@
+package rearth.oritech.block.entity.addons;
+
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import rearth.oritech.init.BlockEntitiesContent;
+import rearth.oritech.util.MachineAddonProvider;
+import rearth.oritech.util.RelativePosition;
+
+public class AddonBlockEntity extends BlockEntity implements MachineAddonProvider {
+
+    private BlockPos controllerOffset = BlockPos.ZERO;
+
+    public AddonBlockEntity(BlockPos pos, BlockState state) {
+        super(BlockEntitiesContent.ADDON.get(), pos, state);
+    }
+
+    public AddonBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
+        super(type, pos, state);
+    }
+
+    @Override
+    public void setControllerPos(BlockPos pos) {
+        var newOffset = RelativePosition.toOffset(pos, worldPosition);
+        if (controllerOffset.equals(newOffset)) return;
+
+        if (level instanceof ServerLevel serverLevel)
+            rearth.oritech.port.neoforge.capabilities.CapabilityHooks.invalidate(serverLevel, pos);
+
+        controllerOffset = newOffset;
+        setChanged();
+    }
+
+    @Override
+    public BlockPos getControllerPos() {
+        return worldPosition.offset(controllerOffset);
+    }
+
+    @Override
+    protected void saveAdditional(ValueOutput output) {
+        super.saveAdditional(output);
+        output.store("controller", BlockPos.CODEC, controllerOffset);
+    }
+
+    @Override
+    protected void loadAdditional(ValueInput input) {
+        super.loadAdditional(input);
+        var storedPosition = input.read("controller", BlockPos.CODEC).orElse(BlockPos.ZERO);
+        controllerOffset = RelativePosition.normalizeOffset(storedPosition, worldPosition);
+    }
+}

@@ -1,0 +1,47 @@
+package rearth.oritech.client.init;
+
+import net.minecraft.client.renderer.block.FluidModel;
+import net.minecraft.client.resources.model.sprite.Material;
+import net.fabricmc.fabric.api.client.render.fluid.v1.FluidRenderingRegistry;
+import net.minecraft.world.level.material.Fluid;
+import java.util.function.Supplier;
+import rearth.oritech.port.neoforge.client.fluid.FluidTintSources;
+import rearth.oritech.Oritech;
+import rearth.oritech.client.renderers.StrangeMatterFluidRenderer;
+import rearth.oritech.init.FluidContent;
+import rearth.oritech.util.ColorHelper;
+
+public final class FluidModelContent {
+
+    private static final Material GAS_DARK = new Material(Oritech.id("block/fluid/fluid_gas_dark"));
+    private static final Material STRANGE_PALE = new Material(Oritech.id("block/fluid/fluid_strange_pale_2"));
+    private static final Material STEAM = new Material(Oritech.id("block/fluid/fluid_steam"));
+    private static final Material MOLTEN = new Material(Oritech.id("block/fluid/fluid_molten"));
+    private static final Material MOLTEN_METAL = new Material(Oritech.id("block/fluid/molten_metal"));
+    private static final Material ROILING_PLASMA = new Material(Oritech.id("block/fluid/fluid_roiling_plasma"));
+    private static final Material STRANGE_MIXTURE = new Material(Oritech.id("block/fluid/fluid_strange_mixture"), true);
+
+    private FluidModelContent() {
+    }
+
+    public static void registerFluidModels() {
+        register(new FluidModel.Unbaked(GAS_DARK, GAS_DARK, null, FluidTintSources.constant(ColorHelper.argb(0.478f, 0.478f, 0.478f))), FluidContent.STILL_OIL, FluidContent.FLOWING_OIL);
+        register(new FluidModel.Unbaked(STRANGE_PALE, STRANGE_PALE, null, FluidTintSources.constant(ColorHelper.argb(0.176f, 0.239f, 0.282f))), FluidContent.STILL_FUEL, FluidContent.FLOWING_FUEL);
+        register(new FluidModel.Unbaked(STRANGE_PALE, STRANGE_PALE, null, FluidTintSources.constant(ColorHelper.argb(0.25f, 0.316f, 0.086f))), FluidContent.STILL_BIOFUEL, FluidContent.FLOWING_BIOFUEL);
+        register(new FluidModel.Unbaked(STEAM, STEAM, null, FluidTintSources.constant(ColorHelper.WHITE)), FluidContent.STILL_STEAM, FluidContent.FLOWING_STEAM);
+        register(new FluidModel.Unbaked(MOLTEN, MOLTEN, null, FluidTintSources.constant(ColorHelper.argb(0.135f, 0.135f, 0.135f))), FluidContent.STILL_HEAVY_OIL, FluidContent.FLOWING_HEAVY_OIL);
+        register(new FluidModel.Unbaked(STEAM, STEAM, null, FluidTintSources.constant(ColorHelper.argb(0.735f, 0.735f, 0.235f))), FluidContent.STILL_DIESEL, FluidContent.FLOWING_DIESEL);
+        register(new FluidModel.Unbaked(MOLTEN, MOLTEN, null, FluidTintSources.constant(ColorHelper.argb(0.949f, 0.929f, 0.745f))), FluidContent.STILL_NAPHTHA, FluidContent.FLOWING_NAPHTHA);
+        register(new FluidModel.Unbaked(STEAM, STEAM, null, FluidTintSources.constant(ColorHelper.argb(0.398f, 1f, 0.3f))), FluidContent.STILL_SULFURIC_ACID, FluidContent.FLOWING_SULFURIC_ACID);
+        register(new FluidModel.Unbaked(STEAM, STEAM, null, FluidTintSources.constant(ColorHelper.argb(0.7f, 1f, 0.7f))), FluidContent.STILL_SILICON_WASH, FluidContent.FLOWING_SILICON_WASH);
+        register(new FluidModel.Unbaked(MOLTEN_METAL, MOLTEN_METAL, null, FluidTintSources.constant(ColorHelper.argb(0.627f, 0.849f, 1f))), FluidContent.STILL_MINERAL_SLURRY, FluidContent.FLOWING_MINERAL_SLURRY);
+        register(new FluidModel.Unbaked(ROILING_PLASMA, ROILING_PLASMA, null, FluidTintSources.constant(ColorHelper.argb(1f, 0.7f, 0.7f))), FluidContent.STILL_SHEOL_FIRE, FluidContent.FLOWING_SHEOL_FIRE);
+        FluidRenderingRegistry.register(FluidContent.STILL_STRANGE_MATTER.get(), FluidContent.FLOWING_STRANGE_MATTER.get(),
+            new FluidModel.Unbaked(STRANGE_MIXTURE, STRANGE_MIXTURE, null, FluidTintSources.constant(ColorHelper.argb(1f, 1f, 1f))),
+            StrangeMatterFluidRenderer.INSTANCE);
+    }
+
+    private static void register(FluidModel.Unbaked model, Supplier<? extends Fluid> still, Supplier<? extends Fluid> flowing) {
+        FluidRenderingRegistry.register(still.get(), flowing.get(), model);
+    }
+}

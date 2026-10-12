@@ -1,0 +1,17 @@
+{
+  "type": "oritech:centrifuge_fluid",
+  "fluidInput": {
+    "amount": 1000,
+    "ingredient": "oritech:still_silicon_wash"
+  },
+  "itemInputs": [
+    "oritech:carbon_fibre_strands"
+  ],
+  "itemResults": [
+    {
+      "count": 4,
+      "id": "oritech:silicon_wafer"
+    }
+  ],
+  "time": 200
+}

@@ -1,0 +1,15 @@
+{
+  "type": "oritech:assembler",
+  "itemInputs": [
+    "minecraft:blaze_powder",
+    "minecraft:blaze_powder",
+    "minecraft:blaze_powder",
+    "minecraft:blaze_powder"
+  ],
+  "itemResults": [
+    {
+      "id": "minecraft:blaze_rod"
+    }
+  ],
+  "time": 96
+}

@@ -1,0 +1,15 @@
+{
+  "type": "oritech:assembler",
+  "itemInputs": [
+    "minecraft:honeycomb",
+    "#c:fuels/bio",
+    "#c:fuels/bio",
+    "#c:fuels/bio"
+  ],
+  "itemResults": [
+    {
+      "id": "minecraft:slime_ball"
+    }
+  ],
+  "time": 96
+}

@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "key": {
+    "a": "oritech:copper_reinforced_plating"
+  },
+  "pattern": [
+    "aa"
+  ],
+  "result": {
+    "id": "oritech:copper_reinforced_plating_pressure_plate"
+  }
+}

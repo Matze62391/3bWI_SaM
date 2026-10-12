@@ -1,0 +1,13 @@
+{
+  "type": "oritech:particle_collision",
+  "itemInputs": [
+    "oritech:adamant_dust",
+    "minecraft:netherrack"
+  ],
+  "itemResults": [
+    {
+      "id": "minecraft:netherite_scrap"
+    }
+  ],
+  "time": 2500
+}

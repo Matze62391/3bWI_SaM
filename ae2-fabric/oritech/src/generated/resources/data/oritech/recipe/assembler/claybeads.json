@@ -1,0 +1,16 @@
+{
+  "type": "oritech:assembler",
+  "itemInputs": [
+    "minecraft:clay_ball",
+    "minecraft:clay_ball",
+    "#minecraft:sand",
+    "minecraft:redstone"
+  ],
+  "itemResults": [
+    {
+      "count": 32,
+      "id": "oritech:clay_catalyst_beads"
+    }
+  ],
+  "time": 120
+}

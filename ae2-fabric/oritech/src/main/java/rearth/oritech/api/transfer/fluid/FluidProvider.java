@@ -1,0 +1,16 @@
+package rearth.oritech.api.transfer.fluid;
+
+import net.minecraft.core.Direction;
+import rearth.oritech.port.neoforge.transfer.ResourceHandler;
+import rearth.oritech.port.neoforge.transfer.fluid.FluidResource;
+import org.jetbrains.annotations.Nullable;
+
+public interface FluidProvider {
+
+    ResourceHandler<FluidResource> getFluidLookup(@Nullable Direction direction);
+
+    interface Item {
+        int getFluidCapacity();
+    }
+
+}

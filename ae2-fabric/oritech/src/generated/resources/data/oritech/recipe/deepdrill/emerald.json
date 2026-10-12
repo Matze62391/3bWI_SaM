@@ -1,0 +1,12 @@
+{
+  "type": "oritech:bedrock_extractor",
+  "itemInputs": [
+    "oritech:emerald_resource_node"
+  ],
+  "itemResults": [
+    {
+      "id": "minecraft:emerald"
+    }
+  ],
+  "time": 1
+}

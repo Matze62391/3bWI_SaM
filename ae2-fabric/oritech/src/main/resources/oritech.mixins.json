@@ -1,0 +1,23 @@
+{
+  "required": true,
+  "package": "rearth.oritech.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "LivingEntityInvoker",
+    "LaserDropsMixin",
+    "EntityDropCaptureMixin"
+  ],
+  "client": [
+    "client.AvatarRenderStateMixin",
+    "client.AvatarRendererMixin",
+    "client.HumanoidModelMixin",
+    "client.RailgunArmPoseMixin",
+    "client.RailgunMouseMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}

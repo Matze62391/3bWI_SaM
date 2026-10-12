@@ -1,0 +1,15 @@
+{
+  "type": "oritech:industrial_chiller",
+  "fluidInput": {
+    "amount": 1000,
+    "ingredient": "minecraft:water"
+  },
+  "itemInputs": [],
+  "itemResults": [
+    {
+      "count": 3,
+      "id": "minecraft:ice"
+    }
+  ],
+  "time": 200
+}

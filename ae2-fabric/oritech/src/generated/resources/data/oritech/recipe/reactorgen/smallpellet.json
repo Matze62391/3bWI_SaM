@@ -1,0 +1,8 @@
+{
+  "type": "oritech:reactor",
+  "itemInputs": [
+    "oritech:small_uranium_pellet"
+  ],
+  "itemResults": [],
+  "time": 400
+}

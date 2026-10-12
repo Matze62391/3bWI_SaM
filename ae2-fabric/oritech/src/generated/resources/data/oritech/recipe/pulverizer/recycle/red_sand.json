@@ -1,0 +1,12 @@
+{
+  "type": "oritech:pulverizer",
+  "itemInputs": [
+    "#oritech:recyclable/red_sand"
+  ],
+  "itemResults": [
+    {
+      "id": "minecraft:red_sand"
+    }
+  ],
+  "time": 100
+}

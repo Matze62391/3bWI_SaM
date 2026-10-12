@@ -1,0 +1,16 @@
+{
+  "type": "oritech:assembler",
+  "itemInputs": [
+    "#c:ingots/steel",
+    "#c:ingots/nickel",
+    "#c:ingots/nickel",
+    "#c:ingots/copper"
+  ],
+  "itemResults": [
+    {
+      "count": 6,
+      "id": "oritech:magnetic_coil"
+    }
+  ],
+  "time": 48
+}

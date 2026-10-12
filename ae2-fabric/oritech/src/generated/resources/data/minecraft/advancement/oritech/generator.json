@@ -1,0 +1,33 @@
+{
+  "parent": "minecraft:oritech/root",
+  "criteria": {
+    "got_generator": {
+      "conditions": {
+        "items": [
+          {
+            "items": "oritech:basic_generator"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    }
+  },
+  "display": {
+    "background": "minecraft:gui/advancements/backgrounds/adventure",
+    "description": {
+      "translate": "advancements.oritech.generator.description"
+    },
+    "icon": {
+      "id": "oritech:basic_generator"
+    },
+    "title": {
+      "translate": "advancements.oritech.generator"
+    }
+  },
+  "requirements": [
+    [
+      "got_generator"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

@@ -1,0 +1,13 @@
+{
+  "type": "oritech:particle_collision",
+  "itemInputs": [
+    "oritech:overcharged_crystal",
+    "#c:ingots/netherite"
+  ],
+  "itemResults": [
+    {
+      "id": "minecraft:nether_star"
+    }
+  ],
+  "time": 15000
+}

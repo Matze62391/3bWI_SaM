@@ -1,0 +1,17 @@
+{
+  "type": "oritech:centrifuge_fluid",
+  "fluidInput": {
+    "amount": 1000,
+    "ingredient": "#c:sulfuric_acid"
+  },
+  "itemInputs": [
+    "#c:ingots/steel"
+  ],
+  "itemResults": [
+    {
+      "count": 2,
+      "id": "oritech:basic_battery"
+    }
+  ],
+  "time": 100
+}

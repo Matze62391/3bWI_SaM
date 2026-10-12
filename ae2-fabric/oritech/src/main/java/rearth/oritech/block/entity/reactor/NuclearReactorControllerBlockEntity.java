@@ -1,0 +1,756 @@
+package rearth.oritech.block.entity.reactor;
+
+import net.minecraft.world.phys.Vec3;
+import io.netty.buffer.Unpooled;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.server.level.ServerPlayer;
+import rearth.oritech.port.neoforge.network.PacketDistributor;
+import org.jetbrains.annotations.NotNull;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.Vec3i;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundSource;
+import rearth.oritech.util.Tuple;
+import net.minecraft.world.MenuProvider;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import rearth.oritech.port.neoforge.capabilities.Capabilities;
+import rearth.oritech.port.neoforge.network.handling.IPayloadContext;
+import rearth.oritech.port.neoforge.transfer.energy.EnergyHandler;
+import rearth.oritech.port.neoforge.transfer.transaction.Transaction;
+import org.jetbrains.annotations.Nullable;
+import org.joml.Vector2i;
+import rearth.oritech.Oritech;
+import rearth.oritech.api.networking.NetworkedBlockEntity;
+import rearth.oritech.api.transfer.energy.DynamicEnergyStorage;
+import rearth.oritech.api.transfer.energy.EnergyProvider;
+import rearth.oritech.block.blocks.reactor.*;
+import rearth.oritech.client.ui.ReactorScreenHandler;
+import rearth.oritech.config.OritechConfig;
+import rearth.oritech.init.BlockContent;
+import rearth.oritech.init.BlockEntitiesContent;
+import rearth.oritech.init.SoundContent;
+import rearth.oritech.util.Geometry;
+import rearth.oritech.client.init.ParticleContent;
+
+import java.util.*;
+
+public class NuclearReactorControllerBlockEntity extends NetworkedBlockEntity implements EnergyProvider, MenuProvider {
+
+    public static final int MAX_SIZE = OritechConfig.maxSize.get();
+    public static final int RF_PER_PULSE = OritechConfig.rfPerPulse.get();
+    public static final int ABSORBER_RATE = OritechConfig.absorberRate.get();
+    public static final int VENT_BASE_RATE = OritechConfig.ventBaseRate.get();
+    public static final int VENT_RELATIVE_RATE = OritechConfig.ventRelativeRate.get();
+    public static final int MAX_HEAT = OritechConfig.maxHeat.get();
+    public static final int MAX_UNSTABLE_TICKS = OritechConfig.maxUnstableTicks.get();
+    public static final int DEFAULT_WARNING_HEAT_THRESHOLD = (int) (MAX_HEAT * 0.8f);
+
+    private final HashMap<Vector2i, ReactorComponent> activeComponents = new HashMap<>(); // 2d local positions on the first interior layer, used to build neighbor references
+    private ReactorComponent[] simulationComponents = new ReactorComponent[0]; // same components in tick order, avoids map lookups during simulation
+    private final HashMap<Vector2i, ReactorFuelPortEntity> fuelPorts = new HashMap<>();     // same grid, but contains a reference to the port at the ceiling
+    private final HashMap<Vector2i, ReactorCoolantAbsorberPortEntity> absorberPorts = new HashMap<>(); // same
+    private final HashSet<Tuple<BlockPos, Direction>> energyPorts = new HashSet<>();   // list of all energy port outputs (e.g. the targets to output to)
+    private final HashSet<BlockPos> redstonePorts = new HashSet<>();   // list of all redstone ports
+
+    public final HashMap<Vector2i, ComponentStatistics> componentStats = new HashMap<>();
+    public final HashMap<Vector2i, ComponentFuel> componentFuel = new HashMap<>(); // mainly for client displays, same grid
+
+    public DynamicEnergyStorage energyStorage = new DynamicEnergyStorage(OritechConfig.reactorMaxEnergyStored.get(), OritechConfig.reactorMaxEnergyStored.get(), 0, 0, this::setChanged, false);
+
+    public int warningHeatThreshold = DEFAULT_WARNING_HEAT_THRESHOLD;
+
+    public boolean active = false;
+
+    public BlockPos areaMin;
+    public BlockPos areaMax;
+
+    private int reactorStackHeight;
+    private boolean disabledViaRedstone = false;
+    private int unstableTicks = 0;
+    public long disabledUntil = 0;
+
+    private boolean doAutoInit = false; // used to auto-init when save is being loaded
+
+    public NuclearReactorControllerBlockEntity(BlockPos pos, BlockState state) {
+        super(BlockEntitiesContent.NUCLEAR_REACTOR_CONTROLLER_BLOCK.get(), pos, state);
+    }
+
+    // heat is only used for reactor rods and heat pipes
+    // rods generate heat. Multi-cores and reflectors (expensive) change this
+    // heat pipes move heat to themselves
+    // vents remove heat from the hottest neighbor component
+    // absorbers remove fixed heat amount from all neighboring blocks
+
+    @Override
+    public void serverTick(ServerLevel serverLevel, BlockPos pos, BlockState state, NetworkedBlockEntity blockEntity) {
+
+        if (!active && doAutoInit) {
+            doAutoInit = false;
+            init(null);
+        }
+
+        if (!active || simulationComponents.length == 0) return;
+
+        var activeRods = 0;
+        var hottestHeat = 0;
+
+        // process cached components in order; heat changes are visible to later components in this tick
+        for (var simulationComponent : simulationComponents) {
+            var localPos = simulationComponent.localPos;
+            var component = simulationComponent.block;
+            var componentHeat = simulationComponent.heat;
+
+            if (component instanceof ReactorRodBlock rodBlock) {
+
+                var ownRodCount = rodBlock.getRodCount();
+                // internal pulses plus neighbors / reflectors, calculated when the reactor is initialized
+                var receivedPulses = simulationComponent.receivedPulses;
+
+                var portEntity = simulationComponent.fuelPort;
+                if (portEntity == null || portEntity.isRemoved()) {
+                    continue;
+                }
+
+                var hasFuel = portEntity.tryConsumeFuel(ownRodCount * reactorStackHeight, isDisabled() || disabledViaRedstone);
+                var heatCreated = 0;
+
+                setRodBlockState(portEntity.getBlockPos(), hasFuel);
+
+                if (hasFuel) {
+                    if (!isDisabled()) {
+                        activeRods++;
+                        try (var transaction = Transaction.openRoot()) {
+                            energyStorage.internalInsert((long) RF_PER_PULSE * receivedPulses * reactorStackHeight, transaction);
+                            transaction.commit();
+                        }
+                    }
+
+                    // generate heat per pulse
+                    heatCreated = (receivedPulses / 2 * receivedPulses + 4);
+                    componentHeat += heatCreated;
+
+                    if (componentHeat > MAX_HEAT * 0.85) {
+                        playMeltdownAnimation(portEntity.getBlockPos());
+                    }
+
+                } else {
+                    receivedPulses = 0;
+                }
+
+                componentStats.put(localPos, new ComponentStatistics((short) receivedPulses, componentHeat, (short) heatCreated));
+
+            } else if (component instanceof ReactorHeatPipeBlock heatPipeBlock) {
+
+                var sumGainedHeat = 0;
+
+                // take heat in from neighbors
+                for (var neighbor : simulationComponent.neighbors) {
+                    var neighborHeat = neighbor.heat;
+                    if (neighborHeat <= componentHeat) continue;
+                    var diff = neighborHeat - componentHeat;
+                    var gainedHeat = Math.min(diff / 4 + 10, diff);
+                    neighborHeat -= gainedHeat;
+                    neighbor.heat = neighborHeat;
+                    componentHeat += gainedHeat;
+                    sumGainedHeat += gainedHeat;
+                }
+
+                componentStats.put(localPos, new ComponentStatistics((short) 0, componentHeat, (short) sumGainedHeat));
+
+            } else if (component instanceof ReactorAbsorberBlock absorberBlock) {
+
+                var sumRemovedHeat = 0;
+                var portEntity = simulationComponent.absorberPort;
+                if (portEntity == null || portEntity.isRemoved()) {
+                    continue;
+                }
+                var fuelAvailable = portEntity.getAvailableFuel();
+
+                if (fuelAvailable >= reactorStackHeight) {
+                    // take heat in from neighbors and remove it
+                    for (var neighbor : simulationComponent.neighbors) {
+                        var neighborHeat = neighbor.heat;
+                        if (neighborHeat <= 0) continue;
+                        neighborHeat -= ABSORBER_RATE;
+                        sumRemovedHeat += ABSORBER_RATE;
+                        neighbor.heat = neighborHeat;
+                    }
+                } else if (fuelAvailable > 0) {
+                    // remove last small unusable part
+                    portEntity.consumeFuel(fuelAvailable);
+                }
+
+                if (sumRemovedHeat > 0) {
+                    portEntity.consumeFuel(reactorStackHeight);
+                }
+
+                componentStats.put(localPos, new ComponentStatistics((short) 0, 0, (short) sumRemovedHeat));
+            } else if (component instanceof ReactorHeatVentBlock ventBlock) {
+
+                // remove heat from hottest neighbor
+
+                var hottestComponent = simulationComponent;
+                var max = 0;
+                for (var neighbor : simulationComponent.neighbors) {
+                    var neighborHeat = neighbor.heat;
+                    if (neighborHeat <= max) continue;
+                    hottestComponent = neighbor;
+                    max = neighborHeat;
+                }
+
+                var removed = 0;
+                if (max != 0) {
+                    var neighborHeat = max;
+                    removed = Math.min(neighborHeat / VENT_RELATIVE_RATE + VENT_BASE_RATE, neighborHeat);
+                    neighborHeat -= removed;
+                    hottestComponent.heat = neighborHeat;
+                }
+
+                componentStats.put(localPos, new ComponentStatistics((short) 0, 0, (short) removed));
+
+            }
+
+            simulationComponent.heat = componentHeat;
+
+            if (componentHeat > hottestHeat)
+                hottestHeat = componentHeat;
+
+        }
+
+        outputEnergy();
+        updateRedstonePorts(hottestHeat, activeRods);
+
+        if (activeRods > 0)
+            playAmbientSound();
+
+        if (activeRods > 0 && hottestHeat > warningHeatThreshold) {
+            playWarningSound();
+        }
+
+        if (hottestHeat > MAX_HEAT && activeRods > 0) {
+            unstableTicks++;
+            if (unstableTicks > MAX_UNSTABLE_TICKS)
+                doReactorExplosion(activeRods * reactorStackHeight);
+        } else {
+            unstableTicks = 0;
+        }
+
+    }
+
+    // called by each open controller menu; combine component and port data into one packet per viewer
+    public void sendGuiUpdate(ServerPlayer player) {
+        var buf = new FriendlyByteBuf(Unpooled.buffer());
+        try {
+            writeGuiData(buf);
+            // copy only the written bytes, not the unused capacity of the backing buffer
+            var data = new byte[buf.readableBytes()];
+            buf.readBytes(data);
+            // send only to the menu's viewer, rather than everyone tracking the reactor chunks
+            PacketDistributor.sendToPlayer(player, new GuiUpdatePacket(worldPosition, data));
+        } finally {
+            buf.release();
+        }
+    }
+
+    private void writeGuiData(FriendlyByteBuf buf) {
+        // reactor totals first, followed by local position, statistics and optional fuel data per component
+        // keep this layout in sync with readGuiData; explicit writes avoid reflective per-component encoding
+        buf.writeLong(energyStorage.getAmountAsLong());
+        buf.writeInt(warningHeatThreshold);
+        buf.writeVarInt(componentStats.size());
+        for (var entry : componentStats.entrySet()) {
+            var pos = entry.getKey();
+            var stats = entry.getValue();
+            buf.writeInt(pos.x);
+            buf.writeInt(pos.y);
+            buf.writeShort(stats.receivedPulses());
+            buf.writeInt(stats.storedHeat());
+            buf.writeShort(stats.heatChanged());
+
+            // include ceiling port values here so the GUI does not need a separate packet for each port
+            var fuelPort = fuelPorts.get(pos);
+            var absorberPort = absorberPorts.get(pos);
+            if (fuelPort != null && !fuelPort.isRemoved()) {
+                buf.writeBoolean(true);
+                buf.writeInt(fuelPort.availableFuel);
+                buf.writeInt(fuelPort.currentFuelOriginalCapacity);
+            } else if (absorberPort != null && !absorberPort.isRemoved()) {
+                buf.writeBoolean(true);
+                buf.writeInt(absorberPort.availableFuel);
+                buf.writeInt(absorberPort.currentFuelOriginalCapacity);
+            } else {
+                // no usable port: omit the fuel fields and let the client hide the corresponding tooltip
+                buf.writeBoolean(false);
+            }
+        }
+    }
+
+    private void readGuiData(FriendlyByteBuf buf) {
+        energyStorage.set(buf.readLong());
+        warningHeatThreshold = buf.readInt();
+        // every packet is a complete snapshot, so discard entries absent from the latest update
+        componentStats.clear();
+        componentFuel.clear();
+        var count = buf.readVarInt();
+        for (int i = 0; i < count; i++) {
+            var pos = new Vector2i(buf.readInt(), buf.readInt());
+            componentStats.put(pos, new ComponentStatistics(buf.readShort(), buf.readInt(), buf.readShort()));
+            if (buf.readBoolean()) {
+                componentFuel.put(pos, new ComponentFuel(buf.readInt(), buf.readInt()));
+            }
+        }
+    }
+
+    // apply the snapshot to the client controller; the screen reads these maps directly
+    public static void handleGuiUpdate(GuiUpdatePacket payload, IPayloadContext context) {
+        if (!(context.player().level().getBlockEntity(payload.position()) instanceof NuclearReactorControllerBlockEntity reactor)) return;
+        var buf = new FriendlyByteBuf(Unpooled.wrappedBuffer(payload.data()));
+        try {
+            reactor.readGuiData(buf);
+        } finally {
+            buf.release();
+        }
+    }
+
+    private boolean isDisabled() {
+        return level.getGameTime() < disabledUntil;
+    }
+
+    @Override
+    protected void saveAdditional(ValueOutput output) {
+        super.saveAdditional(output);
+
+        output.putLong("energy_stored", energyStorage.getAmountAsLong());
+        output.putBoolean("was_active", active);
+        output.putBoolean("redstone_disabled", disabledViaRedstone);
+        output.putInt("warning_heat_threshold", warningHeatThreshold);
+
+    }
+
+    @Override
+    protected void loadAdditional(ValueInput input) {
+        super.loadAdditional(input);
+
+        energyStorage.set(input.getLongOr("energy_stored", 0));
+        doAutoInit = input.getBooleanOr("was_active", false);
+        disabledViaRedstone = input.getBooleanOr("redstone_disabled", false);
+        warningHeatThreshold = input.getIntOr("warning_heat_threshold", DEFAULT_WARNING_HEAT_THRESHOLD);
+    }
+
+    private void playMeltdownAnimation(BlockPos port) {
+        if (level instanceof ServerLevel sl) {
+            var c = Vec3.atCenterOf(port).add(0, 0.3, 0);
+            ParticleContent.sendParticles(sl, ParticleTypes.LAVA, c.x, c.y, c.z, 5, 1, 1, 1, 0);
+        }
+    }
+
+    private void playAmbientSound() {
+        var soundDuration = 250;
+
+        if (level.getGameTime() % soundDuration == 0)
+            level.playSound(null, worldPosition, SoundContent.REACTOR.value(), SoundSource.BLOCKS, 0.7f, 0.8f);
+    }
+
+
+    private void playWarningSound() {
+        var soundDuration = 50;
+
+        if (level.getGameTime() % soundDuration == 0)
+            level.playSound(null, worldPosition, SoundContent.REACTOR_WARNING.value(), SoundSource.BLOCKS, 4f, 0.8f);
+    }
+
+    // strength is the amount of total active rods (e.g. activeRods * stackHeight)
+    private void doReactorExplosion(int strength) {
+
+        if (OritechConfig.safeMode.get()) {
+            disableReactor();
+            return;
+        }
+
+        var spawnedBlock = BlockContent.REACTOR_EXPLOSION_SMALL;
+        if (strength > 8 && strength <= 25) {
+            spawnedBlock = BlockContent.REACTOR_EXPLOSION_MEDIUM;
+        } else if (strength > 25) {
+            spawnedBlock = BlockContent.REACTOR_EXPLOSION_LARGE;
+        }
+
+        level.setBlockAndUpdate(worldPosition, spawnedBlock.get().defaultBlockState());
+    }
+
+    private void disableReactor() {
+        this.disabledUntil = level.getGameTime() + OritechConfig.safeModeCooldown.get();
+    }
+
+    public void init(@Nullable Player player) {
+
+        active = false;
+
+        // find low and high corners of reactor
+        var cornerA = worldPosition;
+        cornerA = expandWall(cornerA, new Vec3i(0, -1, 0), true);   // first go down through other wall blocks
+        cornerA = expandWall(cornerA, new Vec3i(0, 0, -1));
+        cornerA = expandWall(cornerA, new Vec3i(-1, 0, 0));
+        cornerA = expandWall(cornerA, new Vec3i(0, 0, -1)); // expand z again to support all rotations
+
+        var cornerB = cornerA;
+        cornerB = expandWall(cornerB, new Vec3i(0, 1, 0));
+        cornerB = expandWall(cornerB, new Vec3i(0, 0, 1));
+        cornerB = expandWall(cornerB, new Vec3i(1, 0, 0));
+
+        if (cornerA == worldPosition || cornerB == worldPosition || cornerA == cornerB || onSameAxis(cornerA, cornerB)) {
+            if (player != null)
+                player.sendSystemMessage(Component.translatable("message.oritech.reactor_edge_invalid"));
+            return;
+        }
+
+        // verify and load all blocks in reactor area
+        var finalCornerA = cornerA;
+        var finalCornerB = cornerB;
+
+        // these get loaded in the next step
+        energyPorts.clear();
+        redstonePorts.clear();
+
+        // verify edges
+        var wallsValid = BlockPos.betweenClosedStream(cornerA, cornerB).allMatch(pos -> {
+            if (isAtEdgeOfBox(pos, finalCornerA, finalCornerB)) {
+                var block = level.getBlockState(pos).getBlock();
+                return block instanceof ReactorWallBlock;
+            } else if (isOnWall(pos, finalCornerA, finalCornerB)) {
+                var state = level.getBlockState(pos);
+                var block = state.getBlock();
+
+                // load wall energy ports
+                if (block instanceof ReactorEnergyPortBlock) {
+                    var facing = state.getValue(BlockStateProperties.FACING);
+                    var blockInFront = pos.offset(Geometry.getForward(facing));
+                    energyPorts.add(new Tuple<>(blockInFront, Direction.getApproximateNearest(Geometry.getBackward(facing).getX(), Geometry.getBackward(facing).getY(), Geometry.getBackward(facing).getZ())));
+                } else if (block instanceof ReactorRedstonePortBlock) {
+                    redstonePorts.add(pos.immutable());
+                }
+
+                return !(block instanceof BaseReactorBlock reactorBlock) || reactorBlock.validForWalls();
+            }
+
+            return true;
+        });
+
+        if (!wallsValid) {
+            if (player != null)
+                player.sendSystemMessage(Component.translatable("message.oritech.reactor_wall_invalid"));
+            return;
+        }
+
+        // verify interior is identical in all layers
+        var interiorHeight = cornerB.getY() - cornerA.getY() - 1;
+        var cornerAFlat = cornerA.offset(1, 1, 1);
+        var cornerBFlat = new BlockPos(cornerB.getX() - 1, cornerA.getY() + 1, cornerB.getZ() - 1);
+
+        // these get loaded in the next step
+        fuelPorts.clear();
+        absorberPorts.clear();
+        reactorStackHeight = interiorHeight;
+
+        var interiorStackedRight = BlockPos.betweenClosedStream(cornerAFlat, cornerBFlat).allMatch(pos -> {
+
+            var offset = pos.subtract(cornerAFlat);
+            var localPos = new Vector2i(offset.getX(), offset.getZ());
+
+            var block = level.getBlockState(pos).getBlock();
+            if (!(block instanceof BaseReactorBlock reactorBlock)) return true;
+
+            for (int i = 1; i < interiorHeight; i++) {
+                var candidatePos = pos.offset(0, i, 0);
+                var candidate = level.getBlockState(candidatePos);
+                if (!candidate.getBlock().equals(block))
+                    return false;
+            }
+
+            var requiredCeiling = reactorBlock.requiredStackCeiling();
+            if (requiredCeiling != Blocks.AIR) {
+                var ceilingPos = pos.offset(0, interiorHeight, 0);
+                var ceilingBlock = level.getBlockState(ceilingPos).getBlock();
+                if (!requiredCeiling.equals(ceilingBlock)) return false;
+
+                if (block instanceof ReactorRodBlock) {
+                    fuelPorts.put(localPos, (ReactorFuelPortEntity) level.getBlockEntity(ceilingPos));
+                } else if (block instanceof ReactorAbsorberBlock) {
+                    absorberPorts.put(localPos, (ReactorCoolantAbsorberPortEntity) level.getBlockEntity(ceilingPos));
+                }
+
+            }
+            // keep existing heat when rebuilding the same local position, e.g. when reopening the GUI
+            var previousComponent = activeComponents.get(localPos);
+            var component = new ReactorComponent(localPos, reactorBlock);
+            if (previousComponent != null) component.heat = previousComponent.heat;
+            activeComponents.put(localPos, component);
+
+            return true;
+        });
+
+        if (!interiorStackedRight) {
+            if (player != null)
+                player.sendSystemMessage(Component.translatable("message.oritech.reactor_interior_issues"));
+            return;
+        }
+
+        rebuildSimulation();
+        areaMin = finalCornerA;
+        areaMax = finalCornerB;
+        active = true;
+
+    }
+
+    private void rebuildSimulation() {
+        // heat transfer is sequential; preserve component order and neighbor order, including vent tie-breaking
+        simulationComponents = activeComponents.values().toArray(ReactorComponent[]::new);
+        for (var component : simulationComponents) {
+            // resolve positions once here; the tick loop uses direct port and neighbor references
+            component.fuelPort = fuelPorts.get(component.localPos);
+            component.absorberPort = absorberPorts.get(component.localPos);
+            component.neighbors = getNeighborsInBounds(component.localPos, activeComponents.keySet()).stream()
+                .map(activeComponents::get)
+                .toArray(ReactorComponent[]::new);
+
+            component.receivedPulses = 0;
+            if (component.block instanceof ReactorRodBlock rod) {
+                // count pulses from the rod itself, neighboring rods and reflectors
+                component.receivedPulses = rod.getInternalPulseCount();
+                // neighboring rods contribute regardless of their current fuel supply, so this can be cached
+                for (var neighbor : component.neighbors) {
+                    if (neighbor.block instanceof ReactorRodBlock neighborRod) {
+                        component.receivedPulses += neighborRod.getRodCount();
+                    } else if (neighbor.block instanceof ReactorNeutronReflectorBlock) {
+                        component.receivedPulses += rod.getRodCount();
+                    }
+                }
+            }
+        }
+    }
+
+    // server simulation state for one vertical component stack. Rebuilt on init, heat changes each tick
+    private static final class ReactorComponent {
+        private final Vector2i localPos;
+        private final BaseReactorBlock block;
+        private ReactorComponent[] neighbors;
+        private ReactorFuelPortEntity fuelPort;
+        private ReactorCoolantAbsorberPortEntity absorberPort;
+        private int heat; // shared mutable heat, also modified by neighboring cooling components
+        private int receivedPulses; // pulse count while fueled; the tick reports zero when fuel is unavailable
+
+        private ReactorComponent(Vector2i localPos, BaseReactorBlock block) {
+            this.localPos = localPos;
+            this.block = block;
+        }
+    }
+
+    private void setRodBlockState(BlockPos stackTop, boolean on) {
+        if (level.getGameTime() % 10 != 0) return;
+
+        for (int i = 1; i <= reactorStackHeight; i++) {
+            var candidatePos = stackTop.below(i);
+            var candidateState = level.getBlockState(candidatePos);
+            if (!(candidateState.getBlock() instanceof ReactorRodBlock)) continue;
+            var oldLit = candidateState.getValue(BlockStateProperties.LIT);
+            if (oldLit != on) {
+                // update only when changed
+                level.setBlock(candidatePos, candidateState.setValue(BlockStateProperties.LIT, on), Block.UPDATE_CLIENTS, 0);
+            }
+        }
+    }
+
+    private static Set<Vector2i> getNeighborsInBounds(Vector2i pos, Set<Vector2i> keys) {
+
+        var res = new HashSet<Vector2i>(4);
+
+        var a = new Vector2i(pos).add(-1, 0);
+        if (keys.contains(a)) res.add(a);
+        var b = new Vector2i(pos).add(0, 1);
+        if (keys.contains(b)) res.add(b);
+        var c = new Vector2i(pos).add(1, 0);
+        if (keys.contains(c)) res.add(c);
+        var d = new Vector2i(pos).add(0, -1);
+        if (keys.contains(d)) res.add(d);
+
+        return res;
+    }
+
+    private static boolean onSameAxis(BlockPos A, BlockPos B) {
+        return A.getX() == B.getX() || A.getY() == B.getY() || A.getZ() == B.getZ();
+    }
+
+    private static boolean isOnWall(BlockPos pos, BlockPos min, BlockPos max) {
+        return onSameAxis(pos, min) || onSameAxis(pos, max);
+    }
+
+    private static boolean isAtEdgeOfBox(BlockPos pos, BlockPos min, BlockPos max) {
+        int planesAligned = 0;
+
+        if (pos.getX() == min.getX() || pos.getX() == max.getX()) planesAligned++;
+        if (pos.getY() == min.getY() || pos.getY() == max.getY()) planesAligned++;
+        if (pos.getZ() == min.getZ() || pos.getZ() == max.getZ()) planesAligned++;
+
+        return planesAligned >= 2;
+    }
+
+    private BlockPos expandWall(BlockPos from, Vec3i direction) {
+        return expandWall(from, direction, false);
+    }
+
+    private BlockPos expandWall(BlockPos from, Vec3i direction, boolean allReactorBlocks) {
+
+        var result = from;
+        for (int i = 1; i < MAX_SIZE; i++) {
+            var candidate = from.offset(direction.multiply(i));
+            var candidateBlock = level.getBlockState(candidate).getBlock();
+
+            if (!allReactorBlocks && !(candidateBlock instanceof ReactorWallBlock)) return result;
+            if (allReactorBlocks && !(candidateBlock instanceof BaseReactorBlock)) return result;
+
+            result = candidate;
+        }
+
+        return result;
+
+    }
+
+    private void updateRedstonePorts(int hottestTemp, int filledRods) {
+
+        disabledViaRedstone = false;
+
+        for (var pos : redstonePorts) {
+            var state = level.getBlockState(pos);
+            if (!state.getBlock().equals(BlockContent.REACTOR_REDSTONE_PORT.get())) continue;
+
+            var resOutput = 0;
+
+            var mode = state.getValue(ReactorRedstonePortBlock.PORT_MODE);
+            if (mode == 0 && hottestTemp > 0) {    // temp of hottest component
+                resOutput = (int) ((hottestTemp / (float) MAX_HEAT) * 15);
+                resOutput = Math.max(resOutput, 1);  // ensure at least level 1 if any component has heat
+            } else if (mode == 1) { // amount of rods with fuel
+                resOutput = Math.min(filledRods, 15);
+            } else if (mode == 2 && energyStorage.getAmountAsLong() > 0) { // amount of energy stored
+                var fillPercentage = energyStorage.getAmountAsLong() / (float) energyStorage.getCapacityAsLong();
+                resOutput = (int) (1 + fillPercentage * 14);
+            }
+
+            resOutput = Math.min(resOutput, 15);
+
+            var lastLevel = state.getValue(BlockStateProperties.POWER);
+            if (lastLevel != resOutput) {
+                level.setBlockAndUpdate(pos, state.setValue(BlockStateProperties.POWER, resOutput));
+                level.blockEntityChanged(pos);
+            }
+
+            if (level.hasNeighborSignal(pos)) {
+                disabledViaRedstone = true;
+            }
+
+        }
+
+    }
+
+    private void outputEnergy() {
+
+        var maxRatePerSlot = OritechConfig.reactorMaxEnergyOutput.get();
+
+        var randomOrderedList = new ArrayList<>(energyPorts);
+        Collections.shuffle(randomOrderedList);
+
+        for (var candidateData : randomOrderedList) {
+            var candidate = rearth.oritech.port.neoforge.capabilities.CapabilityHooks.get(level, Capabilities.Energy.BLOCK, candidateData.getA(), candidateData.getB());
+            if (candidate == null) continue;
+            var moved = 0;
+            try (var transaction = Transaction.openRoot()) {
+                moved = candidate.insert((int) Math.min(Math.min(energyStorage.getAmountAsLong(), maxRatePerSlot), Integer.MAX_VALUE), transaction);
+                if (moved > 0) {
+                    energyStorage.internalExtract(moved, transaction);
+                    transaction.commit();
+                }
+            }
+
+        }
+    }
+
+    @Override
+    public EnergyHandler getEnergyLookup(Direction direction) {
+        return energyStorage;
+    }
+
+    @Override
+    public Component getDisplayName() {
+        return Component.nullToEmpty("");
+    }
+
+    @Nullable
+    @Override
+    public AbstractContainerMenu createMenu(int syncId, Inventory playerInventory, Player player) {
+        return new ReactorScreenHandler(syncId, playerInventory, this);
+    }
+
+    @Override
+    public void writeClientSideData(AbstractContainerMenu menu, RegistryFriendlyByteBuf buffer) {
+        // initial layout and slider value travel with the menu opening, only to the player opening it
+        // read in the same order by ReactorScreenHandler's buffer constructor
+        buffer.writeBlockPos(worldPosition);
+        buffer.writeBlockPos(areaMin);
+        buffer.writeBlockPos(areaMax);
+        buffer.writeInt(warningHeatThreshold);
+    }
+
+    public record ComponentStatistics(short receivedPulses, int storedHeat, short heatChanged) {
+        public static final ComponentStatistics EMPTY = new ComponentStatistics((short) 0, -1, (short) 0);
+    }
+
+    // remaining internal fuel/coolant and the original capacity of the last consumed item
+    public record ComponentFuel(int available, int capacity) {}
+
+    // component and port data already encoded by writeGuiData for the receiving viewer
+    public record GuiUpdatePacket(BlockPos position, byte[] data) implements CustomPacketPayload {
+        public static final Type<GuiUpdatePacket> PACKET_ID = new Type<>(Oritech.id("reactor_gui"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, GuiUpdatePacket> PACKET_CODEC = StreamCodec.composite(
+            BlockPos.STREAM_CODEC, GuiUpdatePacket::position,
+            ByteBufCodecs.BYTE_ARRAY, GuiUpdatePacket::data,
+            GuiUpdatePacket::new);
+
+        @Override
+        public @NotNull Type<? extends CustomPacketPayload> type() {
+            return PACKET_ID;
+        }
+    }
+
+    public static void handleWarningThresholdPacket(WarningThresholdPacket payload, IPayloadContext context) {
+        var level = context.player().level();
+        var reactorCandidate = level.getBlockEntity(payload.position(), BlockEntitiesContent.NUCLEAR_REACTOR_CONTROLLER_BLOCK.get());
+        if (reactorCandidate.isEmpty()) return;
+
+        var reactor = reactorCandidate.get();
+        reactor.warningHeatThreshold = Math.max(0, payload.threshold());
+        reactor.setChanged();
+    }
+
+    public record WarningThresholdPacket(BlockPos position, int threshold) implements CustomPacketPayload {
+        public static final Type<WarningThresholdPacket> PACKET_ID = new Type<>(Oritech.id("reactor_warning_threshold"));
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return PACKET_ID;
+        }
+    }
+}

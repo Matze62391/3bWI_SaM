@@ -1,0 +1,16 @@
+{
+  "type": "oritech:assembler",
+  "itemInputs": [
+    "oritech:uranium_gem",
+    "oritech:uranium_gem",
+    "#c:plates/plastic",
+    "oritech:duratium_ingot"
+  ],
+  "itemResults": [
+    {
+      "count": 4,
+      "id": "oritech:uranium_pellet"
+    }
+  ],
+  "time": 96
+}

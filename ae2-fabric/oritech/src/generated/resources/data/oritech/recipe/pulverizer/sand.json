@@ -1,0 +1,12 @@
+{
+  "type": "oritech:pulverizer",
+  "itemInputs": [
+    "minecraft:gravel"
+  ],
+  "itemResults": [
+    {
+      "id": "minecraft:sand"
+    }
+  ],
+  "time": 100
+}

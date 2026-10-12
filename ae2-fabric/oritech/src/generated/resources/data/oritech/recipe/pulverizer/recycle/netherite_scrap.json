@@ -1,0 +1,12 @@
+{
+  "type": "oritech:pulverizer",
+  "itemInputs": [
+    "#oritech:recyclable/netherite_scrap"
+  ],
+  "itemResults": [
+    {
+      "id": "minecraft:netherite_scrap"
+    }
+  ],
+  "time": 100
+}

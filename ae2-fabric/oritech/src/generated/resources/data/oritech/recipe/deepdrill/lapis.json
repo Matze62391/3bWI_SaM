@@ -1,0 +1,12 @@
+{
+  "type": "oritech:bedrock_extractor",
+  "itemInputs": [
+    "oritech:resource_node_lapis"
+  ],
+  "itemResults": [
+    {
+      "id": "minecraft:lapis_lazuli"
+    }
+  ],
+  "time": 1
+}

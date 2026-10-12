@@ -1,0 +1,12 @@
+{
+  "type": "oritech:pulverizer",
+  "itemInputs": [
+    "#c:nuggets/iron"
+  ],
+  "itemResults": [
+    {
+      "id": "oritech:small_iron_dust"
+    }
+  ],
+  "time": 100
+}

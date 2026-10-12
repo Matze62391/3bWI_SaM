@@ -1,0 +1,33 @@
+{
+  "parent": "minecraft:oritech/plastic",
+  "criteria": {
+    "got_catalyst": {
+      "conditions": {
+        "items": [
+          {
+            "items": "oritech:arcane_catalyst"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    }
+  },
+  "display": {
+    "background": "minecraft:gui/advancements/backgrounds/adventure",
+    "description": {
+      "translate": "advancements.oritech.catalyst.description"
+    },
+    "icon": {
+      "id": "oritech:arcane_catalyst"
+    },
+    "title": {
+      "translate": "advancements.oritech.catalyst"
+    }
+  },
+  "requirements": [
+    [
+      "got_catalyst"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

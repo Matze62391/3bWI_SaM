@@ -1,0 +1,13 @@
+{
+  "type": "oritech:particle_collision",
+  "itemInputs": [
+    "#c:dusts/redstone",
+    "minecraft:rotten_flesh"
+  ],
+  "itemResults": [
+    {
+      "id": "oritech:enderic_compound"
+    }
+  ],
+  "time": 500
+}

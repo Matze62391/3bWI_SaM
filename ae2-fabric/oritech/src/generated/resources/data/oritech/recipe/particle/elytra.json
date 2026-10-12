@@ -1,0 +1,13 @@
+{
+  "type": "oritech:particle_collision",
+  "itemInputs": [
+    "#c:feathers",
+    "minecraft:saddle"
+  ],
+  "itemResults": [
+    {
+      "id": "minecraft:elytra"
+    }
+  ],
+  "time": 10000
+}

@@ -1,0 +1,33 @@
+{
+  "parent": "minecraft:oritech/generator",
+  "criteria": {
+    "got_foundry": {
+      "conditions": {
+        "items": [
+          {
+            "items": "oritech:foundry"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    }
+  },
+  "display": {
+    "background": "minecraft:gui/advancements/backgrounds/adventure",
+    "description": {
+      "translate": "advancements.oritech.foundry.description"
+    },
+    "icon": {
+      "id": "oritech:foundry"
+    },
+    "title": {
+      "translate": "advancements.oritech.foundry"
+    }
+  },
+  "requirements": [
+    [
+      "got_foundry"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

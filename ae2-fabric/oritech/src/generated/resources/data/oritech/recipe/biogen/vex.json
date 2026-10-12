@@ -1,0 +1,8 @@
+{
+  "type": "oritech:bio_generator",
+  "itemInputs": [
+    "oritech:unholy_intelligence"
+  ],
+  "itemResults": [],
+  "time": 60000
+}

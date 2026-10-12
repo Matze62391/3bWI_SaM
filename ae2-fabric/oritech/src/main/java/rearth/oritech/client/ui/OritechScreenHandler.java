@@ -1,0 +1,323 @@
+package rearth.oritech.client.ui;
+
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import rearth.oritech.port.neoforge.capabilities.Capabilities;
+import rearth.oritech.port.neoforge.network.handling.IPayloadContext;
+import rearth.oritech.port.neoforge.transfer.ResourceHandler;
+import rearth.oritech.port.neoforge.transfer.ResourceHandlerUtil;
+import rearth.oritech.port.neoforge.transfer.StacksResourceHandler;
+import rearth.oritech.port.neoforge.transfer.access.ItemAccess;
+import rearth.oritech.port.neoforge.transfer.fluid.FluidResource;
+import rearth.oritech.port.neoforge.transfer.item.ItemResource;
+import rearth.oritech.port.neoforge.transfer.item.ResourceHandlerSlot;
+import rearth.oritech.port.neoforge.transfer.transaction.Transaction;
+import org.jetbrains.annotations.NotNull;
+import rearth.oritech.Oritech;
+import rearth.oritech.api.networking.NetworkedBlockEntity;
+import rearth.oritech.api.networking.SyncType;
+import rearth.oritech.api.screen.data.DisplayDataSource;
+import rearth.oritech.api.transfer.energy.EnergyProvider;
+import rearth.oritech.api.transfer.fluid.FluidProvider;
+import rearth.oritech.api.transfer.fluid.SimpleFluidStorage;
+import rearth.oritech.util.ScreenProvider;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
+
+/**
+ * Base screen handler for all Oritech machine screens.
+ * <p>
+ * Handles: machine inventory slots, player inventory slots, armor slots,
+ * energy storage reference, fluid storage references, screen data.
+ */
+public class OritechScreenHandler extends AbstractContainerMenu implements MachineMenuHandler {
+
+    /** Player-inventory armor slots, ordered to match the displayed equipment column (feet, legs, chest, head). */
+    private static final EquipmentSlot[] ARMOR_EQUIPMENT_SLOTS = {
+            EquipmentSlot.FEET, EquipmentSlot.LEGS, EquipmentSlot.CHEST, EquipmentSlot.HEAD
+    };
+
+    @NotNull
+    public final Inventory playerInventory;
+    @NotNull
+    public final StacksResourceHandler<ItemStack, ItemResource> inventory;
+    @NotNull
+    public final BlockPos blockPos;
+    @NotNull
+    public final ScreenProvider screenData;
+
+    private final List<DisplayDataSource> dataDisplays = new ArrayList<>();
+    public final List<ResourceHandler<FluidResource>> fluidStorages;
+
+    public BlockState machineBlock;
+    public BlockEntity blockEntity;
+    public List<Integer> armorSlots;
+
+    // client constructor
+    public OritechScreenHandler(int syncId, Inventory inventory, FriendlyByteBuf buf) {
+        this(syncId, inventory, Objects.requireNonNull(inventory.player.level().getBlockEntity(buf.readBlockPos())));
+    }
+
+    // server constructor (and forwarded client constructor)
+    public OritechScreenHandler(int syncId, Inventory playerInventory, BlockEntity blockEntity) {
+        super(((ScreenProvider) blockEntity).getScreenHandlerType(), syncId);
+
+        this.screenData = (ScreenProvider) blockEntity;
+        this.blockPos = blockEntity.getBlockPos();
+        this.playerInventory = playerInventory;
+        this.machineBlock = blockEntity.getBlockState();
+        this.blockEntity = blockEntity;
+        this.inventory = screenData.getDisplayedInventory();
+
+        addEnergyDisplay();
+        addProgressDisplay();
+        addFluidDisplay();
+        addAdditionalDisplays();
+
+        fluidStorages = new ArrayList<>(screenData.getInteractableFluidStorages());
+
+        assignFluidTankIndices();
+
+        buildItemSlots();
+    }
+
+    public void addFluidDisplay() {
+        if (blockEntity instanceof FluidProvider blockProvider) {
+            var storage = blockProvider.getFluidLookup(null);
+            if (storage instanceof SimpleFluidStorage singleSlotStorage) {
+                var source = DisplayDataSource.CreateFluid(singleSlotStorage, screenData.getFluidConfiguration(), screenData);
+                dataDisplays.add(source);
+            }
+        }
+    }
+
+    protected void addEnergyDisplay() {
+        if (screenData.showEnergy() && blockEntity instanceof EnergyProvider energyProvider) {
+            var storage = energyProvider.getEnergyLookup(null);
+            dataDisplays.add(DisplayDataSource.CreateEnergy(storage, screenData.getEnergyConfiguration(), screenData));
+        }
+    }
+
+    protected void addProgressDisplay() {
+        if (screenData.showProgress()) {
+            dataDisplays.add(DisplayDataSource.CreateProgress(screenData, blockEntity));
+        }
+    }
+
+    protected void addAdditionalDisplays() {
+    }
+
+    public Collection<DisplayDataSource> getDataDisplays() {
+        return dataDisplays;
+    }
+
+    /**
+     * Matches each FluidDataSource to its index in the fluidStorages list
+     * by comparing storage references. This enables the client to send
+     * the correct tank index when clicking a fluid display widget.
+     */
+    private void assignFluidTankIndices() {
+        for (var display : dataDisplays) {
+            if (display instanceof DisplayDataSource.FluidDataSource fluidSource) {
+                for (int i = 0; i < fluidStorages.size(); i++) {
+                    if (fluidStorages.get(i) == fluidSource.getStorage()) {
+                        fluidSource.setTankIndex(i);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    private void buildItemSlots() {
+        // Machine inventory slots
+        for (var slot : screenData.getGuiSlots()) {
+            addMachineSlot(slot.index(), slot.x(), slot.y(), slot.output());
+        }
+
+        // Player inventory (3 rows of 9, starting at x=8, y=84)
+        addPlayerInventory(playerInventory, 8, 84 + (isTall() ? 20 : 0));
+
+        // Armor slots (optional): 4 armor + 1 offhand
+        if (screenData.showArmor()) {
+            armorSlots = new ArrayList<>(5);
+            for (int i = 0; i < ARMOR_EQUIPMENT_SLOTS.length + 1; i++) {
+                final var armorIndex = i;
+                var slot = this.addSlot(new Slot(playerInventory, 36 + i, -20, i * 19) {
+                    @Override
+                    public boolean mayPlace(ItemStack stack) {
+                        if (armorIndex >= ARMOR_EQUIPMENT_SLOTS.length) return super.mayPlace(stack); // offhand slot
+                        return playerInventory.player.getEquipmentSlotForItem(stack) == ARMOR_EQUIPMENT_SLOTS[armorIndex];
+                    }
+
+                    @Override
+                    public int getMaxStackSize() {
+                        return armorIndex >= ARMOR_EQUIPMENT_SLOTS.length ? super.getMaxStackSize() : 1;
+                    }
+                });
+                armorSlots.add(slot.index);
+            }
+        }
+    }
+
+    public boolean isTall() {
+        return false;
+    }
+
+    public void addMachineSlot(int inventorySlot, int x, int y, boolean output) {
+        if (output) {
+            this.addSlot(new BasicMachineOutputSlot(inventory, inventorySlot, x, y));
+        } else {
+            this.addSlot(new ResourceHandlerSlot(inventory, inventory::set, inventorySlot, x, y));
+        }
+    }
+
+    /**
+     * Adds the standard player inventory slots (27 main + 9 hotbar).
+     */
+    protected void addPlayerInventory(Inventory playerInventory, int startX, int startY) {
+        // Main inventory (3 rows of 9, slot indices 9-35)
+        for (int row = 0; row < 3; row++) {
+            for (int col = 0; col < 9; col++) {
+                this.addSlot(new Slot(playerInventory, col + row * 9 + 9, startX + col * 18, startY + row * 18));
+            }
+        }
+        // Hotbar (1 row of 9, slot indices 0-8)
+        for (int col = 0; col < 9; col++) {
+            this.addSlot(new Slot(playerInventory, col, startX + col * 18, startY + 58));
+        }
+    }
+
+    @Override
+    public ItemStack quickMoveStack(Player player, int invSlot) {
+        var slot = this.slots.get(invSlot);
+
+        if (slot.hasItem()) {
+            var originalStack = slot.getItem();
+            var newStack = originalStack.copy();
+
+            int machineSize = this.inventory.size();
+            int playerInvStart = getPlayerInvStartSlot(newStack);
+            int playerInvEnd = getPlayerInvEndSlot(newStack);
+            int totalSize = this.slots.size();
+
+            // Machine → player
+            if (invSlot < machineSize) {
+                if (!this.moveItemStackTo(originalStack, playerInvStart, playerInvEnd, true))
+                    return ItemStack.EMPTY;
+            }
+            // Player → machine
+            else if (invSlot >= playerInvStart && invSlot < playerInvEnd) {
+                if (!this.moveItemStackTo(originalStack, 0, machineSize, false))
+                    return ItemStack.EMPTY;
+            }
+            // Armor/offhand → player
+            else if (invSlot >= playerInvEnd && invSlot < totalSize) {
+                if (!this.moveItemStackTo(originalStack, playerInvStart, playerInvEnd, true))
+                    return ItemStack.EMPTY;
+            }
+
+            if (originalStack.isEmpty()) {
+                slot.setByPlayer(ItemStack.EMPTY);
+            } else {
+                slot.setChanged();
+            }
+
+            return newStack;
+        }
+
+        return ItemStack.EMPTY;
+    }
+
+    public int getPlayerInvStartSlot(ItemStack stack) {
+        return this.inventory.size();
+    }
+
+    public int getPlayerInvEndSlot(ItemStack stack) {
+        return getPlayerInvStartSlot(stack) + 36;
+    }
+
+    public int getMachineInvStartSlot(ItemStack stack) {
+        return 0;
+    }
+
+    public int getMachineInvEndSlot(ItemStack stack) {
+        return this.inventory.size();
+    }
+
+    @Override
+    public boolean stillValid(Player player) {
+        if (blockEntity == null || blockEntity.isRemoved()) return false;
+        return player.distanceToSqr(blockPos.getX() + 0.5, blockPos.getY() + 0.5, blockPos.getZ() + 0.5) <= 64.0;
+    }
+
+    @Override
+    public BlockEntity getBlockEntity() {
+        return blockEntity;
+    }
+
+    public boolean showRedstoneAddon() {
+        return screenData.hasRedstoneControlAvailable();
+    }
+
+    @Override
+    public void broadcastChanges() {
+        if (blockEntity instanceof NetworkedBlockEntity networkedBlockEntity && playerInventory.player instanceof ServerPlayer serverPlayer)
+            networkedBlockEntity.sendUpdate(SyncType.GUI_TICK, serverPlayer);
+        super.broadcastChanges();
+    }
+
+    public record FluidContainerInteractionPacket(BlockPos position, int tankIndex,
+                                                  boolean extract) implements CustomPacketPayload {
+        public static final Type<FluidContainerInteractionPacket> PACKET_ID =
+                new Type<>(Oritech.id("fluid_container_interaction"));
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return PACKET_ID;
+        }
+    }
+
+    public static void handleFluidContainerInteraction(FluidContainerInteractionPacket packet, IPayloadContext context) {
+        var player = context.player();
+        if (!(player.containerMenu instanceof OritechScreenHandler handler)) return;
+        if (packet.tankIndex() < 0 || packet.tankIndex() >= handler.fluidStorages.size()) return;
+
+        var carriedStack = player.containerMenu.getCarried();
+        if (carriedStack.isEmpty()) return;
+
+        // Resolve a fluid handler for the player's cursor stack. Single-item access (oneByOne)
+        // matches the previous behavior of acting on one stack at a time.
+        var cursorAccess = ItemAccess.forPlayerCursor(player, player.containerMenu).oneByOne();
+        var itemFluidStorage = rearth.oritech.port.neoforge.capabilities.CapabilityHooks.get(cursorAccess, Capabilities.Fluid.ITEM);
+        if (itemFluidStorage == null) return;
+
+        var tankStorage = handler.fluidStorages.get(packet.tankIndex());
+
+        try (var transaction = Transaction.openRoot()) {
+            if (packet.extract()) {
+                // Right click: tank → item
+                ResourceHandlerUtil.moveFirst(tankStorage, itemFluidStorage, r -> true, Integer.MAX_VALUE, transaction);
+            } else {
+                // Left click: item → tank
+                ResourceHandlerUtil.moveFirst(itemFluidStorage, tankStorage, r -> true, Integer.MAX_VALUE, transaction);
+            }
+            transaction.commit();
+        }
+    }
+
+    // endregion
+}

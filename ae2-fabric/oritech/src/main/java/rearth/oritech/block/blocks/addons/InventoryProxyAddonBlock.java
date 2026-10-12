@@ -1,0 +1,35 @@
+package rearth.oritech.block.blocks.addons;
+
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.MenuProvider;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.BlockHitResult;
+import org.jetbrains.annotations.NotNull;
+import rearth.oritech.block.entity.addons.InventoryProxyAddonBlockEntity;
+
+public class InventoryProxyAddonBlock extends MachineAddonBlock {
+
+    public InventoryProxyAddonBlock(Properties settings, AddonSettings addonSettings) {
+        super(settings, addonSettings);
+    }
+
+    @Override
+    public @NotNull Class<? extends BlockEntity> getBlockEntityType() {
+        return InventoryProxyAddonBlockEntity.class;
+    }
+
+    @Override
+    public InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
+
+        if (!level.isClientSide()) {
+            rearth.oritech.port.neoforge.common.MenuHelper.openMenu(player, (MenuProvider) level.getBlockEntity(pos), pos);
+        }
+
+        return InteractionResult.SUCCESS;
+    }
+
+}

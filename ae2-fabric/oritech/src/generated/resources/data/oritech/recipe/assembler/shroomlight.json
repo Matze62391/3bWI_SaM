@@ -1,0 +1,15 @@
+{
+  "type": "oritech:assembler",
+  "itemInputs": [
+    "#minecraft:logs",
+    "minecraft:glowstone",
+    "minecraft:glowstone",
+    "minecraft:glowstone"
+  ],
+  "itemResults": [
+    {
+      "id": "minecraft:shroomlight"
+    }
+  ],
+  "time": 96
+}

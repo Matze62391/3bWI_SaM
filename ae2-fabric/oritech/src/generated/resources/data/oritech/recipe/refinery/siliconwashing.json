@@ -1,0 +1,17 @@
+{
+  "type": "oritech:refinery",
+  "fluidInput": {
+    "amount": 1000,
+    "ingredient": "oritech:still_silicon_wash"
+  },
+  "itemInputs": [
+    "#minecraft:sand"
+  ],
+  "itemResults": [
+    {
+      "count": 4,
+      "id": "oritech:silicon"
+    }
+  ],
+  "time": 160
+}

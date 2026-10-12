@@ -1,0 +1,8 @@
+{
+  "type": "oritech:bio_generator",
+  "itemInputs": [
+    "#c:fuels/bio"
+  ],
+  "itemResults": [],
+  "time": 500
+}

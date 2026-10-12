@@ -1,0 +1,10 @@
+{
+  "type": "oritech:steam_engine",
+  "fluidInput": {
+    "amount": 32,
+    "ingredient": "#c:steam"
+  },
+  "itemInputs": [],
+  "itemResults": [],
+  "time": 1
+}

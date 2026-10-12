@@ -1,0 +1,356 @@
+package rearth.oritech.block.entity.generators;
+
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.Vec3i;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.level.ServerLevel;
+import rearth.oritech.util.Tuple;
+import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.item.crafting.RecipeType;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.material.Fluids;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.phys.Vec3;
+import rearth.oritech.port.neoforge.transfer.ResourceHandler;
+import rearth.oritech.port.neoforge.transfer.fluid.FluidResource;
+import rearth.oritech.port.neoforge.transfer.transaction.Transaction;
+import org.jetbrains.annotations.Nullable;
+import rearth.oritech.api.networking.NetworkedBlockEntity;
+import rearth.oritech.api.networking.SyncField;
+import rearth.oritech.api.networking.SyncType;
+import rearth.oritech.api.transfer.fluid.FluidProvider;
+import rearth.oritech.block.base.entity.MultiblockGeneratorBlockEntity;
+import rearth.oritech.client.init.ModScreens;
+import rearth.oritech.config.OritechConfig;
+import rearth.oritech.init.BlockEntitiesContent;
+import rearth.oritech.init.TagContent;
+import rearth.oritech.init.recipes.OritechRecipe;
+import rearth.oritech.init.recipes.OritechRecipeInput;
+import rearth.oritech.init.recipes.RecipeContent;
+import rearth.oritech.util.ContainerSlotAssignment;
+import rearth.oritech.util.Geometry;
+import rearth.oritech.client.init.ParticleContent;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+// progress is abused to sync active speed.
+public class SteamEngineEntity extends MultiblockGeneratorBlockEntity implements FluidProvider {
+
+    private static final int MAX_SPEED = 25;
+    private static final int MAX_CHAIN_SIZE = 20;
+    private static final float WATER_RATIO = 0.9f;
+
+    // use lower amounts of steam on neo, because on fabric a bucket is 81000 droplets, and on neo its only 1000
+    // due to this, the pipe capacities would be reached super fast.
+    // So on neo, we reduce the amount of steam/water used/produced by X, and then increase the energy amount by X again
+    public static float STEAM_AMOUNT_MULTIPLIER = 0.05f;
+
+
+    // how chaining works:
+    // (non-chained non-empty) generator checks neighbors in both sides in N dist
+    // generator marks neighbors as chained, with timestamp
+    // slaved generator shows only chain notice in popup, moves all inserted steam to master (get api returns master entries)
+    // master processes at X rate, shows chained count in UI
+
+    // progress is used to store/sync animation speed
+
+    private static FluidResource USED_STEAM_FLUID;
+
+    public long masterHeartbeat; // set from master, used by slave
+    public SteamEngineEntity master;
+
+    private final Set<SteamEngineEntity> slaves = new HashSet<>();
+
+    // client only
+    @SyncField({SyncType.GUI_TICK, SyncType.GUI_OPEN})
+    public SteamEngineSyncPacket clientStats;
+
+    public SteamEngineEntity(BlockPos pos, BlockState state) {
+        super(BlockEntitiesContent.STEAM_ENGINE.get(), pos, state, OritechConfig.generators.steamEngineData.steamToRfRatio.get());
+        clientStats = new SteamEngineSyncPacket(pos, 1f, 1f, 0, 0, 0);
+    }
+
+    @Override
+    public void serverTick(ServerLevel serverLevel, BlockPos pos, BlockState state, NetworkedBlockEntity blockEntity) {
+
+        if (serverLevel.isClientSide() || !isAssembled(state)) return;
+
+        var slaved = inSlaveMode();
+        var hasInput = boilerStorage.getInputContainer().getAmountAsInt(0) > 0;
+        if (serverLevel.getGameTime() % 80 == 0 && !slaved && hasInput)
+            setupMaster();
+
+        if (!slaved && hasInput) tickMaster();
+
+        if (slaved) tickSlave();
+
+
+        outputEnergy();
+    }
+
+    // this is only called when steam is available
+    private void tickMaster() {
+
+        var steamTank = boilerStorage.getInputContainer();
+        var waterTank = boilerStorage.getOutputContainer();
+
+        // optional config stops (energy full / water full)
+        if (energyStorage.getAmountAsLong() >= energyStorage.getCapacityAsLong() && OritechConfig.generators.steamEngineData.stopOnEnergyFull.get())
+            return;
+        if (waterTank.getAmountAsInt(0) >= boilerStorage.getCapacity() && OritechConfig.generators.steamEngineData.stopOnWaterFull.get())
+            return;
+
+        currentRecipe = findActiveRecipe();
+        if (currentRecipe.isEmpty()) {
+            return;
+        }
+
+        var speed = getSteamProcessingSpeed();
+        var workerCount = slaves.size() + 1;
+
+        var consumedCount = currentRecipe.fluidInput().get().amount() * speed * workerCount * STEAM_AMOUNT_MULTIPLIER;
+        consumedCount = Math.max(consumedCount, 1);
+
+        try (var transaction = Transaction.openRoot()) {
+            // update tanks
+            var steamTaken = steamTank.extract(steamTank.getResource(0), (int) consumedCount, transaction);
+
+            var producedCount = steamTaken * WATER_RATIO;
+            producedCount = Math.max(producedCount, 1);
+
+            var waterInserted = waterTank.insert(0, FluidResource.of(Fluids.WATER), (int) producedCount, transaction);
+
+            // produce energy
+            var energyEfficiency = getSteamEnergyEfficiency(speed);
+            var energyProduced = steamTaken * energyEfficiency * energyPerTick / STEAM_AMOUNT_MULTIPLIER;
+            var energyInserted = energyStorage.internalInsert((long) energyProduced, transaction);
+
+            if (steamTaken <= 0) return;
+
+            transaction.commit();
+            // clientStats = new SteamEngineSyncPacket(worldPosition, speed, energyEfficiency, (long) energyProduced, (long) (consumedCount / STEAM_AMOUNT_MULTIPLIER), slaves.size());
+            clientStats = new SteamEngineSyncPacket(worldPosition, speed, energyEfficiency, (long) energyProduced, (long) (consumedCount / STEAM_AMOUNT_MULTIPLIER), slaves.size());
+        }
+
+        spawnParticles();
+        lastWorkedAt = level.getGameTime();
+
+        // used for animation speed
+        progress.set((int) (speed * 100));
+
+    }
+
+    private void tickSlave() {
+        // check if master is actually working
+        var masterStats = master.clientStats;
+        if (masterStats == null) return;
+        var wasWorking = master.isActivelyWorking();
+        var speed = masterStats.speed();
+
+        if (wasWorking) {
+            spawnParticles();
+            this.lastWorkedAt = level.getGameTime();
+            this.setChanged();
+        }
+
+        // used for animation speed
+        progress.set((int) (speed * 100f));
+    }
+
+    private void setupMaster() {
+        slaves.clear();
+
+        for (int direction = -1; direction <= 1; direction++) {
+            if (direction == 0) continue;
+            for (int i = 1; i <= MAX_CHAIN_SIZE; i++) {
+                var checkPos = rearth.oritech.util.BlockPosHelper.of(Geometry.offsetToWorldPosition(getFacing(), new Vec3i(i * direction, 0, 0), worldPosition));
+
+                var coreCandidate = level.getBlockEntity(checkPos, BlockEntitiesContent.MACHINE_CORE.get());
+                if (coreCandidate.isPresent() && coreCandidate.get().getCachedController() != null)
+                    checkPos = coreCandidate.get().getControllerPos();
+
+                var candidate = level.getBlockEntity(checkPos, BlockEntitiesContent.STEAM_ENGINE.get());
+                if (candidate.isEmpty() || !candidate.get().isAssembled(candidate.get().getBlockState())) {
+                    break;
+                } else if (!candidate.get().boilerStorage.getInStack().isEmpty()) {
+                    break;
+                } else {
+                    var slave = candidate.get();
+                    slaves.add(slave);
+                    slave.masterHeartbeat = level.getGameTime();
+                    slave.master = this;
+                }
+            }
+        }
+    }
+
+    public boolean inSlaveMode() {
+        var heartbeatAge = level.getGameTime() - masterHeartbeat;
+        return heartbeatAge <= 100 && master != null && !master.isRemoved();
+    }
+
+    @Override
+    protected OritechRecipeInput getRecipeInput() {
+        return new OritechRecipeInput(List.of(), boilerStorage.getInStack());
+    }
+
+    @Override
+    public boolean boilerAcceptsInput(FluidResource fluid) {
+        return fluid.is(TagContent.STEAM);
+    }
+
+    private void spawnParticles() {
+        if (level.getRandom().nextFloat() > 0.5) return;
+        // emit particles
+        var facing = getFacing();
+        var offsetLocal = Geometry.rotatePosition(new Vec3(0, 0, -0.5), facing);
+        var emitPosition = Vec3.atCenterOf(worldPosition).add(offsetLocal);
+
+        if (level instanceof ServerLevel sl)
+            ParticleContent.sendParticles(sl, ParticleTypes.CLOUD, emitPosition.x, emitPosition.y, emitPosition.z, 1, 0.6, 0.6, 0.6, 0);
+    }
+
+    private float getSteamEnergyEfficiency(float x) {
+        // basically a curve that goes through 0:0.5, 7:1 and 10:0.2
+        return (float) (0.5f - 0.1966667f * x + 0.09166667f * Math.pow(x, 2) - 0.0075f * Math.pow(x, 3)) + 0.4f;
+    }
+
+    @Override
+    protected void loadAdditional(ValueInput input) {
+        super.loadAdditional(input);
+    }
+
+    private float getSteamProcessingSpeed() {
+        var fillPercentage = boilerStorage.getInStack().getAmount() / (float) boilerStorage.getCapacity();
+        return fillPercentage * MAX_SPEED;
+    }
+
+    @Override
+    protected float getAnimationSpeed() {
+        if (progress.isEmpty()) return 1;
+        return (float) progress.get() / 100f;
+    }
+
+    @Override
+    public BarConfiguration getFluidConfiguration() {
+        return new BarConfiguration(149, 10, 18, 64);
+    }
+
+    @Override
+    protected RecipeType<OritechRecipe> getOwnRecipeType() {
+        return RecipeContent.STEAM_ENGINE.get();
+    }
+
+    @Override
+    public ContainerSlotAssignment getSlotAssignments() {
+        return new ContainerSlotAssignment(0, 0, 0, 0);
+    }
+
+    @Override
+    public List<GuiSlot> getGuiSlots() {
+        return List.of();
+    }
+
+    @Override
+    public MenuType<?> getScreenHandlerType() {
+        return ModScreens.STEAM_ENGINE_SCREEN.get();
+    }
+
+    @Override
+    public List<ResourceHandler<FluidResource>> getInteractableFluidStorages() {
+        return List.of(boilerStorage.getOutputContainer(), boilerStorage.getInputContainer());
+    }
+
+    @Override
+    public int getInventorySize() {
+        return 0;
+    }
+
+    @Override
+    public long getDefaultCapacity() {
+        return OritechConfig.generators.steamEngineData.energyCapacity.get();
+    }
+
+    @Override
+    public long getDefaultExtractionRate() {
+        return OritechConfig.generators.steamEngineData.maxEnergyExtraction.get();
+    }
+
+    @Override
+    protected Set<Tuple<BlockPos, Direction>> getOutputTargets(BlockPos pos, Level level) {
+
+        var res = new HashSet<Tuple<BlockPos, Direction>>();
+
+        var facing = getFacingForAddon();
+        var posA = new Vec3i(0, 0, 1); // front
+        var posB = new Vec3i(-1, 0, 0); // right
+        var posC = new Vec3i(1, 0, 0);  // left
+        var posD = new Vec3i(-1, 0, -1); // back left
+        var posE = new Vec3i(1, 0, -1); // back right
+        var posF = new Vec3i(0, 0, -2);  // back
+        var worldPosA = (BlockPos) Geometry.offsetToWorldPosition(facing, posA, pos);
+        var worldPosB = (BlockPos) Geometry.offsetToWorldPosition(facing, posB, pos);
+        var worldPosC = (BlockPos) Geometry.offsetToWorldPosition(facing, posC, pos);
+        var worldPosD = (BlockPos) Geometry.offsetToWorldPosition(facing, posD, pos);
+        var worldPosE = (BlockPos) Geometry.offsetToWorldPosition(facing, posE, pos);
+        var worldPosF = (BlockPos) Geometry.offsetToWorldPosition(facing, posF, pos);
+
+        res.add(new Tuple<>(worldPosA, Geometry.fromVector(Geometry.getForward(facing))));
+        res.add(new Tuple<>(worldPosB, Geometry.fromVector(Geometry.getLeft(facing))));
+        res.add(new Tuple<>(worldPosC, Geometry.fromVector(Geometry.getRight(facing))));
+        res.add(new Tuple<>(worldPosD, Geometry.fromVector(Geometry.getLeft(facing))));
+        res.add(new Tuple<>(worldPosE, Geometry.fromVector(Geometry.getRight(facing))));
+        res.add(new Tuple<>(worldPosF, Geometry.fromVector(Geometry.getBackward(facing))));
+
+        return res;
+
+    }
+
+    @Override
+    public boolean showEnergyUsage() {
+        return false;
+    }
+
+    @Override
+    public List<Vec3i> getAddonSlots() {
+        return List.of();
+    }
+
+    @Override
+    public List<Vec3i> getCorePositions() {
+        return List.of(
+                new Vec3i(0, 1, 0),
+                new Vec3i(0, 0, -1),
+                new Vec3i(0, 1, -1)
+        );
+    }
+
+    @Override
+    public boolean showProgress() {
+        return false;
+    }
+
+    @Override
+    public ResourceHandler<FluidResource> getFluidLookup(@Nullable Direction direction) {
+        if (inSlaveMode()) return master.boilerStorage.getExternalAccess();
+        return boilerStorage.getExternalAccess();
+    }
+
+    public record SteamEngineSyncPacket(BlockPos position, float speed, float efficiency, long energyProduced,
+                                        long steamConsumed, int slaves) {
+    }
+
+    public static FluidResource getUsedSteamFluid() {
+        if (USED_STEAM_FLUID == null) {
+            USED_STEAM_FLUID = FluidResource.of(BuiltInRegistries.FLUID.get(Identifier.parse(OritechConfig.generators.steamId.get())).get().value());
+        }
+
+        return USED_STEAM_FLUID;
+    }
+}

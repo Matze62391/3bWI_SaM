@@ -1,0 +1,13 @@
+{
+  "type": "oritech:pulverizer",
+  "itemInputs": [
+    "#oritech:recyclable/string"
+  ],
+  "itemResults": [
+    {
+      "count": 2,
+      "id": "minecraft:string"
+    }
+  ],
+  "time": 100
+}

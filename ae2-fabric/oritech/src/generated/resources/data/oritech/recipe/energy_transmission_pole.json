@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "b": "oritech:carbon_fibre_strands",
+    "c": "oritech:magnetic_coil",
+    "i": "oritech:portable_energy_storage",
+    "s": "#c:ingots/electrum"
+  },
+  "pattern": [
+    "c c",
+    "sis",
+    "bbb"
+  ],
+  "result": {
+    "id": "oritech:energy_transmission_pole"
+  }
+}

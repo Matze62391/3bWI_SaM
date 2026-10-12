@@ -1,0 +1,60 @@
+package rearth.oritech.util;
+
+import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.storage.loot.LootContext;
+import net.minecraft.world.level.storage.loot.functions.LootItemConditionalFunction;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
+import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
+import rearth.oritech.port.neoforge.fluids.SimpleFluidContent;
+import org.jetbrains.annotations.NotNull;
+import rearth.oritech.block.entity.addons.HeartOfTheMachineAddonEntity;
+import rearth.oritech.block.entity.storage.PortableEnergyStorageBlockEntity;
+import rearth.oritech.block.entity.storage.PortableTankEntity;
+import rearth.oritech.config.OritechConfig;
+import rearth.oritech.init.ComponentContent;
+
+import java.util.List;
+
+public class NbtBlockLootFunction extends LootItemConditionalFunction {
+    public static final String NAME = "nbt_block_loot_function";
+
+    public NbtBlockLootFunction(java.util.Optional<net.minecraft.core.Holder<LootItemCondition>> condition) {
+        super(condition);
+    }
+
+    @Override
+    public @NotNull ItemStack run(@NotNull ItemStack stack, LootContext context) {
+
+        var blockEntity = context.getOptional(LootContextParams.BLOCK_ENTITY);
+
+        if (blockEntity instanceof PortableTankEntity tankEntity && tankEntity.hasStoredFluidForDrops()) {
+            stack.set(ComponentContent.STORED_FLUID.get(), SimpleFluidContent.copyOf(tankEntity.getStoredFluidForDrops()));
+            stack.set(DataComponents.MAX_STACK_SIZE, 1);
+        } else if (blockEntity instanceof PortableEnergyStorageBlockEntity storageEntity && storageEntity.energyStorage.energy > 0) {
+            var capacity = OritechConfig.smallEnergyStorage.energyCapacity.get();
+            var itemEnergy = (int) Math.min(storageEntity.energyStorage.energy, capacity) ;
+            stack.set(ComponentContent.ENERGY.get(), itemEnergy);
+            stack.set(DataComponents.MAX_STACK_SIZE, 1);
+        } else if (blockEntity instanceof HeartOfTheMachineAddonEntity heartOfTheMachineAddon && heartOfTheMachineAddon.storedData != null) {
+            stack.set(ComponentContent.ADDON_DATA.get(), heartOfTheMachineAddon.storedData);
+            stack.set(DataComponents.MAX_STACK_SIZE, 1);
+        }
+
+        return stack;
+    }
+
+    public static Builder<?> builder() {
+        return LootItemConditionalFunction.simpleBuilder(NbtBlockLootFunction::new);
+    }
+
+    @Override
+    public MapCodec<NbtBlockLootFunction> codec() {
+        return CODEC;
+    }
+
+    public static final MapCodec<NbtBlockLootFunction> CODEC = RecordCodecBuilder.mapCodec(
+            instance -> LootItemConditionalFunction.commonFields(instance).apply(instance, NbtBlockLootFunction::new));
+}

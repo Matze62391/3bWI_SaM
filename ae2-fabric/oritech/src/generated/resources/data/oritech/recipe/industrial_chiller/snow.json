@@ -1,0 +1,15 @@
+{
+  "type": "oritech:industrial_chiller",
+  "fluidInput": {
+    "amount": 1000,
+    "ingredient": "oritech:still_steam"
+  },
+  "itemInputs": [],
+  "itemResults": [
+    {
+      "count": 3,
+      "id": "minecraft:snow_block"
+    }
+  ],
+  "time": 200
+}
