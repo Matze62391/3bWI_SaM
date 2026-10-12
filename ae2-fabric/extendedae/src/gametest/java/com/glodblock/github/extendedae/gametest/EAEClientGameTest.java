@@ -131,6 +131,11 @@ public class EAEClientGameTest implements FabricClientGameTest {
             fill(server, origin.offset(-12, 0, 5), origin.offset(12, 1, 5), "minecraft:air");
 
             testCircuitCutter(context, server, origin.offset(3, 0, 3));
+            for (var provider : List.of("ae2:pattern_provider")) {
+                if (!testCutterAutoExport(context, server, origin.offset(-4, 0, 8), provider)) {
+                    failures.add("circuit cutter auto export into " + provider);
+                }
+            }
             testWirelessTerminal(context, server, origin, failures);
 
             // JEI shows ExtendedAE's recipe categories
@@ -259,6 +264,49 @@ public class EAEClientGameTest implements FabricClientGameTest {
     }
 
     /**
+     * Circuit cutters next to a pattern provider, with auto export on, push their results through the provider into
+     * the network (the provider's return inventory), like the usual press automation.
+     */
+    private static boolean testCutterAutoExport(ClientGameTestContext context, TestServerContext server,
+            BlockPos drive, String provider) {
+        var providerPos = drive.east();
+        var cutter = providerPos.east();
+        setBlock(server, drive.below(), "ae2:creative_energy_cell");
+        setBlock(server, drive, "ae2:drive");
+        setBlock(server, providerPos, provider);
+        setBlock(server, cutter, "extendedae:circuit_cutter");
+        context.waitTicks(20);
+        server.runOnServer(s -> {
+            var be = (appeng.blockentity.storage.DriveBlockEntity) s.overworld().getBlockEntity(drive);
+            be.getInternalInventory().insertItem(0, appeng.core.definitions.AEItems.ITEM_CELL_1K.stack(), false);
+            var c = (TileCircuitCutter) s.overworld().getBlockEntity(cutter);
+            c.getConfigManager().putSetting(appeng.api.config.Settings.AUTO_EXPORT, appeng.api.config.YesNo.YES);
+            var storage = ItemStorage.SIDED.find(s.overworld(), cutter, Direction.UP);
+            try (var tx = Transaction.openOuter()) {
+                storage.insert(ItemVariant.of(AEBlocks.QUARTZ_BLOCK.asItem()), 4, tx);
+                tx.commit();
+            }
+        });
+        var ok = waitFor(context, server, s -> {
+            var be = (appeng.blockentity.storage.DriveBlockEntity) s.overworld().getBlockEntity(drive);
+            var grid = be.getMainNode().getGrid();
+            return grid != null && !grid.getStorageService().getInventory().getAvailableStacks().isEmpty();
+        }, 1200);
+        var state = server.computeOnServer(s -> {
+            var be = (appeng.blockentity.storage.DriveBlockEntity) s.overworld().getBlockEntity(drive);
+            var grid = be.getMainNode().getGrid();
+            var c = (TileCircuitCutter) s.overworld().getBlockEntity(cutter);
+            return "network=" + (grid == null ? "none" : grid.getStorageService().getInventory().getAvailableStacks())
+                    + " cutter output=" + c.getOutput().getStackInSlot(0);
+        });
+        LOG.info("Circuit cutter auto export into {}: {} ({})", provider, ok ? "ok" : "FAILED", state);
+        for (var pos : List.of(cutter, providerPos, drive, drive.below())) {
+            setBlock(server, pos, "minecraft:air");
+        }
+        return ok;
+    }
+
+    /**
      * The wireless extended pattern access terminal comes from ae2wtlib's terminal registration.
      */
     private static void testWirelessTerminal(ClientGameTestContext context, TestServerContext server, BlockPos origin,
@@ -304,6 +352,17 @@ public class EAEClientGameTest implements FabricClientGameTest {
                 mc.gui.hud.toggle();
             }
         });
+    }
+
+    private static boolean waitFor(ClientGameTestContext context, TestServerContext server,
+            java.util.function.Predicate<MinecraftServer> condition, int maxTicks) {
+        for (var i = 0; i < maxTicks; i += 10) {
+            if (server.computeOnServer(condition::test)) {
+                return true;
+            }
+            context.waitTicks(10);
+        }
+        return false;
     }
 
     private static void waitForServer(ClientGameTestContext context, TestServerContext server,

@@ -78,6 +78,8 @@ dependencies {
     include project(":appflux")
     // MEGA Cells: bigger and bulk storage cells, MEGA crafting CPUs, interfaces and pattern providers
     include project(":megacells")
+    // Oritech (Rearth, CC0-1.0)
+    include project(":oritech")
     // Storage Drawers (MIT, official Fabric build); works with the AE2 storage bus through the Fabric transfer API
     include "maven.modrinth:storagedrawers:${rootProject.storagedrawers_version}"
     // Tech Reborn (MIT, contains RebornCore): machines, generators and ore processing; uses the same energy API.
@@ -136,8 +138,6 @@ tasks.register("prodClientGameTest", net.fabricmc.loom.task.prod.ClientProductio
     mods.from(project(":extendedae").tasks.named("gametestJar"))
     mods.from(project(":appflux").tasks.named("gametestJar"))
     mods.from(project(":megacells").tasks.named("gametestJar"))
-    // Oritech is shipped as its own jar next to the pack (the bundle would exceed 30 MB)
-    mods.from(project(":oritech").tasks.named("jar"))
     mods.from(project(":oritech").tasks.named("gametestJar"))
     mods.from(configurations.productionRuntimeMods)
     jvmArgs.add("-Dfabric.client.gametest")
@@ -148,7 +148,6 @@ tasks.register("prodClientGameTest", net.fabricmc.loom.task.prod.ClientProductio
 // Starts a dedicated server with the bundle: ./gradlew :pack:prodServer
 tasks.register("prodServer", net.fabricmc.loom.task.prod.ServerProductionRunTask) {
     mods.from(tasks.named("jar"))
-    mods.from(project(":oritech").tasks.named("jar"))
     mods.from(configurations.productionRuntimeMods)
     runDir = layout.buildDirectory.dir("run/prodServer")
 }
@@ -172,7 +171,6 @@ dependencies {
 
 tasks.register("prodWorldTest", net.fabricmc.loom.task.prod.ClientProductionRunTask) {
     mods.from(tasks.named("jar"))
-    mods.from(project(":oritech").tasks.named("jar"))
     mods.from(packGametestJar)
     mods.from(configurations.productionRuntimeMods)
     mods.from(configurations.worldTestMods)
@@ -196,7 +194,6 @@ dependencies {
 
 tasks.register("prodShaderTest", net.fabricmc.loom.task.prod.ClientProductionRunTask) {
     mods.from(tasks.named("jar"))
-    mods.from(project(":oritech").tasks.named("jar"))
     mods.from(packGametestJar)
     mods.from(configurations.productionRuntimeMods)
     mods.from(configurations.worldTestMods)
