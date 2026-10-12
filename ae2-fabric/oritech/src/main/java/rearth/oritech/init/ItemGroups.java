@@ -58,7 +58,15 @@ public class ItemGroups {
                     .build());
 
     @SuppressWarnings("unchecked")
-    private static void AddItemsToGroup(CreativeModeTab.Output output, ItemContent.Groups targetGroup) {
+    private static void AddItemsToGroup(CreativeModeTab.Output tabOutput, ItemContent.Groups targetGroup) {
+
+        // charged variants can equal the default stack, the creative tab rejects duplicates
+        var added = new java.util.ArrayList<ItemStack>();
+        CreativeModeTab.Output output = (stack, visibility) -> {
+            if (added.stream().anyMatch(other -> ItemStack.isSameItemSameComponents(other, stack))) return;
+            added.add(stack);
+            tabOutput.accept(stack, visibility);
+        };
 
         // load from item fields based on annotation
         for (var field : ItemContent.class.getDeclaredFields()) {

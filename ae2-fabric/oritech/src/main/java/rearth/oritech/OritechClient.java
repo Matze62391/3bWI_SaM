@@ -64,7 +64,7 @@ public final class OritechClient implements ClientModInitializer {
 
         ClientTickEvents.START_CLIENT_TICK.register(this::onPreClientTick);
         ClientTickEvents.END_CLIENT_TICK.register(client -> onPostClientTick());
-        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> onPlayerLoggingIn(client));
+        // the hint to install Oracle Index (Oritech's in-game docs) is not shown: it isn't available for Fabric 26.3
 
         // block outlines, zipline cables and the ore-scanner highlight use the split extraction/submission flow
         LevelExtractionEvents.AFTER_BLOCK_OUTLINE_EXTRACTION.register(BlockOutlineRenderer::onOutlineExtract);
