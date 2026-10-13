@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "minVersion": "0.8.3",
+  "package": "appeng.pack.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "EffortlessBuildingAE2CountMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

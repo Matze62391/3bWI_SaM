@@ -25,6 +25,7 @@
   "entrypoints": {
     "main": ["appeng.pack.InfiniteWaterSources"]
   },
+  "mixins": ["ae2_fabric_pack.mixins.json"],
   "depends": {
     "fabricloader": ">=0.19.5",
     "minecraft": "~26.3",

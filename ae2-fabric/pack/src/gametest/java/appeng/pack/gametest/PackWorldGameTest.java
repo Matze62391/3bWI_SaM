@@ -73,6 +73,23 @@ public class PackWorldGameTest implements FabricClientGameTest {
                     throw new AssertionError(modId + " is not loaded");
                 }
             }
+            // A network with an infinite cell reports Integer.MAX_VALUE items; Effortless Building added the player's
+            // own blocks to it, overflowed and crashed the build preview. The pack caps the amount it reads.
+            try {
+                var ae2Integration = Class.forName("nl.requios.effortlessbuilding.compat.ae2.AE2Integration");
+                ae2Integration.getMethod("setCachedCount", net.minecraft.world.item.Item.class, int.class)
+                        .invoke(null, net.minecraft.world.item.Items.COBBLESTONE, Integer.MAX_VALUE);
+                int cached = (int) ae2Integration.getMethod("getCachedCount", net.minecraft.world.item.Item.class)
+                        .invoke(null, net.minecraft.world.item.Items.COBBLESTONE);
+                ae2Integration.getMethod("setCachedCount", net.minecraft.world.item.Item.class, int.class)
+                        .invoke(null, net.minecraft.world.item.Items.COBBLESTONE, -1);
+                if (cached != 1 << 30) {
+                    throw new AssertionError("Effortless Building network count not capped: " + cached);
+                }
+                LOG.info("Effortless Building network count capped at {}", cached);
+            } catch (ReflectiveOperationException e) {
+                throw new AssertionError("Effortless Building's AE2 integration changed", e);
+            }
             if (techReborn) {
                 var furnacePos = server.computeOnServer(s -> s.getPlayerList().getPlayers().getFirst().blockPosition()
                         .offset(0, 0, 2));
