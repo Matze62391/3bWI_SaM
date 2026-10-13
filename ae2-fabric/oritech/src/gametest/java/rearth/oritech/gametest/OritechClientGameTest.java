@@ -39,6 +39,8 @@ public class OritechClientGameTest implements FabricClientGameTest {
 
     @Override
     public void runTest(ClientGameTestContext context) {
+        net.fabricmc.fabric.api.client.gametest.v1.world.TestWorldSave worldSave;
+        BlockPos controllerPos;
         try (var world = context.worldBuilder().adjustSettings(settings -> {
             settings.setGameMode(WorldCreationUiState.SelectedGameMode.CREATIVE);
             settings.getNormalPresetList().stream()
@@ -84,6 +86,10 @@ public class OritechClientGameTest implements FabricClientGameTest {
             }, 1200)) {
                 failures.add("pulverizer grinds raw iron");
             }
+
+            // A multiblock controller that is loaded from disk when the world is opened again (checked below)
+            var savedController = origin.offset(6, 0, 8);
+            setBlock(server, savedController, "oritech:assembler");
 
             // A basic generator burns coal into energy (the burn time comes from the item's cooking fuel component)
             var generator = origin.offset(-1, 0, 4);
@@ -177,8 +183,23 @@ public class OritechClientGameTest implements FabricClientGameTest {
             if (!failures.isEmpty()) {
                 throw new AssertionError("Oritech checks failed: " + failures);
             }
-            LOG.info("All Oritech checks passed");
+            worldSave = world.getWorldSave();
+            controllerPos = savedController;
         }
+
+        // Opening the world again loads the assembler's chunk from disk. Oritech rescans the multiblock when the block
+        // entity loads; this used to read the chunk while it was still loading, which froze the server.
+        try (var reopened = worldSave.open()) {
+            var pos = controllerPos;
+            var server = reopened.getServer();
+            if (!waitFor(context, server, s -> s.overworld().getBlockEntity(pos)
+                    instanceof rearth.oritech.util.MultiblockMachineController, 200)) {
+                throw new AssertionError("Oritech checks failed: assembler not loaded after reopening the world");
+            }
+            context.waitTicks(20);
+            LOG.info("Multiblock controller loaded after reopening the world");
+        }
+        LOG.info("All Oritech checks passed");
     }
 
     private static EnergyStorage findEnergy(MinecraftServer server, BlockPos pos) {

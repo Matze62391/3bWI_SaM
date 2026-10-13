@@ -129,7 +129,14 @@ public final class Oritech implements ModInitializer {
         ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> !ExoArmorItem.CancelFallDamage(source, entity));
         ServerEntityEvents.EQUIPMENT_CHANGE.register(ArmorEventHandler::processEvent);
         ServerBlockEntityEvents.BLOCK_ENTITY_LOAD.register((blockEntity, level) -> {
-            if (blockEntity instanceof IBlockEntityExtension extension) extension.onLoad();
+            if (!(blockEntity instanceof IBlockEntityExtension extension)) return;
+            // NeoForge calls onLoad once the chunk is ready. Fabric fires this event while the chunk is still loading,
+            // and reading that chunk from here (multiblock rescans, setChanged) waits for it forever. Queue onLoad as a
+            // server task instead; schedule() never runs it inline, unlike execute() on the server thread.
+            var server = level.getServer();
+            server.schedule(server.wrapRunnable(() -> {
+                if (!blockEntity.isRemoved() && blockEntity.getLevel() == level) extension.onLoad();
+            }));
         });
 
         // world generation
