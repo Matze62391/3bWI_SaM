@@ -64,26 +64,31 @@ public class PackWorldGameTest implements FabricClientGameTest {
             context.takeScreenshot("pack-normal-world");
 
             var server = world.getServer();
-            // Tech Reborn and Effortless Building are part of the pack
-            for (var modId : java.util.List.of("techreborn", "reborncore", "effortlessbuilding")) {
+            // Effortless Building is part of the pack; Tech Reborn only when the pack is built with it
+            boolean techReborn = net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("techreborn");
+            LOG.info("Tech Reborn loaded: {}", techReborn);
+            for (var modId : techReborn ? java.util.List.of("techreborn", "reborncore", "effortlessbuilding")
+                    : java.util.List.of("effortlessbuilding")) {
                 if (!net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded(modId)) {
                     throw new AssertionError(modId + " is not loaded");
                 }
             }
-            var furnacePos = server.computeOnServer(s -> s.getPlayerList().getPlayers().getFirst().blockPosition()
-                    .offset(0, 0, 2));
-            server.runCommand("setblock %d %d %d techreborn:iron_furnace".formatted(furnacePos.getX(),
-                    furnacePos.getY(), furnacePos.getZ()));
-            context.waitTicks(5);
-            context.getInput().lookAt(furnacePos);
-            context.getInput().pressKey(options -> options.keyUse);
-            context.waitFor(mc -> mc.gui.screen() != null, 100);
-            String trScreen = context.computeOnClient(mc -> mc.gui.screen().getClass().getName());
-            LOG.info("Tech Reborn screen: {}", trScreen);
-            context.takeScreenshot("pack-techreborn-iron-furnace");
-            context.runOnClient(mc -> mc.gui.setScreen(null));
-            server.runCommand("setblock %d %d %d minecraft:air".formatted(furnacePos.getX(), furnacePos.getY(),
-                    furnacePos.getZ()));
+            if (techReborn) {
+                var furnacePos = server.computeOnServer(s -> s.getPlayerList().getPlayers().getFirst().blockPosition()
+                        .offset(0, 0, 2));
+                server.runCommand("setblock %d %d %d techreborn:iron_furnace".formatted(furnacePos.getX(),
+                        furnacePos.getY(), furnacePos.getZ()));
+                context.waitTicks(5);
+                context.getInput().lookAt(furnacePos);
+                context.getInput().pressKey(options -> options.keyUse);
+                context.waitFor(mc -> mc.gui.screen() != null, 100);
+                String trScreen = context.computeOnClient(mc -> mc.gui.screen().getClass().getName());
+                LOG.info("Tech Reborn screen: {}", trScreen);
+                context.takeScreenshot("pack-techreborn-iron-furnace");
+                context.runOnClient(mc -> mc.gui.setScreen(null));
+                server.runCommand("setblock %d %d %d minecraft:air".formatted(furnacePos.getX(), furnacePos.getY(),
+                        furnacePos.getZ()));
+            }
 
             // The universal terminal in one step: receiver, the three terminals and a dense energy cell
             var wut = server.computeOnServer(s -> {

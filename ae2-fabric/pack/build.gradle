@@ -9,7 +9,7 @@ version = project.pack_version
 group = "appeng"
 
 base {
-    archivesName = project.hasProperty("separateTechReborn") ? "ae2-fabric-pack-without-techreborn" : "ae2-fabric-pack"
+    archivesName = project.hasProperty("withoutTechReborn") ? "ae2-fabric-pack-without-techreborn" : "ae2-fabric-pack"
 }
 
 repositories {
@@ -83,9 +83,9 @@ dependencies {
     // Storage Drawers (MIT, official Fabric build); works with the AE2 storage bus through the Fabric transfer API
     include "maven.modrinth:storagedrawers:${rootProject.storagedrawers_version}"
     // Tech Reborn (MIT, contains RebornCore): machines, generators and ore processing; uses the same energy API.
-    // -PseparateTechReborn builds the pack without it (it then has to be installed next to the pack), which keeps
-    // the jar under 30 MB.
-    if (!project.hasProperty("separateTechReborn")) {
+    // -PwithoutTechReborn builds the pack without it and without the dependency on it; Tech Reborn can still be
+    // installed next to that jar.
+    if (!project.hasProperty("withoutTechReborn")) {
         include "maven.modrinth:techreborn:${rootProject.techreborn_version}"
     }
     // Effortless Building (LGPL-3.0): building modes (lines, walls, floors, mirror, array)
@@ -103,8 +103,19 @@ dependencies {
 processResources {
     def version = project.version
     inputs.property "version", version
+    def withoutTechReborn = project.hasProperty("withoutTechReborn")
+    inputs.property "withoutTechReborn", withoutTechReborn
     filesMatching("fabric.mod.json") {
         expand "version": version
+        if (withoutTechReborn) {
+            filter { String line ->
+                if (line.contains('"techreborn": "*"') || line.contains('"Tech Reborn Team"')) {
+                    return null
+                }
+                return line.replace(", Tech Reborn and Effortless Building", " and Effortless Building")
+                        .replace(", Tech Reborn, RebornCore", "")
+            }
+        }
     }
 }
 
@@ -127,9 +138,6 @@ dependencies {
     productionRuntimeMods "mezz.jei:jei-${rootProject.minecraft_version}-fabric:${rootProject.jei_version}"
     productionRuntimeMods "maven.modrinth:jade:${rootProject.jade_version}"
     productionRuntimeMods "com.terraformersmc:modmenu:${rootProject.modmenu_version}"
-    if (project.hasProperty("separateTechReborn")) {
-        productionRuntimeMods "maven.modrinth:techreborn:${rootProject.techreborn_version}"
-    }
 }
 
 tasks.register("prodClientGameTest", net.fabricmc.loom.task.prod.ClientProductionRunTask) {
