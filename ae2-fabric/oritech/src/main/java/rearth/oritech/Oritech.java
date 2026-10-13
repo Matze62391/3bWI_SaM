@@ -145,7 +145,13 @@ public final class Oritech implements ModInitializer {
             addFeature(TagKey.create(Registries.BIOME, Identifier.withDefaultNamespace("has_structure/desert_pyramid")), "oil_spring_desert", GenerationStep.Decoration.LAKES);
             addFeature(BiomeTags.IS_OVERWORLD, "ore_nickel", GenerationStep.Decoration.UNDERGROUND_ORES);
             addFeature(BiomeTags.IS_OVERWORLD, "ore_platinum", GenerationStep.Decoration.UNDERGROUND_ORES);
-            addFeature(BiomeTags.IS_END, "ore_platinum_end", GenerationStep.Decoration.UNDERGROUND_ORES);
+            // Only the vanilla End biomes: Fabric appends the ore to each biome's list, and mods with their own End
+            // biomes (Better End) list their ores before it there, but add them after it in the vanilla biomes. The
+            // two orders contradict each other, and Minecraft then crashes generating End chunks ("Feature order
+            // cycle found").
+            addFeature(BiomeSelectors.tag(BiomeTags.IS_END).and(context ->
+                            context.getBiomeKey().identifier().getNamespace().equals(Identifier.DEFAULT_NAMESPACE)),
+                    "ore_platinum_end", GenerationStep.Decoration.UNDERGROUND_ORES);
             addFeature(BiomeTags.IS_OVERWORLD, "uranium_patch", GenerationStep.Decoration.UNDERGROUND_ORES);
             addFeature(BiomeTags.IS_OVERWORLD, "resource_node_common", GenerationStep.Decoration.TOP_LAYER_MODIFICATION);
             addFeature(BiomeTags.IS_OVERWORLD, "resource_node_other", GenerationStep.Decoration.TOP_LAYER_MODIFICATION);
@@ -171,8 +177,12 @@ public final class Oritech implements ModInitializer {
     }
 
     private static void addFeature(TagKey<Biome> biomes, String feature, GenerationStep.Decoration step) {
-        BiomeModifications.addFeature(BiomeSelectors.tag(biomes), step,
-                ResourceKey.create(Registries.PLACED_FEATURE, id(feature)));
+        addFeature(BiomeSelectors.tag(biomes), feature, step);
+    }
+
+    private static void addFeature(java.util.function.Predicate<net.fabricmc.fabric.api.biome.v1.BiomeSelectionContext> biomes,
+            String feature, GenerationStep.Decoration step) {
+        BiomeModifications.addFeature(biomes, step, ResourceKey.create(Registries.PLACED_FEATURE, id(feature)));
     }
 
     private void onLevelTickPost(ServerLevel serverLevel) {
