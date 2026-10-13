@@ -7,7 +7,7 @@
   "license": "LGPL-3.0-only",
   "environment": "*",
   "entrypoints": {
-    "fabric-client-gametest": ["appeng.pack.gametest.PackWorldGameTest", "appeng.pack.gametest.PackStorageDrawersGameTest", "appeng.pack.gametest.PackInfiniteWaterGameTest", "appeng.pack.gametest.PackQuantumArmorGameTest"]
+    "fabric-client-gametest": ["appeng.pack.gametest.PackWorldGameTest", "appeng.pack.gametest.PackStorageDrawersGameTest", "appeng.pack.gametest.PackInfiniteWaterGameTest", "appeng.pack.gametest.PackQuantumArmorGameTest", "appeng.pack.gametest.PackLabGameTest"]
   },
   "depends": {"ae2_fabric_pack": "*"}
 }

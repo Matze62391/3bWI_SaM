@@ -97,6 +97,8 @@ dependencies {
     gametestCompileOnly project(":ae2addonlib")
     gametestCompileOnly project(":extendedae")
     gametestCompileOnly project(":glodium")
+    gametestCompileOnly project(":oritech")
+    gametestCompileOnly "teamreborn:energy:${rootProject.tr_energy_version}"
     gametestCompileOnly "maven.modrinth:geckolib:${rootProject.geckolib_version}"
 }
 
@@ -175,6 +177,9 @@ configurations {
 dependencies {
     // Macaw's Furniture: its kitchen sinks are infinite water sources for AE2 (All Rights Reserved, not bundled)
     worldTestMods "maven.modrinth:macaws-furniture:${rootProject.macaws_furniture_version}"
+    // Litematica reads back the lab schematic exported by PackLabGameTest
+    worldTestMods "maven.modrinth:litematica:${rootProject.litematica_version}"
+    worldTestMods "maven.modrinth:malilib:${rootProject.malilib_version}"
 }
 
 tasks.register("prodWorldTest", net.fabricmc.loom.task.prod.ClientProductionRunTask) {
