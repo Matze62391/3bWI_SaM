@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "a": "ae2:crafting_unit",
+    "b": "ae2:logic_processor",
+    "c": "ae2:fluix_smart_cable",
+    "d": "megacells:accumulation_processor"
+  },
+  "pattern": [
+    "aba",
+    "cdc",
+    "aba"
+  ],
+  "result": {
+    "id": "megacells:mega_crafting_unit"
+  }
+}

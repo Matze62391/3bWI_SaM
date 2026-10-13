@@ -1,0 +1,22 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.glodblock.github.extendedae.mixins",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "MixinAbstractLevelEmitterPart",
+    "MixinAEBasePart",
+    "MixinAECraftingPattern",
+    "MixinAppEngInternalInventory",
+    "MixinPatternAccessTermMenu"
+  ],
+  "client": [
+    "MixinAbstractContainerScreen",
+    "MixinAEClientboundPacketHandler",
+    "MixinRenderBlockOutlineHook"
+  ],
+  "server": [],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

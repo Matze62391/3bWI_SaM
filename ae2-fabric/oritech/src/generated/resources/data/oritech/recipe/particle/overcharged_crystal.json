@@ -1,0 +1,13 @@
+{
+  "type": "oritech:particle_collision",
+  "itemInputs": [
+    "oritech:fluxite",
+    "oritech:energite_dust"
+  ],
+  "itemResults": [
+    {
+      "id": "oritech:overcharged_crystal"
+    }
+  ],
+  "time": 5000
+}

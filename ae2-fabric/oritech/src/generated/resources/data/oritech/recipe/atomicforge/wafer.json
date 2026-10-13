@@ -1,0 +1,14 @@
+{
+  "type": "oritech:atomic_forge",
+  "itemInputs": [
+    "#c:carbon_fibre",
+    "#c:silicon",
+    "#c:silicon"
+  ],
+  "itemResults": [
+    {
+      "id": "oritech:silicon_wafer"
+    }
+  ],
+  "time": 5
+}

@@ -1,0 +1,21 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.glodblock.github.appflux.mixins",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "MixinCreativeEnergyCellBlockEntity",
+    "MixinInterfaceLogic",
+    "MixinPatternProviderLogic",
+    "MixinPatternProviderLogicHost",
+    "MixinPatternProviderMenu"
+  ],
+  "client": [
+    "MixinPatternProviderScreen",
+    "MixinScreenStyle"
+  ],
+  "server": [],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

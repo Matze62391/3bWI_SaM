@@ -1,0 +1,23 @@
+{
+  "type": "extendedae:crystal_assembler",
+  "energy": 20000,
+  "input_items": [
+    {
+      "ingredient": "ae2:annihilation_plane"
+    },
+    {
+      "amount": 3,
+      "ingredient": "minecraft:piston"
+    },
+    {
+      "amount": 2,
+      "ingredient": "ae2:annihilation_core"
+    },
+    {
+      "ingredient": "extendedae:ex_import_bus_part"
+    }
+  ],
+  "output": {
+    "id": "extendedae:smart_annihilation_plane"
+  }
+}

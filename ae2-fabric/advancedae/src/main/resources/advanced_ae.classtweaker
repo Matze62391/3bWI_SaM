@@ -1,0 +1,16 @@
+accessWidener v2 official
+
+accessible field net/minecraft/world/item/context/UseOnContext hitResult Lnet/minecraft/world/phys/BlockHitResult;
+accessible field net/minecraft/client/gui/screens/inventory/AbstractContainerScreen imageWidth I
+mutable field net/minecraft/client/gui/screens/inventory/AbstractContainerScreen imageWidth I
+accessible field net/minecraft/client/gui/screens/inventory/AbstractContainerScreen imageHeight I
+mutable field net/minecraft/client/gui/screens/inventory/AbstractContainerScreen imageHeight I
+accessible field net/minecraft/world/inventory/Slot x I
+mutable field net/minecraft/world/inventory/Slot x I
+accessible field net/minecraft/world/inventory/Slot y I
+mutable field net/minecraft/world/inventory/Slot y I
+accessible field net/minecraft/world/entity/item/ItemEntity thrower Lnet/minecraft/world/entity/EntityReference;
+accessible field net/minecraft/world/entity/item/ItemEntity pickupDelay I
+accessible field net/minecraft/world/item/crafting/RecipeManager recipes Lnet/minecraft/world/item/crafting/RecipeMap;
+accessible field net/minecraft/client/gui/screens/Screen renderables Ljava/util/List;
+accessible method net/minecraft/world/item/crafting/RecipeMap <init> (Lcom/google/common/collect/Multimap;Ljava/util/Map;)V

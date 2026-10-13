@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "a": "ae2:quartz_vibrant_glass",
+    "b": "ae2:sky_dust",
+    "c": "megacells:bulk_cell_component",
+    "d": "minecraft:netherite_ingot"
+  },
+  "pattern": [
+    "aba",
+    "bcb",
+    "ddd"
+  ],
+  "result": {
+    "id": "megacells:bulk_item_cell"
+  }
+}

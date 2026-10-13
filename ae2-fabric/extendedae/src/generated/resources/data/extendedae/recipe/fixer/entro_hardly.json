@@ -1,0 +1,13 @@
+{
+  "type": "extendedae:crystal_fixer",
+  "chance": 7000,
+  "fuel": {
+    "ingredient": "#c:dusts/ender_pearl"
+  },
+  "input": {
+    "id": "extendedae:entro_budding_hardly"
+  },
+  "output": {
+    "id": "extendedae:entro_budding_half"
+  }
+}

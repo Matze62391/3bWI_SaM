@@ -1,0 +1,29 @@
+{
+    "required": true,
+    "minVersion": "0.8",
+    "injectors": {
+        "defaultRequire": 1
+    },
+    "package": "net.pedroksl.advanced_ae.mixins",
+    "plugin": "net.pedroksl.advanced_ae.mixins.AAEMixinPlugin",
+    "compatibilityLevel": "JAVA_21",
+    "mixins": [
+        "MixinEncodedPatternItem",
+        "MixinItemStack",
+        "MixinLivingEntity",
+        "MixinIOBusPartInvoker",
+        "MixinPlayer",
+        "MixinPatternEncodingLogic",
+        "MixinPatternEncodingTermMenu",
+        "MixinPatternProviderLogic",
+        "cpu.MixinCraftingCPUMenu",
+        "cpu.MixinCraftingService",
+        "appflux.MixinAdvPatternProviderLogic",
+        "appflux.MixinAdvPatternProviderLogicHost",
+        "appflux.MixinAdvPatternProviderMenu"
+    ],
+    "client": [
+        "appflux.MixinAdvPatternProviderScreen",
+        "appflux.MixinSmallAdvPatternProviderScreen"
+    ]
+}

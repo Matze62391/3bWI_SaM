@@ -1,0 +1,12 @@
+{
+  "type": "oritech:bedrock_extractor",
+  "itemInputs": [
+    "oritech:diamond_resource_node"
+  ],
+  "itemResults": [
+    {
+      "id": "minecraft:diamond"
+    }
+  ],
+  "time": 1
+}

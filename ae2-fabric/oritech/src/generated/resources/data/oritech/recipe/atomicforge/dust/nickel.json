@@ -1,0 +1,15 @@
+{
+  "type": "oritech:atomic_forge",
+  "itemInputs": [
+    "oritech:nickel_gem",
+    "oritech:fluxite",
+    "oritech:fluxite"
+  ],
+  "itemResults": [
+    {
+      "count": 2,
+      "id": "oritech:nickel_dust"
+    }
+  ],
+  "time": 20
+}

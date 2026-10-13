@@ -1,0 +1,21 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "de.mari_023.ae2wtlib.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "AEItemsMixin",
+    "ServerPlayerGameModeMixin",
+    "ServerPlayerMixin",
+    "BowItemMixin",
+    "ItemEntityMixin",
+    "LivingEntityMixin",
+    "ServerGamePacketListenerImplMixin"
+  ],
+  "client": [
+    "GuiMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "fabric:load_conditions": [
+    {
+      "condition": "fabric:not",
+      "value": {
+        "condition": "fabric:all_mods_loaded",
+        "values": [
+          "extendedae"
+        ]
+      }
+    }
+  ],
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "ae2:crafting_unit",
+    "ae2:singularity",
+    "advanced_ae:shattered_singularity",
+    "advanced_ae:shattered_singularity"
+  ],
+  "result": {
+    "id": "advanced_ae:quantum_unit"
+  }
+}

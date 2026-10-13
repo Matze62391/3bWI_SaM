@@ -1,0 +1,34 @@
+{
+  "fabric:load_conditions": [
+    {
+      "condition": "fabric:tags_populated",
+      "registry": "minecraft:item",
+      "values": [
+        "c:dusts/quartz"
+      ]
+    }
+  ],
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "#c:dusts/quartz",
+    [
+      "minecraft:coal",
+      "minecraft:charcoal"
+    ],
+    [
+      "minecraft:coal",
+      "minecraft:charcoal"
+    ],
+    "#c:sands",
+    "#c:sands",
+    "#c:sands",
+    "#c:sands",
+    "#c:sands",
+    "#c:sands"
+  ],
+  "result": {
+    "count": 6,
+    "id": "extendedae:quartz_blend"
+  }
+}

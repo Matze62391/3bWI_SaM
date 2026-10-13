@@ -1,0 +1,32 @@
+{
+  "parent": "minecraft:oritech/generator",
+  "criteria": {
+    "got_furnace": {
+      "conditions": {
+        "items": [
+          {
+            "items": "oritech:powered_furnace"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    }
+  },
+  "display": {
+    "description": {
+      "translate": "advancements.oritech.furnace.description"
+    },
+    "icon": {
+      "id": "oritech:powered_furnace"
+    },
+    "title": {
+      "translate": "advancements.oritech.furnace"
+    }
+  },
+  "requirements": [
+    [
+      "got_furnace"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

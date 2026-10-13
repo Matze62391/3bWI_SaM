@@ -1,0 +1,28 @@
+package com.glodblock.github.glodium.network.packet;
+
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.entity.player.Player;
+import org.jetbrains.annotations.NotNull;
+
+public interface IMessage extends CustomPacketPayload {
+
+    void toBytes(RegistryFriendlyByteBuf buf);
+
+    void fromBytes(RegistryFriendlyByteBuf buf);
+
+    default void onMessage(Player player) {
+
+    }
+
+    boolean isClient();
+
+    Identifier id();
+
+    @Override
+    default CustomPacketPayload.@NotNull Type<? extends @NotNull IMessage> type() {
+        return new Type<>(id());
+    }
+
+}

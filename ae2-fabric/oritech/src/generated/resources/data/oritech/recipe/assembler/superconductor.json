@@ -1,0 +1,16 @@
+{
+  "type": "oritech:assembler",
+  "itemInputs": [
+    "oritech:flux_gate",
+    "#c:ingots/electrum",
+    "oritech:dubious_container",
+    "oritech:energite_ingot"
+  ],
+  "itemResults": [
+    {
+      "count": 4,
+      "id": "oritech:superconductor"
+    }
+  ],
+  "time": 192
+}

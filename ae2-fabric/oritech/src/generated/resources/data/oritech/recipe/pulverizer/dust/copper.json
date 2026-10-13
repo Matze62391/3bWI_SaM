@@ -1,0 +1,12 @@
+{
+  "type": "oritech:pulverizer",
+  "itemInputs": [
+    "#c:ingots/copper"
+  ],
+  "itemResults": [
+    {
+      "id": "oritech:copper_dust"
+    }
+  ],
+  "time": 100
+}

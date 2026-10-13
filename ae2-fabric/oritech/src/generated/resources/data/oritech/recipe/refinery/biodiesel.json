@@ -1,0 +1,22 @@
+{
+  "type": "oritech:refinery",
+  "fluidInput": {
+    "amount": 1000,
+    "ingredient": "#c:biofuel"
+  },
+  "fluidOutputs": [
+    {
+      "amount": 500,
+      "id": "oritech:still_diesel"
+    },
+    {
+      "amount": 200,
+      "id": "oritech:still_naphtha"
+    }
+  ],
+  "itemInputs": [
+    "oritech:clay_catalyst_beads"
+  ],
+  "itemResults": [],
+  "time": 80
+}

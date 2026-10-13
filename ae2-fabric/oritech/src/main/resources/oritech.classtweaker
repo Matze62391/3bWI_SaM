@@ -1,0 +1,11 @@
+accessWidener v2 official
+accessible field net/minecraft/world/level/chunk/ChunkAccess blockEntities Ljava/util/Map;
+accessible field net/minecraft/world/item/crafting/SingleItemRecipe result Lnet/minecraft/world/item/ItemStackTemplate;
+accessible field net/minecraft/world/entity/monster/Creeper DATA_IS_POWERED Lnet/minecraft/network/syncher/EntityDataAccessor;
+accessible field net/minecraft/server/network/ServerGamePacketListenerImpl aboveGroundTickCount I
+accessible field net/minecraft/client/renderer/special/SpecialModelRenderers ID_MAPPER Lnet/minecraft/util/ExtraCodecs$LateBoundIdMapper;
+accessible field net/minecraft/client/gui/GuiGraphicsExtractor guiRenderState Lnet/minecraft/client/renderer/state/gui/GuiRenderState;
+accessible field net/minecraft/client/gui/GuiGraphicsExtractor scissorStack Lnet/minecraft/client/gui/GuiGraphicsExtractor$ScissorStack;
+accessible class net/minecraft/client/gui/GuiGraphicsExtractor$ScissorStack
+accessible method net/minecraft/client/gui/GuiGraphicsExtractor$ScissorStack peek ()Lnet/minecraft/client/gui/navigation/ScreenRectangle;
+accessible field net/minecraft/client/renderer/RenderPipelines BLOCK_SNIPPET Lcom/mojang/renderpearl/api/pipeline/RenderPipeline$Snippet;

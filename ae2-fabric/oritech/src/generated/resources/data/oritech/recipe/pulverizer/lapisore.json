@@ -1,0 +1,13 @@
+{
+  "type": "oritech:pulverizer",
+  "itemInputs": [
+    "#minecraft:lapis_ores"
+  ],
+  "itemResults": [
+    {
+      "count": 6,
+      "id": "minecraft:lapis_lazuli"
+    }
+  ],
+  "time": 100
+}

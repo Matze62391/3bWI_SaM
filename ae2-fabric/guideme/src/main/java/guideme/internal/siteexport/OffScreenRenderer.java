@@ -1,0 +1,146 @@
+package guideme.internal.siteexport;
+
+import com.mojang.blaze3d.pipeline.TextureTarget;
+import com.mojang.blaze3d.platform.Lighting;
+import com.mojang.blaze3d.platform.NativeImage;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.renderpearl.api.GpuFormat;
+import com.mojang.renderpearl.api.commands.CommandEncoder;
+import com.mojang.renderpearl.api.device.GpuDevice;
+import com.mojang.renderpearl.api.textures.GpuTexture;
+import guideme.internal.scene.SceneRenderTarget;
+import guideme.internal.util.Platform;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.OptionalDouble;
+import java.util.function.IntUnaryOperator;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.ProjectionMatrixBuffer;
+import net.minecraft.client.renderer.texture.SpriteContents;
+import net.minecraft.client.renderer.texture.TextureAtlas;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import org.joml.Vector4f;
+import org.joml.Vector4fc;
+
+public class OffScreenRenderer implements AutoCloseable {
+    private static final Vector4fc TRANSPARENT = new Vector4f(0, 0, 0, 0);
+    // Minecraft uses a reversed depth buffer, where 0 is the farthest depth
+    private static final double CLEAR_DEPTH = 0.0;
+    private final NativeImage nativeImage;
+    private final TextureTarget fb;
+    private final GpuDevice device;
+    private final CommandEncoder commandEncoder;
+    private final GpuTexture colorTexture;
+    private final GpuTexture depthTexture;
+    private final ProjectionMatrixBuffer projMatrixBuffer;
+    private final Lighting lighting = new Lighting();
+
+    public OffScreenRenderer(int width, int height) {
+        nativeImage = new NativeImage(width, height, false);
+        fb = new TextureTarget("GuideME OSR", width, height, GpuFormat.RGBA8_UNORM, GpuFormat.D32_FLOAT);
+
+        device = RenderSystem.getDevice();
+        commandEncoder = device.createCommandEncoder();
+
+        projMatrixBuffer = new ProjectionMatrixBuffer("GuideME OffScreen");
+
+        colorTexture = Objects.requireNonNull(fb.getColorTexture(), "colorTexture");
+        var colorTextureView = Objects.requireNonNull(fb.getColorTextureView(), "colorTexture");
+        depthTexture = Objects.requireNonNull(fb.getDepthTexture(), "depthTexture");
+        var depthTextureView = Objects.requireNonNull(fb.getDepthTextureView(), "depthTexture");
+        commandEncoder.createRenderPass(() -> "GuideME OffScreen", colorTextureView, Optional.of(TRANSPARENT),
+                depthTextureView, OptionalDouble.of(CLEAR_DEPTH)).close();
+    }
+
+    @Override
+    public void close() {
+        nativeImage.close();
+        fb.destroyBuffers();
+        projMatrixBuffer.close();
+        lighting.close();
+    }
+
+    public byte[] captureAsPng(Runnable r) {
+        renderToBuffer(r);
+
+        try {
+            return Platform.exportAsPng(nativeImage);
+        } catch (IOException e) {
+            throw new RuntimeException("failed to encode image as PNG", e);
+        }
+    }
+
+    public void captureAsPng(Runnable r, Path path) throws IOException {
+        renderToBuffer(r);
+
+        nativeImage.writeToFile(path);
+    }
+
+    public boolean isAnimated(Collection<TextureAtlasSprite> sprites) {
+        return sprites.stream().anyMatch(s -> s.contents().animatedTexture != null);
+    }
+
+    public byte[] captureAsWebp(Runnable r, Collection<TextureAtlasSprite> sprites, WebPExporter.Format format) {
+        var animatedSprites = sprites.stream()
+                .filter(sprite -> sprite.contents().animatedTexture != null)
+                .toList();
+
+        // Not animated
+        if (animatedSprites.isEmpty()) {
+            return captureAsPng(r);
+        }
+
+        // This is an oversimplification. Not all animated textures may have the same loop frequency
+        // But the greatest common divisor could be so inconvenient that we're essentially looping forever.
+        var maxTime = animatedSprites.stream()
+                .mapToInt(s -> s.contents().animatedTexture.frames.stream().mapToInt(SpriteContents.FrameInfo::time)
+                        .sum())
+                .max()
+                .orElse(0);
+
+        var textureManager = Minecraft.getInstance().getTextureManager();
+
+        var atlases = animatedSprites.stream()
+                .map(TextureAtlasSprite::atlasLocation)
+                .distinct()
+                .map(id -> (TextureAtlas) textureManager.getTexture(id))
+                .toList();
+        int width = nativeImage.getWidth();
+        int height = nativeImage.getHeight();
+
+        try (var webpWriter = new WebPExporter(width, height, format)) {
+            for (var i = 0; i < maxTime; i++) {
+                // Advance frames for all used atlases
+                for (var atlas : atlases) {
+                    atlas.cycleAnimationFrames();
+                }
+
+                renderToBuffer(r);
+
+                webpWriter.writeFrame(i, nativeImage);
+            }
+
+            return webpWriter.finish();
+        }
+    }
+
+    private void renderToBuffer(Runnable r) {
+
+        commandEncoder.clearColorAndDepthTextures(colorTexture, TRANSPARENT, depthTexture, CLEAR_DEPTH);
+        // The GUI renderer always renders into the main render target
+        var gameRenderer = Minecraft.getInstance().gameRenderer;
+        var previousMainRenderTarget = gameRenderer.mainRenderTarget;
+        gameRenderer.mainRenderTarget = fb;
+
+        try (var ignored = SceneRenderTarget.push(fb.getColorTextureView(), fb.getDepthTextureView())) {
+            r.run();
+        } finally {
+            gameRenderer.mainRenderTarget = previousMainRenderTarget;
+        }
+        TextureDownloader.downloadTexture(colorTexture, 0, IntUnaryOperator.identity(), nativeImage, true);
+    }
+
+}

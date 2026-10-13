@@ -1,0 +1,35 @@
+{
+  "applyCost": [
+    {
+      "count": 1,
+      "ingredient": "oritech:motor"
+    }
+  ],
+  "effect": {
+    "type": "modifier",
+    "amount": 0.3,
+    "attributeOperationType": 1,
+    "entityAttributeId": "minecraft:block_interaction_range"
+  },
+  "requiredStation": "oritech:cybernetic_research_station",
+  "requirements": [],
+  "researchCost": [
+    {
+      "count": 8,
+      "ingredient": "oritech:motor"
+    },
+    {
+      "count": 24,
+      "ingredient": "#c:ingots/steel"
+    },
+    {
+      "count": 4,
+      "ingredient": "minecraft:ender_pearl"
+    }
+  ],
+  "rfCost": 50000000,
+  "time": 900,
+  "toggleable": false,
+  "uiX": 115,
+  "uiY": 90
+}

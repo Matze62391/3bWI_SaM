@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "megacells:mega_fluid_cell_housing",
+    "megacells:cell_component_16m"
+  ],
+  "result": {
+    "id": "megacells:fluid_storage_cell_16m"
+  }
+}

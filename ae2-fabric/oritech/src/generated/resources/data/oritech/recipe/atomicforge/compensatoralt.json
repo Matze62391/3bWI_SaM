@@ -1,0 +1,13 @@
+{
+  "type": "oritech:atomic_forge",
+  "itemInputs": [
+    "oritech:unholy_intelligence",
+    "oritech:adamant_ingot",
+    "oritech:adamant_ingot"
+  ],
+  "itemResults": [
+    {
+      "id": "oritech:heisenberg_compensator"
+    }
+  ]
+}

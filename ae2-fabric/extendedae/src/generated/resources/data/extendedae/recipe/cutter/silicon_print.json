@@ -1,0 +1,11 @@
+{
+  "type": "extendedae:circuit_cutter",
+  "energy": 18000,
+  "input": {
+    "ingredient": "#c:storage_blocks/silicon"
+  },
+  "output": {
+    "count": 9,
+    "id": "ae2:printed_silicon"
+  }
+}

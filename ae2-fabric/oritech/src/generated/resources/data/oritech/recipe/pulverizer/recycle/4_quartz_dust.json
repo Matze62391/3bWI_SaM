@@ -1,0 +1,13 @@
+{
+  "type": "oritech:pulverizer",
+  "itemInputs": [
+    "#oritech:recyclable/quartz_dust_4"
+  ],
+  "itemResults": [
+    {
+      "count": 4,
+      "id": "oritech:quartz_dust"
+    }
+  ],
+  "time": 100
+}

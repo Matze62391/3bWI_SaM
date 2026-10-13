@@ -1,0 +1,32 @@
+{
+  "parent": "minecraft:oritech/generator",
+  "criteria": {
+    "got_pulverizer": {
+      "conditions": {
+        "items": [
+          {
+            "items": "oritech:pulverizer"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    }
+  },
+  "display": {
+    "description": {
+      "translate": "advancements.oritech.pulverizer.description"
+    },
+    "icon": {
+      "id": "oritech:pulverizer"
+    },
+    "title": {
+      "translate": "advancements.oritech.pulverizer"
+    }
+  },
+  "requirements": [
+    [
+      "got_pulverizer"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

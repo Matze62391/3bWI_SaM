@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "minVersion": "0.8.3",
+  "package": "guideme.internal.hooks.mixins",
+  "compatibilityLevel": "JAVA_11",
+  "client": [
+    "RenderTypeFeatureRendererMixin"
+  ],
+  "server": [],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

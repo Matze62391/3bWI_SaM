@@ -1,0 +1,47 @@
+accessWidener v2 official
+
+accessible method net/minecraft/client/gui/Font getGlyphSource (Lnet/minecraft/network/chat/FontDescription;)Lnet/minecraft/client/gui/GlyphSource;
+accessible field net/minecraft/client/gui/screens/LoadingOverlay reload Lnet/minecraft/server/packs/resources/ReloadInstance;
+accessible field net/minecraft/world/item/crafting/ShapelessRecipe ingredients Ljava/util/List;
+accessible field net/minecraft/world/item/crafting/ShapelessRecipe result Lnet/minecraft/world/item/ItemStackTemplate;
+accessible field net/minecraft/world/item/crafting/ShapedRecipe result Lnet/minecraft/world/item/ItemStackTemplate;
+accessible method net/minecraft/world/item/crafting/SingleItemRecipe result ()Lnet/minecraft/world/item/ItemStackTemplate;
+accessible field net/minecraft/world/item/crafting/SmithingTransformRecipe result Lnet/minecraft/world/item/ItemStackTemplate;
+accessible field net/minecraft/client/renderer/texture/SpriteContents originalImage Lcom/mojang/blaze3d/platform/NativeImage;
+accessible field net/minecraft/client/renderer/rendertype/RenderType state Lnet/minecraft/client/renderer/rendertype/RenderSetup;
+accessible field net/minecraft/client/renderer/rendertype/RenderType name Ljava/lang/String;
+accessible field net/minecraft/client/renderer/rendertype/RenderSetup pipeline Lcom/mojang/renderpearl/api/pipeline/RenderPipeline;
+accessible field net/minecraft/client/renderer/rendertype/RenderSetup textures Ljava/util/Map;
+accessible class net/minecraft/client/renderer/rendertype/RenderSetup$TextureBinding
+accessible method net/minecraft/client/renderer/rendertype/RenderSetup$TextureBinding <init> (Lnet/minecraft/resources/Identifier;Ljava/util/function/Supplier;)V
+accessible class net/minecraft/client/renderer/texture/SpriteContents$AnimatedTexture
+accessible field net/minecraft/client/renderer/texture/SpriteContents animatedTexture Lnet/minecraft/client/renderer/texture/SpriteContents$AnimatedTexture;
+accessible field net/minecraft/client/renderer/texture/SpriteContents$AnimatedTexture frames Ljava/util/List;
+accessible field net/minecraft/client/renderer/texture/SpriteContents$AnimatedTexture interpolateFrames Z
+accessible field net/minecraft/client/renderer/texture/SpriteContents$AnimatedTexture frameRowSize I
+accessible class net/minecraft/client/renderer/texture/SpriteContents$FrameInfo
+accessible method net/minecraft/client/renderer/texture/SpriteContents$FrameInfo <init> (II)V
+accessible method net/minecraft/client/renderer/texture/TextureAtlas uploadAnimationFrames ()V
+accessible field net/minecraft/client/renderer/texture/TextureAtlas animatedTexturesStates Ljava/util/List;
+accessible field net/minecraft/client/renderer/texture/TextureAtlas sprites Ljava/util/List;
+accessible method net/minecraft/client/renderer/texture/TextureAtlas getWidth ()I
+accessible method net/minecraft/client/renderer/texture/TextureAtlas getHeight ()I
+accessible method net/minecraft/client/gui/GuiGraphicsExtractor <init> (Lnet/minecraft/client/Minecraft;Lorg/joml/Matrix3x2fStack;Lnet/minecraft/client/renderer/state/gui/GuiRenderState;II)V
+accessible field net/minecraft/client/gui/GuiGraphicsExtractor guiRenderState Lnet/minecraft/client/renderer/state/gui/GuiRenderState;
+accessible field net/minecraft/client/gui/GuiGraphicsExtractor mouseX I
+accessible field net/minecraft/client/gui/GuiGraphicsExtractor mouseY I
+accessible field net/minecraft/client/renderer/item/ItemStackRenderState layers [Lnet/minecraft/client/renderer/item/ItemStackRenderState$LayerRenderState;
+accessible field net/minecraft/client/renderer/item/ItemStackRenderState$LayerRenderState quads Lnet/minecraft/client/resources/model/geometry/ItemQuads;
+accessible field net/minecraft/client/renderer/GameRenderer fogRenderer Lnet/minecraft/client/renderer/fog/FogRenderer;
+accessible field net/minecraft/client/renderer/GameRenderer guiRenderer Lnet/minecraft/client/gui/render/GuiRenderer;
+accessible field net/minecraft/client/renderer/GameRenderer useUiLightmap Z
+accessible field net/minecraft/client/renderer/GameRenderer lightmap Lnet/minecraft/client/renderer/Lightmap;
+accessible field net/minecraft/client/renderer/GameRenderer lightmapRenderStateExtractor Lnet/minecraft/client/renderer/LightmapRenderStateExtractor;
+accessible field net/minecraft/client/renderer/GameRenderer globalSettingsUniform Lnet/minecraft/client/renderer/GlobalSettingsUniform;
+accessible field net/minecraft/client/gui/render/pip/PictureInPictureRenderer textureView Lcom/mojang/renderpearl/api/textures/GpuTextureView;
+accessible field net/minecraft/client/gui/render/pip/PictureInPictureRenderer depthTextureView Lcom/mojang/renderpearl/api/textures/GpuTextureView;
+accessible field net/minecraft/client/renderer/GameRenderer mainRenderTarget Lcom/mojang/blaze3d/pipeline/RenderTarget;
+mutable field net/minecraft/client/renderer/GameRenderer mainRenderTarget Lcom/mojang/blaze3d/pipeline/RenderTarget;
+accessible field net/minecraft/client/renderer/texture/TextureAtlas texturesByName Ljava/util/Map;
+accessible field net/minecraft/world/item/crafting/RecipeManager recipes Lnet/minecraft/world/item/crafting/RecipeMap;
+accessible method net/minecraft/world/item/crafting/RecipeMap <init> (Lcom/google/common/collect/Multimap;Ljava/util/Map;)V

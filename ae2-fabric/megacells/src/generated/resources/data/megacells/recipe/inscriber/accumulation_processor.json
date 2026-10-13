@@ -1,0 +1,12 @@
+{
+  "type": "ae2:inscriber",
+  "ingredients": {
+    "bottom": "ae2:printed_silicon",
+    "middle": "#c:dusts/fluix",
+    "top": "megacells:printed_accumulation_processor"
+  },
+  "mode": "press",
+  "result": {
+    "id": "megacells:accumulation_processor"
+  }
+}

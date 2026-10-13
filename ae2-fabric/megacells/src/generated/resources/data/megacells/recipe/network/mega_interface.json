@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "ae2:interface",
+    "megacells:accumulation_processor"
+  ],
+  "result": {
+    "id": "megacells:mega_interface"
+  }
+}

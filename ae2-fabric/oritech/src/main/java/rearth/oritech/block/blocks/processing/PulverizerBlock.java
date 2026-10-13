@@ -1,0 +1,40 @@
+package rearth.oritech.block.blocks.processing;
+
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.EntityBlock;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import org.jetbrains.annotations.NotNull;
+import rearth.oritech.block.base.block.UpgradableMachineBlock;
+import rearth.oritech.block.entity.processing.PulverizerBlockEntity;
+import rearth.oritech.init.BlockEntitiesContent;
+
+public class PulverizerBlock extends UpgradableMachineBlock implements EntityBlock {
+
+    public PulverizerBlock(Properties settings) {
+        super(settings);
+    }
+
+    @Override
+    public @NotNull Class<? extends BlockEntity> getBlockEntityType() {
+        return PulverizerBlockEntity.class;
+    }
+
+    @Override
+    public void stepOn(Level level, BlockPos pos, BlockState state, Entity entity) {
+
+        if (!level.isClientSide() && entity instanceof LivingEntity livingEntity) {
+            var targetPos = Vec3.atCenterOf(pos).add(0, 0.5f, 0);
+            var entityDist = entity.distanceToSqr(targetPos);
+            if (entityDist > 0.7) return;
+            var isWorking = level.getBlockEntity(pos, BlockEntitiesContent.PULVERIZER.get()).get().progress.get() > 0;
+            if (isWorking)
+                livingEntity.hurt(level.damageSources().cramming(), 1f);
+        }
+        super.stepOn(level, pos, state, entity);
+    }
+}

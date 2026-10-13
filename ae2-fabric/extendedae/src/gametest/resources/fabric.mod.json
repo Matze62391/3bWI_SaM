@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "extendedae-gametest",
+  "version": "1.0.0",
+  "name": "ExtendedAE Game Tests",
+  "description": "Client game tests for the Fabric port of ExtendedAE. Not shipped with the mod.",
+  "license": "LGPL-3.0-only",
+  "environment": "*",
+  "entrypoints": {
+    "fabric-client-gametest": [
+      "com.glodblock.github.extendedae.gametest.EAEClientGameTest"
+    ],
+    "jei_mod_plugin": [
+      "com.glodblock.github.extendedae.gametest.TestJeiPlugin"
+    ]
+  },
+  "depends": {
+    "extendedae": "*"
+  }
+}

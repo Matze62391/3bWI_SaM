@@ -1,0 +1,11 @@
+{
+  "fabric:load_conditions": [
+    {
+      "condition": "ae2:tag_not_empty",
+      "tag": "c:nuggets/tungsten"
+    }
+  ],
+  "type": "ae2:matter_cannon",
+  "ammo": "#c:nuggets/tungsten",
+  "weight": 183.84
+}

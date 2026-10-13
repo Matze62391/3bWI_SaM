@@ -1,0 +1,11 @@
+{
+  "type": "extendedae:circuit_cutter",
+  "energy": 8000,
+  "input": {
+    "ingredient": "#c:storage_blocks/entro"
+  },
+  "output": {
+    "count": 4,
+    "id": "extendedae:concurrent_processor_print"
+  }
+}

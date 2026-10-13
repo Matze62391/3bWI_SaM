@@ -1,0 +1,135 @@
+package rearth.oritech.block.blocks.pipes.item;
+
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.component.DataComponentGetter;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.saveddata.SavedDataType;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.Shapes;
+import net.minecraft.world.phys.shapes.VoxelShape;
+import rearth.oritech.port.neoforge.capabilities.Capabilities;
+import org.apache.commons.lang3.function.TriFunction;
+import rearth.oritech.block.blocks.pipes.GenericPipeBlock;
+import rearth.oritech.block.entity.pipes.GenericPipeInterfaceEntity;
+import rearth.oritech.init.BlockContent;
+
+import java.util.HashMap;
+import java.util.function.Consumer;
+
+public class ItemPipeBlock extends GenericPipeBlock {
+
+    public static HashMap<Identifier, GenericPipeInterfaceEntity.PipeNetworkData> ITEM_PIPE_DATA = new HashMap<>();
+
+    public ItemPipeBlock(Properties settings) {
+        super(settings);
+    }
+
+    @Override
+    public TriFunction<Level, BlockPos, Direction, Boolean> apiValidationFunction() {
+        return ((level, pos, direction) -> rearth.oritech.port.neoforge.capabilities.CapabilityHooks.get(level, Capabilities.Item.BLOCK, pos, direction) != null);
+    }
+
+    @Override
+    public void addToTooltip(Item.TooltipContext tooltipContext, Consumer<Component> consumer, TooltipFlag tooltipFlag, DataComponentGetter dataComponentGetter) {
+
+        var showExtra = Minecraft.getInstance().hasControlDown();
+        if (showExtra) {
+            for (int i = 1; i <= 2; i++) {
+                consumer.accept(Component.translatable("tooltip.oritech.item_pipe." + i).withStyle(ChatFormatting.GRAY).withStyle(ChatFormatting.ITALIC));
+            }
+        } else {
+            consumer.accept(Component.translatable("tooltip.oritech.item_extra_info").withStyle(ChatFormatting.GRAY).withStyle(ChatFormatting.ITALIC));
+        }
+    }
+
+    @Override
+    public BlockState getConnectionBlock() {
+        return BlockContent.ITEM_PIPE_CONNECTION.get().defaultBlockState();
+    }
+
+    @Override
+    public BlockState getNormalBlock() {
+        return BlockContent.ITEM_PIPE.get().defaultBlockState();
+    }
+
+    @Override
+    protected VoxelShape[] createShapes() {
+        return THIN_SHAPES;
+    }
+
+    @Override
+    public SavedDataType<GenericPipeInterfaceEntity.PipeNetworkData> getNetworkDataType() {
+        return GenericPipeInterfaceEntity.PipeNetworkData.ITEM_TYPE;
+    }
+
+
+    @Override
+    public boolean connectToOwnBlockType(Block block) {
+        return block instanceof ItemPipeBlock || block instanceof ItemPipeConnectionBlock || block instanceof ItemPipeDuctBlock;
+    }
+
+    @Override
+    public GenericPipeInterfaceEntity.PipeNetworkData getNetworkData(Level level) {
+        return ITEM_PIPE_DATA.computeIfAbsent(level.dimension().identifier(), data -> new GenericPipeInterfaceEntity.PipeNetworkData());
+    }
+
+    public static class FramedItemPipeBlock extends ItemPipeBlock {
+
+        public FramedItemPipeBlock(Properties settings) {
+            super(settings);
+        }
+
+        @Override
+        public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+            return Shapes.block();
+        }
+
+        @Override
+        public VoxelShape getCollisionShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+            return state.getShape(level, pos);
+        }
+
+        @Override
+        public BlockState getNormalBlock() {
+            return BlockContent.FRAMED_ITEM_PIPE.get().defaultBlockState();
+        }
+
+        @Override
+        public BlockState getConnectionBlock() {
+            return BlockContent.FRAMED_ITEM_PIPE_CONNECTION.get().defaultBlockState();
+        }
+
+    }
+
+    public static class TransparentItemPipe extends ItemPipeBlock {
+
+        public TransparentItemPipe(Properties settings) {
+            super(settings);
+        }
+
+        @Override
+        protected VoxelShape[] createShapes() {
+            return THICK_SHAPES;
+        }
+
+        @Override
+        public BlockState getNormalBlock() {
+            return BlockContent.TRANSPARENT_ITEM_PIPE.get().defaultBlockState();
+        }
+
+        @Override
+        public BlockState getConnectionBlock() {
+            return BlockContent.TRANSPARENT_ITEM_PIPE_CONNECTION.get().defaultBlockState();
+        }
+    }
+}

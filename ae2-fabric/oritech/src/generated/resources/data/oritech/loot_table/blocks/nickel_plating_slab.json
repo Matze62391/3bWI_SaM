@@ -1,0 +1,32 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "oritech:nickel_plating_slab",
+          "modifier": [
+            {
+              "type": "minecraft:set_count",
+              "add": false,
+              "count": 2.0,
+              "condition": {
+                "type": "minecraft:match_block",
+                "blocks": "oritech:nickel_plating_slab",
+                "state": {
+                  "type": "double"
+                }
+              }
+            },
+            {
+              "type": "minecraft:explosion_decay"
+            }
+          ]
+        }
+      ],
+      "rolls": 1.0
+    }
+  ],
+  "random_sequence": "oritech:blocks/nickel_plating_slab"
+}

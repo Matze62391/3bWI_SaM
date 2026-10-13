@@ -1,0 +1,422 @@
+package rearth.oritech.api.networking;
+
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.Identifier;
+import rearth.oritech.util.Tuple;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.Vec3;
+import rearth.oritech.port.neoforge.fluids.FluidStack;
+import rearth.oritech.port.neoforge.network.handling.IPayloadContext;
+import rearth.oritech.port.neoforge.network.registration.PayloadRegistrar;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.joml.Vector2i;
+import rearth.oritech.Oritech;
+import rearth.oritech.block.base.entity.ExpandableEnergyStorageBlockEntity;
+import rearth.oritech.block.base.entity.MachineBlockEntity;
+import rearth.oritech.block.entity.accelerator.ParticleAcceleratorBlockEntity;
+import rearth.oritech.block.entity.addons.InventoryProxyAddonBlockEntity;
+import rearth.oritech.block.entity.addons.RedstoneAddonBlockEntity;
+import rearth.oritech.block.entity.arcane.StabilizedEnchanterBlockEntity;
+import rearth.oritech.block.entity.arcane.ArcaneCatalystBlockEntity;
+import rearth.oritech.block.entity.arcane.SpawnerControllerBlockEntity;
+import rearth.oritech.block.entity.augmenter.CyberneticAugmentationCenterEntity;
+import rearth.oritech.block.entity.augmenter.PlayerAugments;
+import rearth.oritech.block.entity.interaction.EndericLaserBlockEntity;
+import rearth.oritech.block.entity.interaction.AddonSplicerBlockEntity;
+import rearth.oritech.block.entity.pipes.ItemFilterBlockEntity;
+import rearth.oritech.block.entity.pipes.ItemPipeInterfaceEntity;
+import rearth.oritech.block.entity.processing.TaintedRefineryBlockEntity;
+import rearth.oritech.block.entity.reactor.NuclearReactorControllerBlockEntity;
+import rearth.oritech.client.init.ParticleContent;
+import rearth.oritech.client.ui.OritechScreenHandler;
+import rearth.oritech.init.recipes.OritechRecipe;
+import rearth.oritech.item.tools.EndericRailgunItem;
+import rearth.oritech.item.tools.armor.JetpackItem;
+import rearth.oritech.util.ProgressStorage;
+import rearth.oritech.util.ServerZiplineHandler;
+
+import java.lang.reflect.Field;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import java.util.*;
+
+@SuppressWarnings("unchecked")
+public class NetworkManager {
+
+    private static final Map<Type, StreamCodec<? extends ByteBuf, ?>> AUTO_CODECS = new HashMap<>();
+    private static final Map<Integer, List<Field>> CACHED_FIELDS = new HashMap<Integer, List<Field>>();
+
+    public static void loadDefaultCodecs() {
+
+        registerCodec(ByteBufCodecs.INT, Integer.class, int.class);
+        registerCodec(ByteBufCodecs.VAR_LONG, Long.class, long.class);
+        registerCodec(ByteBufCodecs.FLOAT, Float.class, float.class);
+        registerCodec(ByteBufCodecs.BOOL, Boolean.class, boolean.class);
+        registerCodec(ByteBufCodecs.DOUBLE, Double.class, double.class);
+        registerCodec(ByteBufCodecs.BYTE, Byte.class, byte.class);
+        registerCodec(ByteBufCodecs.SHORT, Short.class, short.class);
+        registerCodec(ByteBufCodecs.STRING_UTF8, String.class);
+        registerCodec(Identifier.STREAM_CODEC, Identifier.class);
+        registerCodec(UUIDUtil.STREAM_CODEC, UUID.class);
+        registerCodec(BlockPos.STREAM_CODEC, BlockPos.class);
+        registerCodec(ItemStack.OPTIONAL_STREAM_CODEC, ItemStack.class);
+        registerCodec(VEC2I_PACKED_CODEC, Vector2i.class);
+        registerCodec(VEC3D_PACKET_CODEC, Vec3.class);
+        registerCodec(ProgressStorage.STREAM_CODEC, ProgressStorage.class);
+        registerCodec(SIMPLE_BLOCK_STATE_PACKET_CODEC, BlockState.class);
+        registerCodec(FluidStack.OPTIONAL_STREAM_CODEC, FluidStack.class);
+        registerCodec(ByteBufCodecs.COMPOUND_TAG, CompoundTag.class);
+        registerCodec(ItemFilterBlockEntity.FilterData.PACKET_CODEC, ItemFilterBlockEntity.FilterData.class);
+        registerCodec(Recipe.STREAM_CODEC.map(recipe -> (OritechRecipe) recipe, recipe -> recipe), OritechRecipe.class);
+        registerCodec(EndericLaserBlockEntity.LASER_TARGET_PACKET_CODEC, LivingEntity.class);
+        registerCodec(CyberneticAugmentationCenterEntity.ResearchState.PACKET_CODEC, CyberneticAugmentationCenterEntity.ResearchState.class);
+
+    }
+
+    public static <T> void registerCodec(StreamCodec<? extends ByteBuf, T> codec, Type... classes) {
+        for (var clazz : classes)
+            AUTO_CODECS.put(clazz, codec);
+    }
+
+    public static void initServerBound(PayloadRegistrar registrar) {
+        registrar.playToServer(ItemFilterBlockEntity.ItemFilterPayload.FILTER_PACKET_ID, ItemFilterBlockEntity.ItemFilterPayload.PACKET_CODEC, ItemFilterBlockEntity::handleClientUpdate);
+        registrar.playToServer(StabilizedEnchanterBlockEntity.SelectEnchantingPacket.PACKET_ID, getAutoCodec(StabilizedEnchanterBlockEntity.SelectEnchantingPacket.class), StabilizedEnchanterBlockEntity::receiveEnchantmentSelection);
+        registrar.playToServer(RedstoneAddonBlockEntity.RedstoneAddonServerUpdate.PACKET_ID, getAutoCodec(RedstoneAddonBlockEntity.RedstoneAddonServerUpdate.class), RedstoneAddonBlockEntity::receiveOnServer);
+        registrar.playToServer(EndericRailgunItem.LaserPlayerUsePacket.PACKET_ID, getAutoCodec(EndericRailgunItem.LaserPlayerUsePacket.class), EndericRailgunItem::receiveUsePacket);
+        registrar.playToServer(ServerZiplineHandler.ZiplinePlayerUsePacket.PACKET_ID, getAutoCodec(ServerZiplineHandler.ZiplinePlayerUsePacket.class), ServerZiplineHandler::onZipLineTickUseEvent);
+        registrar.playToServer(MachineBlockEntity.InventoryInputModeSelectorPacket.PACKET_ID, getAutoCodec(MachineBlockEntity.InventoryInputModeSelectorPacket.class), MachineBlockEntity::receiveCycleModePacket);
+        registrar.playToServer(InventoryProxyAddonBlockEntity.InventoryProxySlotSelectorPacket.PACKET_ID, getAutoCodec(InventoryProxyAddonBlockEntity.InventoryProxySlotSelectorPacket.class), InventoryProxyAddonBlockEntity::receiveSlotSelection);
+        registrar.playToServer(JetpackItem.JetpackUsageUpdatePacket.PACKET_ID, getAutoCodec(JetpackItem.JetpackUsageUpdatePacket.class), JetpackItem::receiveUsagePacket);
+        registrar.playToServer(PlayerAugments.AugmentInstallTriggerPacket.PACKET_ID, getAutoCodec(PlayerAugments.AugmentInstallTriggerPacket.class), PlayerAugments::receiveInstallTrigger);
+        registrar.playToServer(PlayerAugments.OpenAugmentScreenPacket.PACKET_ID, getAutoCodec(PlayerAugments.OpenAugmentScreenPacket.class), PlayerAugments::receiveOpenAugmentScreen);
+        registrar.playToServer(PlayerAugments.AugmentPlayerTogglePacket.PACKET_ID, getAutoCodec(PlayerAugments.AugmentPlayerTogglePacket.class), PlayerAugments::receiveToggleAugment);
+        registrar.playToServer(AddonSplicerBlockEntity.AddonSplicerPlayerUsePacket.PACKET_ID, getAutoCodec(AddonSplicerBlockEntity.AddonSplicerPlayerUsePacket.class), AddonSplicerBlockEntity::onPlayerUse);
+        registrar.playToServer(OritechScreenHandler.FluidContainerInteractionPacket.PACKET_ID, getAutoCodec(OritechScreenHandler.FluidContainerInteractionPacket.class), OritechScreenHandler::handleFluidContainerInteraction);
+        registrar.playToServer(TaintedRefineryBlockEntity.RefineryTankSelectorPacket.PACKET_ID, getAutoCodec(TaintedRefineryBlockEntity.RefineryTankSelectorPacket.class), TaintedRefineryBlockEntity::handleTankPacket);
+        registrar.playToServer(ExpandableEnergyStorageBlockEntity.StorageLimitPacket.PACKET_ID, getAutoCodec(ExpandableEnergyStorageBlockEntity.StorageLimitPacket.class), ExpandableEnergyStorageBlockEntity::handleLimitPacket);
+        registrar.playToServer(NuclearReactorControllerBlockEntity.WarningThresholdPacket.PACKET_ID, getAutoCodec(NuclearReactorControllerBlockEntity.WarningThresholdPacket.class), NuclearReactorControllerBlockEntity::handleWarningThresholdPacket);
+
+    }
+
+    public static void initClientBound(PayloadRegistrar registrar) {
+        registrar.playToClient(NuclearReactorControllerBlockEntity.GuiUpdatePacket.PACKET_ID, NuclearReactorControllerBlockEntity.GuiUpdatePacket.PACKET_CODEC, NuclearReactorControllerBlockEntity::handleGuiUpdate);
+        registrar.playToClient(MessagePayload.GENERIC_PACKET_ID, MessagePayload.PACKET_CODEC, NetworkManager::receiveMessage);
+        registrar.playToClient(ParticleContent.ParticleBatchPayload.PACKET_ID, ParticleContent.ParticleBatchPayload.PACKET_CODEC, ParticleContent::handleParticleBatch);
+        registrar.playToClient(ParticleContent.Payload.PACKET_ID, ParticleContent.Payload.PACKET_CODEC, ParticleContent::handleOnClient);
+        registrar.playToClient(ItemPipeInterfaceEntity.RenderStackData.PIPE_ITEMS_ID, getAutoCodec(ItemPipeInterfaceEntity.RenderStackData.class), ItemPipeInterfaceEntity::receiveVisualItemsPacket);
+        registrar.playToClient(ArcaneCatalystBlockEntity.CatalystSyncPacket.PACKET_ID, getAutoCodec(ArcaneCatalystBlockEntity.CatalystSyncPacket.class), ArcaneCatalystBlockEntity::receiveUpdatePacket);
+        registrar.playToClient(SpawnerControllerBlockEntity.SpawnerSyncPacket.PACKET_ID, getAutoCodec(SpawnerControllerBlockEntity.SpawnerSyncPacket.class), SpawnerControllerBlockEntity::receiveUpdatePacket);
+        registrar.playToClient(RedstoneAddonBlockEntity.RedstoneAddonClientUpdate.PACKET_ID, getAutoCodec(RedstoneAddonBlockEntity.RedstoneAddonClientUpdate.class), RedstoneAddonBlockEntity::receiveOnClient);
+        registrar.playToClient(ParticleAcceleratorBlockEntity.ParticleRenderTrail.PACKET_ID, getAutoCodec(ParticleAcceleratorBlockEntity.ParticleRenderTrail.class), ParticleAcceleratorBlockEntity::receiveTrail);
+        registrar.playToClient(ParticleAcceleratorBlockEntity.LastEventPacket.PACKET_ID, getAutoCodec(ParticleAcceleratorBlockEntity.LastEventPacket.class), ParticleAcceleratorBlockEntity::receiveEvent);
+    }
+
+    public static void receiveMessage(MessagePayload message, IPayloadContext context) {
+
+        var level = context.player().level();
+        var registryAccess = context.player().registryAccess();
+
+        var receivedBuf = new RegistryFriendlyByteBuf(Unpooled.wrappedBuffer(message.message), registryAccess);
+        var receiverEntity = level.getBlockEntity(message.pos);
+        var receiverType = registryAccess.lookupOrThrow(Registries.BLOCK_ENTITY_TYPE).get(message.targetEntityType);
+        if (receiverEntity != null && receiverType.isPresent() && receiverType.get().value().equals(receiverEntity.getType())) {
+            decodeFields(receiverEntity, message.syncType, receivedBuf, level);
+            if (receiverEntity instanceof NetworkedEventHandler networkedBlock) {
+                networkedBlock.onNetworkUpdated();
+            }
+        } else {
+            Oritech.LOGGER.debug("Unable to start decoding for block entity type {} at {}. Target Mismatch!", receiverType, message.pos);
+        }
+    }
+
+    // returns the number of encoded fields
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public static int encodeFields(Object target, SyncType type, ByteBuf byteBuf, @Nullable Level level) {
+
+        var fields = getCachedFields(target, type);
+
+        var encodedCount = 0;
+        for (var field : fields) {
+            try {
+                if (UpdatableField.class.isAssignableFrom(field.getType())) {
+                    var fieldInstance = ((UpdatableField) field.get(target));
+                    var deltaOnly = fieldInstance.useDeltaOnly(type);
+                    var dataToSend = deltaOnly ? fieldInstance.getDeltaData() : fieldInstance;
+                    var codec = deltaOnly ? fieldInstance.getDeltaCodec() : fieldInstance.getFullCodec();
+                    if (codec instanceof LevelPacketCodec levelPacketCodec) {
+                        levelPacketCodec.encode(byteBuf, dataToSend, level);
+                    } else {
+                        codec.encode(byteBuf, dataToSend);
+                    }
+                } else {
+                    var codec = getAutoCodec(field);
+                    var value = field.get(target);
+                    if (codec instanceof LevelPacketCodec levelPacketCodec) {
+                        levelPacketCodec.encode(byteBuf, value, level);
+                    } else {
+                        codec.encode(byteBuf, value);
+                    }
+                }
+
+                encodedCount++;
+
+            } catch (Exception ex) {
+                Oritech.LOGGER.warn("failed to encode field: {}", field.getName(), ex);
+            }
+        }
+
+        return encodedCount;
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    public static void decodeFields(Object target, SyncType type, ByteBuf byteBuf, Level level) {
+
+        var fields = getCachedFields(target, type);
+
+        for (var field : fields) {
+            try {
+                // fields that implement UpdatableField either get a delta or full update. Otherwise, we just set the full value
+                if (UpdatableField.class.isAssignableFrom(field.getType())) {
+                    var fieldInstance = ((UpdatableField) field.get(target));
+                    var deltaOnly = fieldInstance.useDeltaOnly(type);
+                    var codec = deltaOnly ? fieldInstance.getDeltaCodec() : fieldInstance.getFullCodec();
+                    Object value;
+                    if (codec instanceof LevelPacketCodec levelPacketCodec) {
+                        value = levelPacketCodec.decode(byteBuf, level);
+                    } else {
+                        value = codec.decode(byteBuf);
+                    }
+                    if (deltaOnly) {
+                        fieldInstance.handleDeltaUpdate(value);
+                    } else {
+                        fieldInstance.handleFullUpdate(value);
+                    }
+                } else {
+                    var codec = getAutoCodec(field);
+                    Object value;
+                    if (codec instanceof LevelPacketCodec levelPacketCodec) {
+                        value = levelPacketCodec.decode(byteBuf, level);
+                    } else {
+                        value = codec.decode(byteBuf);
+                    }
+                    field.set(target, value);
+                }
+
+            } catch (Exception ex) {
+                Oritech.LOGGER.warn("failed to decode field: {}", field.getName(), ex);
+            }
+        }
+    }
+
+    private static @NotNull List<Field> getCachedFields(Object target, SyncType type) {
+        var key = target.getClass().hashCode() + type.hashCode();
+        return CACHED_FIELDS.computeIfAbsent(key, elem -> getSyncFields(target, type));
+    }
+
+    private static @NotNull List<Field> getSyncFields(Object target, SyncType type) {
+        var fields = new ArrayList<>(Arrays.asList(target.getClass().getDeclaredFields()));
+        var superClass = target.getClass().getSuperclass();
+        while (superClass != null) {
+            fields.addAll(Arrays.asList(superClass.getDeclaredFields()));
+            superClass = superClass.getSuperclass();
+        }
+
+        var filteredFields = new ArrayList<Field>();
+        fields.stream().filter(field -> hasSyncType(field.getAnnotation(SyncField.class), type)).forEachOrdered(field -> {
+            field.setAccessible(true);
+            filteredFields.add(field);
+        });
+
+        if (target instanceof AdditionalNetworkingProvider additionalNetworkingProvider) {
+            var addedFields = additionalNetworkingProvider.additionalSyncedFields(type);
+            addedFields.forEach(field -> {
+                field.setAccessible(true);
+                filteredFields.add(field);
+            });
+        }
+
+        return filteredFields;
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    public static StreamCodec getAutoCodec(Class<?> type) {
+
+        // try to create codec for records
+        if (!AUTO_CODECS.containsKey(type)) {
+            if (type.isRecord()) {
+                Oritech.LOGGER.debug("creating reflective codec for: " + type);
+                var computedCodec = ReflectiveCodecBuilder.create((Class<? extends Record>) type);
+                AUTO_CODECS.put(type, computedCodec);
+                return computedCodec;
+            } else if (type.isEnum()) {
+                Oritech.LOGGER.debug("creating reflective enum codec for: " + type);
+                var computedCodec = ReflectiveCodecBuilder.createForEnum((Class<? extends Enum>) type);
+                AUTO_CODECS.put(type, computedCodec);
+                return computedCodec;
+            }
+        }
+
+        if (!AUTO_CODECS.containsKey(type)) {
+            Oritech.LOGGER.error("No codec defined for: {}", type);
+        }
+
+        return AUTO_CODECS.get(type);
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    public static StreamCodec getAutoCodec(Field field) {
+        var listType = getListType(field.getGenericType());
+        if (listType.isPresent()) {
+            var listTypeCodec = getAutoCodec((Class<?>) listType.get());
+            return listTypeCodec.apply(ByteBufCodecs.list());
+        }
+        var setType = getSetType(field.getGenericType());
+        if (setType.isPresent()) {
+            var setTypeCodec = getAutoCodec((Class<?>) setType.get());
+            return setTypeCodec.apply(toSet());
+        }
+        var mapType = getMapType(field.getGenericType());
+        if (mapType.isPresent()) {
+            var keyCodec = getAutoCodec((Class<?>) mapType.get().getA());
+            var valueCodec = getAutoCodec((Class<?>) mapType.get().getB());
+
+            if (keyCodec == null)
+                Oritech.LOGGER.error("Unable to get codec for map key type: {}", field.getType());
+            if (valueCodec == null)
+                Oritech.LOGGER.error("Unable to get codec for map value type: {}", field.getType());
+
+            return ByteBufCodecs.map(HashMap::new, keyCodec, valueCodec);
+        }
+
+        return getAutoCodec(field.getType());
+    }
+
+    // Method for checking if a given type is a List and for retrieving its type parameter
+    public static Optional<Type> getListType(Type type) {
+        if (type instanceof ParameterizedType pType) {
+            var rawType = (Class<?>) pType.getRawType();
+            if (rawType instanceof Class && List.class.isAssignableFrom(rawType)) {
+                return Optional.of(pType.getActualTypeArguments()[0]);
+            }
+        }
+        return Optional.empty();
+    }
+
+    // Method for checking if a given type is a Set and for retrieving its type parameter
+    public static Optional<Type> getSetType(Type type) {
+        if (type instanceof ParameterizedType pType) {
+            var rawType = (Class<?>) pType.getRawType();
+            if (rawType instanceof Class && Set.class.isAssignableFrom(rawType)) {
+                return Optional.of(pType.getActualTypeArguments()[0]);
+            }
+        }
+        return Optional.empty();
+    }
+
+    // Method for checking if a given type is a Map and for retrieving its type parameters
+    public static Optional<Tuple<Type, Type>> getMapType(Type type) {
+        if (type instanceof ParameterizedType pType) {
+            var rawType = (Class<?>) pType.getRawType();
+            if (rawType instanceof Class && Map.class.isAssignableFrom(rawType)) {
+                var typeArgs = pType.getActualTypeArguments();
+                return Optional.of(new Tuple<>(typeArgs[0], typeArgs[1]));
+            }
+        }
+        return Optional.empty();
+    }
+
+    private static boolean hasSyncType(SyncField annotation, SyncType type) {
+        if (annotation == null) return false;
+
+        for (var value : annotation.value()) {
+            if (value.equals(type)) return true;
+        }
+        return false;
+    }
+
+    public record MessagePayload(BlockPos pos, Identifier targetEntityType, SyncType syncType,
+                                 byte[] message) implements CustomPacketPayload {
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return GENERIC_PACKET_ID;
+        }
+
+        public static final Type<MessagePayload> GENERIC_PACKET_ID = new Type<>(Oritech.id("generic"));
+
+        public static final StreamCodec<RegistryFriendlyByteBuf, MessagePayload> PACKET_CODEC = new StreamCodec<>() {
+            @Override
+            public MessagePayload decode(RegistryFriendlyByteBuf buf) {
+                return new MessagePayload(BlockPos.STREAM_CODEC.decode(buf), Identifier.STREAM_CODEC.decode(buf), SyncType.PACKET_CODEC.decode(buf), ByteBufCodecs.BYTE_ARRAY.decode(buf));
+            }
+
+            @Override
+            public void encode(RegistryFriendlyByteBuf buf, MessagePayload value) {
+                BlockPos.STREAM_CODEC.encode(buf, value.pos);
+                Identifier.STREAM_CODEC.encode(buf, value.targetEntityType);
+                SyncType.PACKET_CODEC.encode(buf, value.syncType);
+                ByteBufCodecs.BYTE_ARRAY.encode(buf, value.message);
+            }
+        };
+    }
+
+    static <B extends ByteBuf, V> StreamCodec.CodecOperation<B, V, Set<V>> toSet() {
+        return (codec) -> ByteBufCodecs.collection(HashSet::new, codec);
+    }
+
+    // transmits only the block type, with the default block state. Custom properties are not sent.
+    public static StreamCodec<RegistryFriendlyByteBuf, BlockState> SIMPLE_BLOCK_STATE_PACKET_CODEC = new StreamCodec<>() {
+        @Override
+        public BlockState decode(RegistryFriendlyByteBuf buf) {
+            return BuiltInRegistries.BLOCK.get(Identifier.STREAM_CODEC.decode(buf)).get().value().defaultBlockState();
+        }
+
+        @Override
+        public void encode(RegistryFriendlyByteBuf buf, BlockState value) {
+            Identifier.STREAM_CODEC.encode(buf, BuiltInRegistries.BLOCK.getKey(value.getBlock()));
+        }
+    };
+
+    public static StreamCodec<RegistryFriendlyByteBuf, Vector2i> VEC2I_PACKED_CODEC = StreamCodec.composite(
+            ByteBufCodecs.INT, Vector2i::x,
+            ByteBufCodecs.INT, Vector2i::y,
+            Vector2i::new
+    );
+
+    @SuppressWarnings("unchecked")
+    public static <K, V> StreamCodec<RegistryFriendlyByteBuf, HashMap<K, V>> createMapCodec(Class<K> keyType, Class<V> valueType) {
+        return ByteBufCodecs.map(HashMap::new, getAutoCodec(keyType), getAutoCodec(valueType));
+    }
+
+    public static StreamCodec<RegistryFriendlyByteBuf, Vec3> VEC3D_PACKET_CODEC = new StreamCodec<>() {
+        @Override
+        public Vec3 decode(RegistryFriendlyByteBuf buf) {
+            var x = buf.readDouble();
+            var y = buf.readDouble();
+            var z = buf.readDouble();
+            return new Vec3(x, y, z);
+        }
+
+        @Override
+        public void encode(RegistryFriendlyByteBuf buf, Vec3 value) {
+            buf.writeDouble(value.x);
+            buf.writeDouble(value.y);
+            buf.writeDouble(value.z);
+        }
+    };
+
+}

@@ -1,0 +1,12 @@
+{
+  "type": "oritech:pulverizer",
+  "itemInputs": [
+    "#c:nuggets/platinum"
+  ],
+  "itemResults": [
+    {
+      "id": "oritech:small_platinum_dust"
+    }
+  ],
+  "time": 100
+}

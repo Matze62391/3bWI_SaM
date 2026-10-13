@@ -1,0 +1,12 @@
+{
+  "type": "oritech:pulverizer",
+  "itemInputs": [
+    "#oritech:recyclable/redstone_dust"
+  ],
+  "itemResults": [
+    {
+      "id": "minecraft:redstone"
+    }
+  ],
+  "time": 100
+}

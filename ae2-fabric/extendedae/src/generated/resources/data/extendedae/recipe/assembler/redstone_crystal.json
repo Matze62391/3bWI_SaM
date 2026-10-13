@@ -1,0 +1,34 @@
+{
+  "fabric:load_conditions": [
+    {
+      "condition": "fabric:all_mods_loaded",
+      "values": [
+        "appflux"
+      ]
+    }
+  ],
+  "type": "extendedae:crystal_assembler",
+  "energy": 5000,
+  "input_fluid": {
+    "amount": 100,
+    "ingredient": "minecraft:water"
+  },
+  "input_items": [
+    {
+      "amount": 4,
+      "ingredient": "#c:storage_blocks/redstone"
+    },
+    {
+      "amount": 4,
+      "ingredient": "#c:gems/fluix"
+    },
+    {
+      "amount": 4,
+      "ingredient": "#c:dusts/glowstone"
+    }
+  ],
+  "output": {
+    "count": 8,
+    "id": "appflux:redstone_crystal"
+  }
+}

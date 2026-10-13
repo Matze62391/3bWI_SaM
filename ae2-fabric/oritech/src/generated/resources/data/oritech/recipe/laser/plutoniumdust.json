@@ -1,0 +1,12 @@
+{
+  "type": "oritech:laser",
+  "itemInputs": [
+    "oritech:uranite_crystal"
+  ],
+  "itemResults": [
+    {
+      "id": "oritech:plutonium_dust"
+    }
+  ],
+  "time": 1
+}

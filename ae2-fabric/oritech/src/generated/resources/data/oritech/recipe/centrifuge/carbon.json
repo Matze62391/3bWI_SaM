@@ -1,0 +1,12 @@
+{
+  "type": "oritech:centrifuge",
+  "itemInputs": [
+    "#c:dusts/coal"
+  ],
+  "itemResults": [
+    {
+      "id": "oritech:carbon_fibre_strands"
+    }
+  ],
+  "time": 50
+}

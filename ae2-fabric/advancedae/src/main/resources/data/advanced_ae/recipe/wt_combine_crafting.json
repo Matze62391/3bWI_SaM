@@ -1,0 +1,7 @@
+{
+    "type": "ae2wtlib:combine",
+    "terminalA": "ae2:wireless_crafting_terminal",
+    "terminalB": "advanced_ae:wireless_quantum_crafter_terminal",
+    "terminalAName": "crafting",
+    "terminalBName": "quantum_crafter"
+}

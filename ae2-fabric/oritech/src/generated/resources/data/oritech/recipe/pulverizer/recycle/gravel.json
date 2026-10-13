@@ -1,0 +1,12 @@
+{
+  "type": "oritech:pulverizer",
+  "itemInputs": [
+    "#oritech:recyclable/gravel"
+  ],
+  "itemResults": [
+    {
+      "id": "minecraft:gravel"
+    }
+  ],
+  "time": 100
+}

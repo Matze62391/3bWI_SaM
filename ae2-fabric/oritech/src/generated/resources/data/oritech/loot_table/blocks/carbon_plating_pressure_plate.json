@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "oritech:carbon_plating_pressure_plate"
+        }
+      ],
+      "rolls": 1.0,
+      "condition": {
+        "type": "minecraft:survives_explosion"
+      }
+    }
+  ],
+  "random_sequence": "oritech:blocks/carbon_plating_pressure_plate"
+}

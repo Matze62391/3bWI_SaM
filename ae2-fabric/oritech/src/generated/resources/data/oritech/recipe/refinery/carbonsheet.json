@@ -1,0 +1,16 @@
+{
+  "type": "oritech:refinery",
+  "fluidInput": {
+    "amount": 500,
+    "ingredient": "#c:naphtha"
+  },
+  "itemInputs": [
+    "oritech:carbon_fibre_strands"
+  ],
+  "itemResults": [
+    {
+      "id": "oritech:reinforced_carbon_sheet"
+    }
+  ],
+  "time": 240
+}

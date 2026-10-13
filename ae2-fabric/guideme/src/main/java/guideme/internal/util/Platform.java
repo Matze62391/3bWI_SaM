@@ -1,0 +1,95 @@
+
+package guideme.internal.util;
+
+import com.mojang.blaze3d.platform.NativeImage;
+import guideme.internal.GuideMEClient;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Objects;
+import net.minecraft.client.Minecraft;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.network.chat.Component;
+import net.minecraft.util.context.ContextMap;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.crafting.RecipeManager;
+import net.minecraft.world.item.crafting.RecipeMap;
+import net.minecraft.world.item.crafting.RecipeType;
+import net.minecraft.world.item.crafting.display.SlotDisplay;
+import net.minecraft.world.item.crafting.display.SlotDisplayContext;
+import net.minecraft.world.level.material.Fluid;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariantAttributes;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class Platform {
+    private static final Logger LOG = LoggerFactory.getLogger(Platform.class);
+
+    // This hack is used to allow tests and the guidebook to provide a recipe manager before the client loads a world
+    public static RecipeManager fallbackClientRecipeManager;
+    public static RegistryAccess fallbackClientRegistryAccess;
+
+    public static RegistryAccess getClientRegistryAccess() {
+        if (Minecraft.getInstance() != null && Minecraft.getInstance().level != null) {
+            return Minecraft.getInstance().level.registryAccess();
+        }
+        return Objects.requireNonNull(Platform.fallbackClientRegistryAccess);
+    }
+
+    public static Component getFluidDisplayName(Fluid fluid) {
+        return FluidVariantAttributes.getName(FluidVariant.of(fluid));
+    }
+
+    public static byte[] exportAsPng(NativeImage nativeImage) throws IOException {
+        Path tempFile = null;
+        try {
+            tempFile = Files.createTempFile("siteexport", ".png");
+            nativeImage.writeToFile(tempFile);
+            return Files.readAllBytes(tempFile);
+        } finally {
+            if (tempFile != null) {
+                try {
+                    Files.deleteIfExists(tempFile);
+                } catch (IOException e) {
+                    LOG.error("Failed to delete temporary file {}", tempFile, e);
+                }
+            }
+        }
+    }
+
+    public static ContextMap getSlotDisplayContext() {
+        var level = Minecraft.getInstance().level;
+        if (level != null) {
+            return SlotDisplayContext.fromLevel(level);
+        } else {
+            return ContextMap.builder()
+                    .set(SlotDisplayContext.REGISTRIES, getClientRegistryAccess())
+                    .buildAndValidate(SlotDisplayContext.CONTEXT);
+        }
+    }
+
+    public static RecipeMap getRecipeMap() {
+        if (!isRecipeTypeAvailable(RecipeType.CRAFTING) && fallbackClientRecipeManager != null) {
+            return fallbackClientRecipeManager.recipes;
+        }
+        return GuideMEClient.instance().getRecipeMap();
+    }
+
+    public static boolean isRecipeTypeAvailable(RecipeType<?> recipeType) {
+        return GuideMEClient.instance().isRecipeTypeAvailable(recipeType);
+    }
+
+    public static boolean recipeHasResult(Recipe<?> recipe, Item item) {
+        for (var recipeDisplay : recipe.display()) {
+            boolean hasResult = recipeDisplay.result()
+                    .resolve(Platform.getSlotDisplayContext(), SlotDisplay.ItemStackContentsFactory.INSTANCE)
+                    .anyMatch(is -> is.is(item));
+            if (hasResult) {
+                return true;
+            }
+        }
+        return false;
+    }
+}

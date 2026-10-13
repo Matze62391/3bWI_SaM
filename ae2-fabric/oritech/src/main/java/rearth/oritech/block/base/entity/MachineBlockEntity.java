@@ -1,0 +1,700 @@
+package rearth.oritech.block.base.entity;
+
+import com.geckolib.animatable.GeoBlockEntity;
+import com.geckolib.animatable.instance.AnimatableInstanceCache;
+import com.geckolib.animatable.manager.AnimatableManager;
+import com.geckolib.animation.AnimationController;
+import com.geckolib.animation.RawAnimation;
+import com.geckolib.animation.object.PlayState;
+import com.geckolib.animation.state.AnimationTest;
+import com.geckolib.util.GeckoLibUtil;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.MenuProvider;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemStackTemplate;
+import net.minecraft.world.item.crafting.RecipeHolder;
+import net.minecraft.world.item.crafting.RecipeType;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import rearth.oritech.port.neoforge.fluids.FluidStack;
+import rearth.oritech.port.neoforge.network.handling.IPayloadContext;
+import rearth.oritech.port.neoforge.transfer.DelegatingResourceHandler;
+import rearth.oritech.port.neoforge.transfer.ResourceHandler;
+import rearth.oritech.port.neoforge.transfer.StacksResourceHandler;
+import rearth.oritech.port.neoforge.transfer.energy.EnergyHandler;
+import rearth.oritech.port.neoforge.transfer.item.ItemResource;
+import rearth.oritech.port.neoforge.transfer.transaction.Transaction;
+import rearth.oritech.port.neoforge.transfer.transaction.TransactionContext;
+import org.jetbrains.annotations.Nullable;
+import rearth.oritech.Oritech;
+import rearth.oritech.api.networking.NetworkedBlockEntity;
+import rearth.oritech.api.networking.SyncField;
+import rearth.oritech.api.networking.SyncType;
+import rearth.oritech.api.transfer.energy.DynamicEnergyStorage;
+import rearth.oritech.api.transfer.energy.EnergyProvider;
+import rearth.oritech.api.transfer.item.InOutInventoryStorage;
+import rearth.oritech.api.transfer.item.ItemProvider;
+import rearth.oritech.block.entity.addons.RedstoneAddonBlockEntity;
+import rearth.oritech.client.ui.OritechScreenHandler;
+import rearth.oritech.init.recipes.OritechRecipe;
+import rearth.oritech.init.recipes.OritechRecipeInput;
+import rearth.oritech.util.*;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+public abstract class MachineBlockEntity extends NetworkedBlockEntity
+        implements GeoBlockEntity, ScreenProvider, MenuProvider, RedstoneAddonBlockEntity.RedstoneControllable, ColorableMachine, EnergyProvider, ItemProvider {
+
+    // animations
+    public static final RawAnimation PACKAGED = RawAnimation.begin().thenPlayAndHold("packaged");
+    public static final RawAnimation SETUP = RawAnimation.begin().thenPlay("deploy");
+    public static final RawAnimation IDLE = RawAnimation.begin().thenPlayAndHold("idle");
+    public static final RawAnimation WORKING = RawAnimation.begin().thenPlay("working");
+
+    protected final AnimatableInstanceCache animatableInstanceCache = GeckoLibUtil.createInstanceCache(this);
+    private boolean initialAnimation = true;
+
+    // synced data
+    @SyncField({SyncType.GUI_TICK, SyncType.SPARSE_TICK})
+    public final ProgressStorage progress = new ProgressStorage();
+    @SyncField({SyncType.GUI_TICK})
+    protected OritechRecipe currentRecipe = OritechRecipe.EMPTY.get();
+    @SyncField({SyncType.GUI_TICK})
+    protected InventoryInputMode inventoryInputMode = InventoryInputMode.FILL_LEFT_TO_RIGHT;
+    @SyncField({SyncType.GUI_TICK})
+    protected boolean disabledViaRedstone = false;
+    @SyncField({SyncType.TICK})
+    public long lastWorkedAt;   // used for animation sync
+
+    @SyncField({SyncType.SPARSE_TICK, SyncType.INITIAL})
+    public ColorVariant currentColor = getDefaultColor();
+
+    // static data
+    protected int energyPerTick;
+
+    private long lastChangedAt = 0;  // used to check if anything happened in the last tick, to avoid unneeded calculations and updates
+    private boolean initialRecipeLookup = true;
+
+    // cache for sided inventory access
+    private final Map<Direction, ResourceHandler<ItemResource>> sidedInventories = new HashMap<>(); // only for sided input mode
+
+    // own storages
+    public final MachineInventoryStorage inventory = new MachineInventoryStorage(getInventorySize(), this::setChanged, getSlotAssignments());
+    @SyncField({SyncType.GUI_TICK, SyncType.GUI_OPEN})
+    public final DynamicEnergyStorage energyStorage = new DynamicEnergyStorage(getDefaultCapacity(), getDefaultInsertRate(), getDefaultExtractionRate(), 0, this::setChanged, this.canEnergyStorageChangeWhileGUIOpen());
+
+    public MachineBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state, int energyPerTick) {
+        super(type, pos, state);
+        this.energyPerTick = energyPerTick;
+
+        if (level != null) {
+            lastWorkedAt = level.getGameTime();
+            lastChangedAt = level.getGameTime();
+        }
+    }
+
+    @Override
+    public void serverTick(ServerLevel serverLevel, BlockPos pos, BlockState state, NetworkedBlockEntity blockEntity) {
+
+        if (!isAssembled(state) || disabledViaRedstone) return;
+
+        var preserveLoadedProgress = initialRecipeLookup;
+        if (initialRecipeLookup) {
+            // Block entities are deserialized before their level is assigned, so setChanged() cannot update
+            // lastChangedAt while loading. Force one lookup after the machine becomes active again.
+            lastChangedAt = serverLevel.getGameTime();
+            initialRecipeLookup = false;
+        }
+
+        var lastRecipe = currentRecipe;
+        currentRecipe = findActiveRecipe();
+        if (currentRecipe.isEmpty()) {
+            resetProgress();
+            return;
+        }
+
+        if(!canOutputRecipe(currentRecipe)) {
+            resetProgress();
+            return;
+        }
+
+        if (lastRecipe != currentRecipe) {
+            var loadedProgress = progress.get();
+            resetProgress();
+            if (preserveLoadedProgress && lastRecipe.isEmpty()) {
+                progress.set(loadedProgress);
+            }
+        }
+
+        workTick();
+    }
+
+    // main work is done here. At this point, we have a valid recipe (items+fluid assumed verified), and could output the results.
+    // We work with one big transaction. Everything is taken directly, and if a part doesnt work we just don't commit the transaction
+    protected void workTick() {
+        try (var transaction = Transaction.openRoot()) {
+
+            var energyNeeded = (int) calculateEnergyUsage();
+            var energyTaken = energyStorage.internalExtract(energyNeeded, transaction);
+
+            // abort if not enough energy
+            if (energyTaken != energyNeeded) return;
+
+            progress.increment(transaction);
+
+            if (checkCraftingFinished(currentRecipe)) {
+                var crafted = onProgressCompleted(transaction);
+
+                if (!crafted) {
+                    Oritech.LOGGER.warn("crafting results failed! This should never happen. At: {}", worldPosition.toShortString());
+                    return;
+                }
+
+                progress.reset(transaction);
+            }
+
+            transaction.commit();
+            setChanged();
+            onProgressed();
+            lastWorkedAt = level.getGameTime();
+        }
+    }
+
+    // called if the machine has done any work
+    protected void onProgressed() {
+    }
+
+    // performance optimized recipe lookup. Verifies that both item and fluid inputs match the recipe.
+    protected OritechRecipe findActiveRecipe() {
+
+        if (!(level instanceof ServerLevel serverLevel)) return currentRecipe;
+
+        var recentlyChanged = (level.getGameTime() - lastChangedAt) <= 1;
+
+        // if no active recipe and nothing changed recently, dont do anything
+        if (currentRecipe.isEmpty() && !recentlyChanged) return currentRecipe;
+
+        // at this point: Either machine inputs were changed, or we have a current recipe
+
+        var recipeInput = getRecipeInput();
+        var type = getOwnRecipeType();
+        return loadRecipeFromInput(serverLevel, recipeInput, type);
+    }
+
+    protected OritechRecipe loadRecipeFromInput(ServerLevel serverLevel, OritechRecipeInput recipeInput, RecipeType<OritechRecipe> type) {
+        if (recipeInput.isEmpty()) return OritechRecipe.EMPTY.get();
+
+        // existing recipe matches (if non-empty)
+        if (!currentRecipe.isEmpty() && currentRecipe.recipeType() == type && currentRecipe.matches(recipeInput, level))
+            return currentRecipe;
+
+        // return a potential match, or empty
+        var recipeCandidate = serverLevel.recipeAccess().getRecipeFor(type, recipeInput, level);
+        return recipeCandidate.map(RecipeHolder::value).orElse(OritechRecipe.EMPTY.get());
+    }
+
+    protected OritechRecipeInput getRecipeInput() {
+        return new OritechRecipeInput(getInputView(), FluidStack.EMPTY);
+    }
+
+    @Override
+    public void setChanged() {
+        super.setChanged();
+
+        if (this.level != null)
+            lastChangedAt = level.getGameTime();
+    }
+
+    protected float calculateEnergyUsage() {
+        return energyPerTick * getEfficiencyMultiplier() * (1 / getSpeedMultiplier());
+    }
+
+    public List<ItemStackTemplate> getCraftingResults(OritechRecipe activeRecipe) {
+        return activeRecipe.itemResults();
+    }
+
+    // mostly here so that subclasses (like for burst addon, etc.) can easier extend this behavior
+    protected boolean onProgressCompleted(Transaction transaction) {
+        return createCraftingOutputs(transaction) && removeCraftingInputs(transaction);
+    }
+
+    // If output doesn't match, return false. This needs to be overridden if fluids are part of the output.
+    protected boolean createCraftingOutputs(Transaction transaction) {
+
+        var results = getCraftingResults(currentRecipe);
+        var outputInv = inventory.getOutputContainer();
+
+        // create outputs
+        for (var result : results) {
+            var added = outputInv.insert(ItemResource.of(result), result.count(), transaction);
+            if (added != result.count()) return false;
+        }
+
+        return true;
+
+    }
+
+    // If input is missing, return false. This needs to be overridden if fluids are part of the input.
+    protected boolean removeCraftingInputs(Transaction transaction) {
+
+        var recipeIngredients = currentRecipe.itemInputs();
+        var inputInv = inventory.getInputContainer();
+
+        // Use the same assignment as recipe matching. A separate greedy pass can choose differently for
+        // overlapping ingredients and fail even though the recipe was previously verified as craftable.
+        var matchedSlots = OritechRecipe.findMatchingInputSlots(recipeIngredients, getInputView());
+        if (matchedSlots == null) return false;
+
+        for (var slot : matchedSlots) {
+            var inputResource = inputInv.getResource(slot);
+            if (inputResource.isEmpty()) return false;
+
+            var taken = inputInv.extract(slot, inputResource, 1, transaction);
+            if (taken != 1) return false;
+        }
+
+        return true;
+
+    }
+
+    protected boolean checkCraftingFinished(OritechRecipe activeRecipe) {
+        return progress.get() >= activeRecipe.time() * getSpeedMultiplier();
+    }
+
+    protected void resetProgress() {
+        progress.set(0);
+    }
+
+    // check if output slots are valid, meaning: each slot is either empty, or the targets can be inserted. This needs to be overridden if fluids are part of the output.
+    public boolean canOutputRecipe(OritechRecipe recipe) {
+
+        var outputInventory = inventory.getOutputContainer();
+
+        try (var simulated = Transaction.openRoot()) {
+            for (var result : getCraftingResults(recipe)) {
+                var inserted = outputInventory.insert(ItemResource.of(result), result.count(), simulated);
+                if (inserted != result.count()) return false;
+            }
+        }
+
+        return true;
+    }
+
+    protected abstract RecipeType<OritechRecipe> getOwnRecipeType();
+
+    public abstract ContainerSlotAssignment getSlotAssignments();
+
+    // gives a mutable copy of the content
+    protected List<ItemStack> getInputView() {
+        var slots = getSlotAssignments();
+        return this.inventory.getStacks().subList(slots.inputStart(), slots.inputStart() + slots.inputCount()).stream().map(ItemStack::copy).toList();
+    }
+
+    // new:
+    @Override
+    protected void saveAdditional(ValueOutput output) {
+        super.saveAdditional(output);
+
+        inventory.serialize(output);
+        serializeColor(output);
+
+        progress.serialize(output);
+        energyStorage.serialize(output);
+        output.putShort("input_mode", (short) inventoryInputMode.ordinal());
+        output.putBoolean("redstone", disabledViaRedstone);
+    }
+
+    @Override
+    protected void loadAdditional(ValueInput input) {
+        super.loadAdditional(input);
+
+        inventory.deserialize(input);
+        deserializeColor(input);
+
+        progress.deserialize(input);
+        energyStorage.deserialize(input);
+
+        inventoryInputMode = InventoryInputMode.values()[input.getShortOr("input_mode", (short) 0)];
+        disabledViaRedstone = input.getBooleanOr("redstone", false);
+    }
+
+    @Override
+    public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
+        controllers.add(new AnimationController<>("machine", 0, this::onAnimationUpdate)
+                .triggerableAnim("setup", SETUP)
+                .receiveTriggeredAnimations()
+                .setSoundKeyframeHandler(new MachineSoundHandler<>(this::getAnimationSpeed)));
+    }
+
+    public PlayState onAnimationUpdate(AnimationTest<MachineBlockEntity> state) {
+        var controller = state.controller();
+        var assembled = isAssembled(getBlockState());
+
+        // Start directly in the correct pose, then blend all subsequent animation changes.
+        if (initialAnimation) {
+            initialAnimation = false;
+        } else {
+            controller.setTransitionTicks(5);
+        }
+
+        if (state.isCurrentAnimation(SETUP)) {
+            if (!assembled) {
+                controller.stopTriggeredAnimation();
+                return state.setAndContinue(PACKAGED);
+            }
+
+            state.setControllerSpeed(1);
+            if (!controller.hasAnimationFinished()) return PlayState.CONTINUE;
+            controller.stopTriggeredAnimation();
+        }
+
+        state.setControllerSpeed(getAnimationSpeed());
+
+        if (assembled) {
+            if (isActivelyWorking()) {
+                return state.setAndContinue(WORKING);
+            } else {
+                return state.setAndContinue(IDLE);
+            }
+        }
+
+        return state.setAndContinue(PACKAGED);
+    }
+
+    public boolean isActivelyWorking() {
+        return level.getGameTime() - lastWorkedAt < 15;
+    }
+
+    protected float getAnimationSpeed() {
+        if (getRecipeDuration() <= 0) return 1;
+        var recipeTicks = getRecipeDuration() * getSpeedMultiplier();
+        return (getAnimationDuration() / recipeTicks);
+    }
+
+    public int getAnimationDuration() {
+        return 60;  // 3s
+    }
+
+    public int getRecipeDuration() {
+        return getCurrentRecipe().time();
+    }
+
+    @Override
+    public AnimatableInstanceCache getAnimatableInstanceCache() {
+        return animatableInstanceCache;
+    }
+
+    @Override
+    public void writeClientSideData(AbstractContainerMenu menu, RegistryFriendlyByteBuf buffer) {
+        this.sendUpdate(SyncType.GUI_OPEN);
+    }
+
+    protected Direction getFacing() {
+        return Objects.requireNonNull(level).getBlockState(getBlockPos()).getValue(BlockStateProperties.HORIZONTAL_FACING);
+    }
+
+    @Override
+    public Component getDisplayName() {
+        return Component.literal("");
+    }
+
+    @Nullable
+    @Override
+    public AbstractContainerMenu createMenu(int syncId, Inventory playerInventory, Player player) {
+        return new OritechScreenHandler(syncId, playerInventory, this);
+    }
+
+    @Override
+    public abstract List<GuiSlot> getGuiSlots();
+
+    @Override
+    public float getProgress() {
+        return (float) progress.get() / (getRecipeDuration() * getSpeedMultiplier());
+    }
+
+    public DynamicEnergyStorage getEnergyStorage() {
+        return energyStorage;
+    }
+
+    public OritechRecipe getCurrentRecipe() {
+        return currentRecipe;
+    }
+
+    // lower = better for both (speed and efficiency)
+    public float getSpeedMultiplier() {
+        return 1;
+    }
+
+    public float getEfficiencyMultiplier() {
+        return 1;
+    }
+
+    public void cycleInputMode() {
+        switch (inventoryInputMode) {
+            case FILL_LEFT_TO_RIGHT:
+                inventoryInputMode = InventoryInputMode.FILL_EVENLY;
+                break;
+            case FILL_EVENLY:
+                inventoryInputMode = InventoryInputMode.SIDED;
+                break;
+            case SIDED:
+                inventoryInputMode = InventoryInputMode.FILL_LEFT_TO_RIGHT;
+                break;
+        }
+
+        setChanged();
+    }
+
+    @Override
+    public InventoryInputMode getInventoryInputMode() {
+        return inventoryInputMode;
+    }
+
+    public abstract int getInventorySize();
+
+    public boolean isAssembled(BlockState state) {
+        return true;
+    }
+
+    @Override
+    public float getDisplayedEnergyUsage() {
+        return calculateEnergyUsage();
+    }
+
+    public long getDefaultCapacity() {
+        return 5000;
+    }
+
+    public long getDefaultInsertRate() {
+        return 1024;
+    }
+
+    @Override
+    public float getDisplayedEnergyTransfer() {
+        return energyStorage.maxInsert;
+    }
+
+    public long getDefaultExtractionRate() {
+        return 0;
+    }
+
+    public int getEnergyPerTick() {
+        return energyPerTick;
+    }
+
+    @Override
+    public StacksResourceHandler<ItemStack, ItemResource> getDisplayedInventory() {
+        return inventory;
+    }
+
+    @Override
+    public int getComparatorEnergyAmount() {
+        return (int) ((energyStorage.energy / (float) energyStorage.capacity) * 15);
+    }
+
+    @Override
+    public int getComparatorSlotAmount(int slot) {
+        if (inventory.getStacks().size() <= slot) return 0;
+
+        var stack = inventory.getStacks().get(slot);
+        if (stack.isEmpty()) return 0;
+
+        return (int) ((stack.getCount() / (float) stack.getMaxStackSize()) * 15);
+    }
+
+    @Override
+    public int getComparatorProgress() {
+        if (currentRecipe.time() <= 0) return 0;
+        return (int) ((progress.get() / (float) currentRecipe.time() * getSpeedMultiplier()) * 15);
+    }
+
+    @Override
+    public int getComparatorActiveState() {
+        return isActivelyWorking() ? 15 : 0;
+    }
+
+    @Override
+    public void onRedstoneEvent(boolean isPowered) {
+        this.disabledViaRedstone = isPowered;
+    }
+
+    // whether the energy storage should only send the current amount on network updates, or the full data
+    public boolean canEnergyStorageChangeWhileGUIOpen() {
+        return false;
+    }
+
+    @Override
+    public ColorVariant getCurrentColor() {
+        return currentColor;
+    }
+
+    @Override
+    public void assignColor(ColorVariant color) {
+        this.currentColor = color;
+
+        if (this.level != null && !this.level.isClientSide()) {
+            this.setChanged(false);
+            this.sendUpdate(SyncType.SPARSE_TICK);
+        }
+    }
+
+    public static void receiveCycleModePacket(InventoryInputModeSelectorPacket packet, IPayloadContext context) {
+        if (context.player().level().getBlockEntity(packet.position()) instanceof MachineBlockEntity machineBlock)
+            machineBlock.cycleInputMode();
+    }
+
+    @Override
+    public EnergyHandler getEnergyLookup(@Nullable Direction direction) {
+        return energyStorage;
+    }
+
+    @Override
+    public ResourceHandler<ItemResource> getItemLookup(@Nullable Direction direction) {
+        if (inventoryInputMode.equals(InventoryInputMode.SIDED)) {
+            return sidedInventories.computeIfAbsent(direction, this::getDirectedStorage);
+        }
+        return inventory.getExternalAccess();
+    }
+
+    // needed for sided inventory mode
+    public ResourceHandler<ItemResource> getDirectedStorage(Direction direction) {
+
+        var slots = getSlotAssignments();
+        var externalAccess = inventory.getExternalAccess();
+        if (slots.inputCount() <= 1) return externalAccess;
+
+        if (direction == null) return externalAccess;
+
+        if (direction.equals(Direction.UP)) {
+            // input only, disable output
+            return new DelegatingResourceHandler<>(externalAccess) {
+                @Override
+                public int extract(int index, ItemResource resource, int amount, TransactionContext transaction) {
+                    return 0;
+                }
+
+                @Override
+                public int extract(ItemResource resource, int amount, TransactionContext transaction) {
+                    return 0;
+                }
+            };
+
+        } else if (direction.equals(Direction.DOWN)) {
+            // output only, disable input
+            return new DelegatingResourceHandler<>(externalAccess) {
+                @Override
+                public int insert(int index, ItemResource resource, int amount, TransactionContext transaction) {
+                    return 0;
+                }
+
+                @Override
+                public int insert(ItemResource resource, int amount, TransactionContext transaction) {
+                    return 0;
+                }
+            };
+        } else {
+            // north = 0, east = 1, ...
+            var horizontalOrdinal = 0;
+            if (direction.equals(Direction.EAST)) horizontalOrdinal = 1;
+            if (direction.equals(Direction.SOUTH)) horizontalOrdinal = 2;
+            if (direction.equals(Direction.WEST)) horizontalOrdinal = 3;
+            var inputSlotIndex = slots.inputStart() + horizontalOrdinal % slots.inputCount();
+
+            return new DelegatingResourceHandler<>(inventory) {
+                @Override
+                public int insert(ItemResource resource, int amount, TransactionContext transaction) {
+                    return insert(inputSlotIndex, resource, amount, transaction);
+                }
+
+                @Override
+                public int insert(int index, ItemResource resource, int amount, TransactionContext transaction) {
+                    if (index != inputSlotIndex) return 0;
+                    return super.insert(index, resource, amount, transaction);
+                }
+            };
+        }
+    }
+
+    // basic in out storage, but with option for sided / fill even input mode
+    public class MachineInventoryStorage extends InOutInventoryStorage {
+
+        public MachineInventoryStorage(int size, Runnable onUpdate, ContainerSlotAssignment slotAssignment) {
+            super(size, onUpdate, slotAssignment);
+        }
+
+        // fill evenly tries to insert it in the best matching slots (fills the lowest ones evenly)
+        @Override
+        public int insert(ItemResource resource, int amount, TransactionContext transaction) {
+
+            if (inventoryInputMode.equals(InventoryInputMode.FILL_EVENLY)) {
+                var slots = getSlotAssignments();
+                if (amount <= 0 || slots.inputCount() <= 0) return 0;
+
+                var remaining = amount;
+                var amountPerSlot = amount / slots.inputCount();
+                amountPerSlot = Math.clamp(amountPerSlot, 1, remaining);
+
+                // start at slot with fewest items
+                var lowestSlot = slots.inputStart();
+                var lowestSlotCount = Integer.MAX_VALUE;
+                for (int i = slots.inputStart(); i < slots.inputStart() + slots.inputCount(); i++) {
+                    var content = stacks.get(i);
+                    if (!content.isEmpty() && !resource.is(content.getItem()))
+                        continue;    // skip slots containing other items
+                    if (content.getCount() < lowestSlotCount) {
+                        lowestSlotCount = content.getCount();
+                        lowestSlot = i;
+                    }
+                }
+
+                // actually fill slots, starting with most empty one
+                var lowestInputOffset = lowestSlot - slots.inputStart();
+                for (var slot = 0; slot < slots.inputCount() && remaining > 0; slot++) {
+                    var inputSlot = slots.inputStart() + (slot + lowestInputOffset) % slots.inputCount();
+                    remaining -= super.insert(inputSlot, resource, amountPerSlot, transaction);
+                }
+
+                return amount - remaining;
+            }
+
+            return super.insert(resource, amount, transaction);
+        }
+
+        // specific slot insert in even mode forwards to non-specific slot variant
+        @Override
+        public int insert(int index, ItemResource resource, int amount, TransactionContext transaction) {
+
+            if (inventoryInputMode.equals(InventoryInputMode.FILL_EVENLY) && getSlotAssignments().isInput(index)) {
+                return insert(resource, amount, transaction);
+            }
+
+            return super.insert(index, resource, amount, transaction);
+        }
+    }
+
+    // Client -> Server (e.g. from UI interactions
+    public record InventoryInputModeSelectorPacket(BlockPos position) implements CustomPacketPayload {
+
+        public static final Type<InventoryInputModeSelectorPacket> PACKET_ID = new Type<>(Oritech.id("input_mode"));
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return PACKET_ID;
+        }
+    }
+
+}

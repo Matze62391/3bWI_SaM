@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "oritech:heart_of_the_machine_addon",
+          "modifier": {
+            "type": "oritech:nbt_block_loot_function"
+          }
+        }
+      ],
+      "rolls": 1.0,
+      "condition": {
+        "type": "minecraft:survives_explosion"
+      }
+    }
+  ],
+  "random_sequence": "oritech:blocks/heart_of_the_machine_addon"
+}

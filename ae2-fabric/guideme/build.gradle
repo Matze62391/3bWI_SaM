@@ -1,0 +1,102 @@
+plugins {
+    id 'net.fabricmc.fabric-loom'
+}
+
+// Fabric port of GuideME (https://github.com/AppliedEnergistics/GuideME), the guidebook library used by AE2.
+// GuideME is licensed under the LGPL-3.0, see LICENSE.md.
+version = project.guideme_version
+group = "org.appliedenergistics"
+
+base {
+    archivesName = "guideme-fabric"
+}
+
+repositories {
+    // Maven Central frequently rate-limits this environment; this mirror serves the same artifacts
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = "Library mirror"
+                url = "https://maven.neoforged.net/releases"
+            }
+        }
+        filter {
+            includeGroup "io.methvin"
+            includeGroup "org.yaml"
+            includeGroup "com.google.flatbuffers"
+            includeGroup "org.apache.lucene"
+            includeGroup "org.bytedeco"
+        }
+    }
+}
+
+sourceSets {
+    main {
+        java {
+            // GuideME's Markdown parser (a separate library in the original project)
+            srcDir "src/markdown/java"
+            // Generated with flatc 23.5.26 from src/main/flatbuffers/scene.fbs
+            srcDir "src/flatbuffers/java"
+            // Data generators are not ported (the generated resources are included)
+            exclude "guideme/internal/data/GuideMELanguageProvider.java"
+            exclude "guideme/internal/data/GuideMEModelProvider.java"
+        }
+        resources {
+            srcDir "src/generated/resources"
+        }
+    }
+}
+
+loom {
+    accessWidenerPath = file("src/main/resources/guideme.classtweaker")
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${rootProject.minecraft_version}"
+    implementation "net.fabricmc:fabric-loader:${rootProject.loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${rootProject.fabric_api_version}"
+    compileOnly "com.google.code.findbugs:jsr305:3.0.2"
+
+    // Libraries shipped inside the mod jar (NeoForge's version shades them)
+    for (lib in [
+            "io.methvin:directory-watcher:${project.directory_watcher_version}",
+            "org.yaml:snakeyaml:${project.snakeyaml_version}",
+            "com.google.flatbuffers:flatbuffers-java:${project.flatbuffers_version}",
+            "org.apache.lucene:lucene-core:${project.lucene_version}",
+            "org.apache.lucene:lucene-analysis-common:${project.lucene_version}",
+            "org.apache.lucene:lucene-queryparser:${project.lucene_version}",
+            "org.apache.lucene:lucene-facet:${project.lucene_version}",
+            "org.apache.lucene:lucene-queries:${project.lucene_version}",
+            "org.apache.lucene:lucene-highlighter:${project.lucene_version}",
+            "org.apache.lucene:lucene-memory:${project.lucene_version}",
+    ]) {
+        implementation(lib) {
+            transitive = false
+        }
+        include(lib)
+    }
+
+    // Only used by the guide site export, which is a development tool
+    compileOnly "org.bytedeco:ffmpeg:${project.ffmpeg_version}"
+    compileOnly "org.bytedeco:javacpp:${project.ffmpeg_version.split('-')[1]}"
+}
+
+processResources {
+    def version = project.version
+    inputs.property "version", version
+
+    filesMatching("fabric.mod.json") {
+        expand "version": version
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = 25
+    it.options.encoding = "UTF-8"
+    it.options.compilerArgs += ["-Xmaxerrs", "100000"]
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+}

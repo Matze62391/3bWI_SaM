@@ -1,0 +1,179 @@
+package net.pedroksl.ae2addonlib.client.widgets;
+
+import org.apache.commons.lang3.text.WordUtils;
+import org.jetbrains.annotations.NotNull;
+
+import com.mojang.blaze3d.platform.InputConstants;
+
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.narration.NarrationElementOutput;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.network.chat.Component;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.fabricmc.fabric.api.transfer.v1.client.fluid.FluidVariantRendering;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidConstants;
+import net.fabricmc.loader.api.FabricLoader;
+import net.pedroksl.ae2addonlib.core.network.serverPacket.FluidTankItemUsePacket;
+import net.pedroksl.ae2addonlib.datagen.LibText;
+import net.pedroksl.ae2addonlib.fluid.FluidContainers;
+import net.pedroksl.ae2addonlib.fluid.FluidStack;
+
+import appeng.api.stacks.AmountFormat;
+import appeng.api.stacks.GenericStack;
+import appeng.client.gui.AEBaseScreen;
+import appeng.client.gui.style.Blitter;
+import appeng.core.localization.Tooltips;
+
+/**
+ * A fluid tank slot. This slot must be constructed in the screen class, which must implement the {@link net.pedroksl.ae2addonlib.api.IFluidTankScreen} interface.
+ * That screen needs to be linked to a menu that implements the {@link net.pedroksl.ae2addonlib.api.IFluidTankHandler} interface.
+ * The two interfaces provide functionality to handle item use and playing sounds.
+ */
+public class FluidTankSlot extends AbstractWidget {
+
+    private final AbstractContainerScreen<?> screen;
+    private TextureAtlasSprite fluidTexture;
+    private int fluidTint = -1;
+    private FluidStack content = FluidStack.EMPTY;
+    private final int maxLevel;
+    private boolean disableRender = false;
+    /**
+     * The tank's index.
+     */
+    public final int index;
+
+    /**
+     * Constructs a fluid tank slot with initial values.
+     * @param screen The screen the tank is attached to.
+     * @param index The tank's index.
+     * @param x The left-most coordinate of the tank.
+     * @param y The top-most coordinate of the tank.
+     * @param width The width of the tank.
+     * @param height The height of the tank.
+     * @param maxLevel The max level of the tank (in buckets).
+     */
+    public FluidTankSlot(
+            AbstractContainerScreen<?> screen, int index, int x, int y, int width, int height, int maxLevel) {
+        super(x, y, width, height, Component.empty());
+        this.maxLevel = maxLevel;
+        this.screen = screen;
+        this.index = index;
+    }
+
+    @Override
+    public void onClick(@NotNull MouseButtonEvent event, boolean doubleClick) {
+        var stack = screen.getMenu().getCarried();
+        if (isValidClickButton(event.button()) && !stack.isEmpty()) {
+            if (!stack.isEmpty()) {
+                FluidStack fluidStack = FluidContainers.getFirstStackContained(stack);
+                if (fluidStack.is(this.content.getFluid()) || fluidStack.isEmpty() || this.content.isEmpty()) {
+                    // 0 = left, 1 = right
+                    var actualButton = screen instanceof AEBaseScreen<?> baseScreen
+                            ? (baseScreen.isHandlingRightClick() ? 1 : 0)
+                            : (event.button() == InputConstants.MOUSE_BUTTON_RIGHT ? 1 : 0);
+                    ClientPlayNetworking.send(new FluidTankItemUsePacket(this.index, actualButton));
+                }
+            }
+        }
+    }
+
+    public boolean isValidClickButton(int button) {
+        return button == InputConstants.MOUSE_BUTTON_LEFT || button == InputConstants.MOUSE_BUTTON_RIGHT;
+    }
+
+    @Override
+    protected void extractWidgetRenderState(
+            GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTicks) {
+        if (content == null || fluidTexture == null || this.disableRender) return;
+
+        int fluidHeight = (int) ((float) content.getAmountLong() / FluidConstants.BUCKET / maxLevel * this.height);
+        var currentY = this.getY() + this.height;
+        while (fluidHeight > 0) {
+            int currentHeight = Math.min(this.width, fluidHeight);
+            currentY -= currentHeight;
+            Blitter.sprite(this.fluidTexture)
+                    .dest(this.getX(), currentY, this.width, currentHeight)
+                    .colorRgb(this.fluidTint)
+                    .blit(guiGraphics);
+            fluidHeight -= currentHeight;
+        }
+    }
+
+    @Override
+    protected void updateWidgetNarration(@NotNull NarrationElementOutput narration) {}
+
+    /**
+     * Updates the displayed {@link FluidStack}.
+     * @param fluidStack The new fluid stack.
+     */
+    public void setFluidStack(FluidStack fluidStack) {
+        if (fluidStack.isEmpty()) {
+            this.content = FluidStack.EMPTY;
+            this.disableRender = true;
+            updateTooltip(fluidStack);
+            return;
+        }
+
+        this.disableRender = false;
+        boolean updateTexture = this.content.isEmpty() || fluidStack.getFluid() != this.content.getFluid();
+        this.content = fluidStack;
+
+        updateTooltip(fluidStack);
+
+        if (updateTexture && !this.content.isEmpty()) {
+            var fluidModel = Minecraft.getInstance()
+                    .getModelManager()
+                    .getFluidStateModelSet()
+                    .get(this.content.getFluid().defaultFluidState());
+
+            this.fluidTexture = fluidModel.stillMaterial().sprite();
+
+            this.fluidTint = FluidVariantRendering.getColor(this.content.getVariant());
+        }
+    }
+
+    private void updateTooltip(FluidStack stack) {
+        if (stack.isEmpty()) {
+            setTooltip(Tooltip.create(Tooltips.of(
+                    LibText.TankEmpty.text(),
+                    Component.literal("\n"),
+                    LibText.TankAmount.text(0, this.maxLevel).withStyle(Tooltips.NUMBER_TEXT))));
+            return;
+        }
+
+        var genericStack = FluidStack.toGenericStack(content);
+        if (genericStack != null) {
+            setTooltip(Tooltip.create(Tooltips.of(
+                    stack.getHoverName(),
+                    Component.literal("\n"),
+                    LibText.TankAmount.text(
+                                    genericStack.what().formatAmount(genericStack.amount(), AmountFormat.SLOT),
+                                    this.maxLevel)
+                            .withStyle(Tooltips.NUMBER_TEXT),
+                    Component.literal("\n"),
+                    Component.literal(
+                                    getModDisplayNameFromId(genericStack.what().getModId()))
+                            .withStyle(ChatFormatting.BLUE, ChatFormatting.ITALIC))));
+        }
+    }
+
+    @SuppressWarnings("deprecation")
+    private static String getModDisplayNameFromId(String modId) {
+        if (modId.equals("c")) {
+            return "Common";
+        }
+        var container = FabricLoader.getInstance().getModContainer(modId);
+        if (container.isEmpty()) {
+            container = FabricLoader.getInstance().getModContainer(modId.replace('_', '-'));
+        }
+        return container.isPresent()
+                ? container.get().getMetadata().getName()
+                : WordUtils.capitalizeFully(modId.replace('_', ' '));
+    }
+}

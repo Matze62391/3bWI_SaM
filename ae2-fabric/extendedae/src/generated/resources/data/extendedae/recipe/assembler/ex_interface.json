@@ -1,0 +1,27 @@
+{
+  "type": "extendedae:crystal_assembler",
+  "energy": 10000,
+  "input_items": [
+    {
+      "ingredient": "#ae2:interface"
+    },
+    {
+      "amount": 3,
+      "ingredient": "ae2:capacity_card"
+    },
+    {
+      "amount": 3,
+      "ingredient": "#c:glass_blocks"
+    },
+    {
+      "ingredient": "extendedae:concurrent_processor"
+    },
+    {
+      "amount": 6,
+      "ingredient": "#ae2:glass_cable"
+    }
+  ],
+  "output": {
+    "id": "extendedae:ex_interface"
+  }
+}

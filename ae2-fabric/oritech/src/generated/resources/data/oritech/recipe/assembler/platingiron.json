@@ -1,0 +1,16 @@
+{
+  "type": "oritech:assembler",
+  "itemInputs": [
+    "#c:ingots/steel",
+    "#c:ingots/steel",
+    "#c:ingots/iron",
+    "#c:plates/plastic"
+  ],
+  "itemResults": [
+    {
+      "count": 8,
+      "id": "oritech:iron_plating"
+    }
+  ],
+  "time": 96
+}

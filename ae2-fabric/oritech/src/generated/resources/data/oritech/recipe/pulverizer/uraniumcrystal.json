@@ -1,0 +1,13 @@
+{
+  "type": "oritech:pulverizer",
+  "itemInputs": [
+    "oritech:uranite_crystal"
+  ],
+  "itemResults": [
+    {
+      "count": 4,
+      "id": "oritech:raw_uranium"
+    }
+  ],
+  "time": 100
+}

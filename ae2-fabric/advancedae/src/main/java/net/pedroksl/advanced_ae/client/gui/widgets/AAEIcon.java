@@ -1,0 +1,77 @@
+package net.pedroksl.advanced_ae.client.gui.widgets;
+
+import net.minecraft.client.renderer.Rect2i;
+import net.minecraft.resources.Identifier;
+import net.pedroksl.advanced_ae.AdvancedAE;
+import net.pedroksl.ae2addonlib.client.widgets.IBlitterIcon;
+
+import appeng.client.gui.style.Blitter;
+
+public enum AAEIcon implements IBlitterIcon {
+    ME_EXPORT_ON(0, 0),
+    ME_EXPORT_OFF(16, 0),
+    DIRECTION_OUTPUT(32, 0),
+    VALID_INPUT(48, 0),
+    INVALID_INPUT(64, 0),
+    CLEAR(80, 0),
+    CLEAR_DISABLED(96, 0),
+    WHITELIST(112, 0),
+    BLACKLIST(128, 0),
+    FILTERED_IMPORT_ON(144, 0),
+    FILTERED_IMPORT_OFF(160, 0),
+    PALETTE(176, 0),
+    PALETTE_DISABLED(192, 0),
+
+    CRAFTER_TERMINAL_VISIBLE(0, 16),
+    CRAFTER_TERMINAL_ALL(16, 16),
+    CRAFTER_TERMINAL_NOT_FULL(32, 16),
+
+    SHOW_ON_CRAFTER_TERMINAL(0, 32),
+    HIDE_ON_CRAFTER_TERMINAL(16, 32),
+    REGULATE_ON(32, 32),
+    REGULATE_OFF(48, 32),
+
+    CONFIRM(48, 16),
+    CONFIRM_DISABLED(64, 16),
+
+    TOOLBAR_BUTTON_BACKGROUND(176, 128, 18, 20);
+
+    public final int x;
+    public final int y;
+    public final int width;
+    public final int height;
+
+    public static final Identifier TEXTURE = AdvancedAE.makeId("textures/guis/states.png");
+    public static final int TEXTURE_WIDTH = 256;
+    public static final int TEXTURE_HEIGHT = 256;
+
+    AAEIcon(int x, int y) {
+        this(x, y, 16, 16);
+    }
+
+    AAEIcon(int x, int y, int width, int height) {
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+    }
+
+    @Override
+    public Identifier getTexture() {
+        return TEXTURE;
+    }
+
+    @Override
+    public Size getTextureSize() {
+        return new Size(TEXTURE_WIDTH, TEXTURE_HEIGHT);
+    }
+
+    @Override
+    public Rect2i getRect() {
+        return new Rect2i(x, y, width, height);
+    }
+
+    public Blitter getBlitter() {
+        return Blitter.texture(TEXTURE, TEXTURE_WIDTH, TEXTURE_HEIGHT).src(x, y, width, height);
+    }
+}

@@ -1,0 +1,33 @@
+{
+  "parent": "minecraft:oritech/assembler",
+  "criteria": {
+    "got_drill": {
+      "conditions": {
+        "items": [
+          {
+            "items": "oritech:hand_drill"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    }
+  },
+  "display": {
+    "description": {
+      "translate": "advancements.oritech.drill.description"
+    },
+    "frame": "goal",
+    "icon": {
+      "id": "oritech:hand_drill"
+    },
+    "title": {
+      "translate": "advancements.oritech.drill"
+    }
+  },
+  "requirements": [
+    [
+      "got_drill"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

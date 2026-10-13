@@ -1,0 +1,13 @@
+{
+  "type": "extendedae:crystal_fixer",
+  "chance": 8000,
+  "fuel": {
+    "ingredient": "ae2:charged_certus_quartz_crystal"
+  },
+  "input": {
+    "id": "ae2:chipped_budding_quartz"
+  },
+  "output": {
+    "id": "ae2:flawed_budding_quartz"
+  }
+}

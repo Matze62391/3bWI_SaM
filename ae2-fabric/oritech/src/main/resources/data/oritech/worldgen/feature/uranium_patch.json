@@ -1,0 +1,6 @@
+{
+  "type": "oritech:uranium_patch",
+  "number": 5,
+  "blockId": "oritech:deepslate_uranium_ore",
+  "crystalId": "oritech:uranite_crystal"
+}

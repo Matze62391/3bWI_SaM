@@ -1,0 +1,13 @@
+{
+  "type": "oritech:particle_collision",
+  "itemInputs": [
+    "#c:dusts/coal",
+    "#c:dusts/coal"
+  ],
+  "itemResults": [
+    {
+      "id": "minecraft:diamond"
+    }
+  ],
+  "time": 500
+}

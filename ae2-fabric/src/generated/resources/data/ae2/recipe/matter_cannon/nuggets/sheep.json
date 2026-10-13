@@ -1,0 +1,11 @@
+{
+  "fabric:load_conditions": [
+    {
+      "condition": "ae2:tag_not_empty",
+      "tag": "c:nuggets/sheep"
+    }
+  ],
+  "type": "ae2:matter_cannon",
+  "ammo": "#c:nuggets/sheep",
+  "weight": 32.0
+}

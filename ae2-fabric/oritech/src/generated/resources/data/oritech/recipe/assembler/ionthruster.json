@@ -1,0 +1,16 @@
+{
+  "type": "oritech:assembler",
+  "itemInputs": [
+    "oritech:reinforced_carbon_sheet",
+    "oritech:reinforced_carbon_sheet",
+    "oritech:advanced_battery",
+    "oritech:flux_gate"
+  ],
+  "itemResults": [
+    {
+      "count": 2,
+      "id": "oritech:ion_thruster"
+    }
+  ],
+  "time": 240
+}

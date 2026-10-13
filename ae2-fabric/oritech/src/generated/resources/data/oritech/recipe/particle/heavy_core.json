@@ -1,0 +1,13 @@
+{
+  "type": "oritech:particle_collision",
+  "itemInputs": [
+    "minecraft:reinforced_deepslate",
+    "oritech:duratium_dust"
+  ],
+  "itemResults": [
+    {
+      "id": "minecraft:heavy_core"
+    }
+  ],
+  "time": 8000
+}

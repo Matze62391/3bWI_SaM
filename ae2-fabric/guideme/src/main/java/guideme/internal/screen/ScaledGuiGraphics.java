@@ -1,0 +1,36 @@
+package guideme.internal.screen;
+
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.renderer.state.gui.GuiRenderState;
+import org.jetbrains.annotations.ApiStatus;
+import org.joml.Matrix3x2fStack;
+
+/**
+ * Really the only reason we have to use this subclass is that the scissor methods work in directly scaled screen
+ * coordinates.
+ */
+@ApiStatus.Internal
+public final class ScaledGuiGraphics extends GuiGraphicsExtractor {
+    private final float scale;
+
+    public ScaledGuiGraphics(Minecraft minecraft,
+            Matrix3x2fStack pose,
+            GuiRenderState renderState,
+            int mouseX,
+            int mouseY,
+            float scale) {
+        super(minecraft, pose, renderState, mouseX, mouseY);
+        this.scale = scale;
+    }
+
+    @Override
+    public int guiWidth() {
+        return (int) (super.guiWidth() / scale);
+    }
+
+    @Override
+    public int guiHeight() {
+        return (int) (super.guiHeight() / scale);
+    }
+}

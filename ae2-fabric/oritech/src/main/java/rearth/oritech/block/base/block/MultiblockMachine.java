@@ -1,0 +1,109 @@
+package rearth.oritech.block.base.block;
+
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Explosion;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.BooleanProperty;
+import net.minecraft.world.phys.BlockHitResult;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import rearth.oritech.util.MachineAddonController;
+import rearth.oritech.util.MultiblockMachineController;
+
+import java.util.function.BiConsumer;
+
+public abstract class MultiblockMachine extends UpgradableMachineBlock {
+
+    public static final BooleanProperty ASSEMBLED = BooleanProperty.create("machine_assembled");
+
+    public MultiblockMachine(Properties settings) {
+        super(settings);
+        registerDefaultState(defaultBlockState().setValue(ASSEMBLED, false));
+    }
+
+    @Override
+    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+        super.createBlockStateDefinition(builder);
+        builder.add(ASSEMBLED);
+    }
+
+    @Override
+    public InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
+
+        if (!level.isClientSide()) {
+
+            var entity = level.getBlockEntity(pos);
+            if (!(entity instanceof MultiblockMachineController machineEntity)) {
+                return InteractionResult.SUCCESS;
+            }
+
+            var wasAssembled = state.getValue(ASSEMBLED);
+
+            if (!wasAssembled) {
+                var corePlaced = machineEntity.tryPlaceNextCore(player);
+                if (corePlaced) return InteractionResult.SUCCESS;
+            }
+
+            var isAssembled = machineEntity.initMultiblock(state);
+
+            // first time created
+            if (isAssembled && !wasAssembled) {
+                machineEntity.triggerSetupAnimation();
+                if (entity instanceof MachineAddonController controllerEntity)
+                    controllerEntity.initAddons();
+                return InteractionResult.SUCCESS;
+            }
+
+            if (!isAssembled) {
+                player.sendSystemMessage(Component.translatable("message.oritech.machine.missing_core"));
+                return InteractionResult.SUCCESS;
+            }
+
+        }
+
+        return super.useWithoutItem(state, level, pos, player, hit);
+    }
+
+    @Override
+    public @NotNull BlockState playerWillDestroy(Level level, BlockPos pos, BlockState state, Player player) {
+        resetMultiblock(state, level, pos);
+        return super.playerWillDestroy(level, pos, state, player);
+    }
+
+    @Override
+    public void playerDestroy(net.minecraft.server.level.ServerLevel level, net.minecraft.server.level.ServerPlayer player, BlockPos pos, BlockState state, @Nullable BlockEntity blockEntity, ItemStack tool) {
+        resetMultiblock(state, level, pos);
+        super.playerDestroy(level, player, pos, state, blockEntity, tool);
+    }
+
+    @Override
+    public void destroy(LevelAccessor level, BlockPos pos, BlockState state) {
+        resetMultiblock(state, level, pos);
+        super.destroy(level, pos, state);
+    }
+
+    @Override
+    protected void onExplosionHit(BlockState state, ServerLevel level, BlockPos pos, Explosion explosion, BiConsumer<ItemStack, BlockPos> onHit) {
+        resetMultiblock(state, level, pos);
+        super.onExplosionHit(state, level, pos, explosion, onHit);
+    }
+
+    private void resetMultiblock(BlockState state, LevelAccessor level, BlockPos pos) {
+        if (!level.isClientSide() && state.getValue(ASSEMBLED)) {
+            var entity = level.getBlockEntity(pos);
+            if (entity instanceof MultiblockMachineController machineEntity) {
+                machineEntity.onControllerBroken();
+            }
+        }
+    }
+}

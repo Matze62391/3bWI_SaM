@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/stairs",
+  "textures": {
+    "bottom": "oritech:block/iron_plating",
+    "side": "oritech:block/iron_plating",
+    "top": "oritech:block/iron_plating"
+  }
+}

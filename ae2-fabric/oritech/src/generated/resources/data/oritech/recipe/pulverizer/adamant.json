@@ -1,0 +1,12 @@
+{
+  "type": "oritech:pulverizer",
+  "itemInputs": [
+    "oritech:adamant_ingot"
+  ],
+  "itemResults": [
+    {
+      "id": "oritech:adamant_dust"
+    }
+  ],
+  "time": 100
+}

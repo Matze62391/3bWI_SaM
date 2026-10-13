@@ -1,0 +1,15 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "M": "minecraft:egg"
+  },
+  "pattern": [
+    "MMM",
+    "M M",
+    "MMM"
+  ],
+  "result": {
+    "id": "extendedae:mddyue"
+  }
+}

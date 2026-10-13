@@ -1,0 +1,17 @@
+{
+  "type": "oritech:centrifuge_fluid",
+  "fluidInput": {
+    "amount": 250,
+    "ingredient": "oritech:still_mineral_slurry"
+  },
+  "itemInputs": [
+    "oritech:raw_biopolymer"
+  ],
+  "itemResults": [
+    {
+      "count": 2,
+      "id": "oritech:plastic_sheet"
+    }
+  ],
+  "time": 120
+}

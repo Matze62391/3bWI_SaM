@@ -1,0 +1,13 @@
+{
+  "type": "oritech:pulverizer",
+  "itemInputs": [
+    "#c:ender_pearls"
+  ],
+  "itemResults": [
+    {
+      "count": 8,
+      "id": "oritech:enderic_compound"
+    }
+  ],
+  "time": 100
+}

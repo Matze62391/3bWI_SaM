@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    {
+      "fabric:type": "fabric:difference",
+      "base": "#ae2:smart_dense_cable",
+      "subtracted": "ae2:fluix_smart_dense_cable"
+    },
+    "#ae2:can_remove_color"
+  ],
+  "result": {
+    "id": "ae2:fluix_smart_dense_cable"
+  }
+}

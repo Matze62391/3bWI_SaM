@@ -1,0 +1,33 @@
+{
+  "parent": "minecraft:oritech/centrifuge",
+  "criteria": {
+    "got_plastic": {
+      "conditions": {
+        "items": [
+          {
+            "items": "oritech:plastic_sheet"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    }
+  },
+  "display": {
+    "description": {
+      "translate": "advancements.oritech.plastic.description"
+    },
+    "frame": "goal",
+    "icon": {
+      "id": "oritech:plastic_sheet"
+    },
+    "title": {
+      "translate": "advancements.oritech.plastic"
+    }
+  },
+  "requirements": [
+    [
+      "got_plastic"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

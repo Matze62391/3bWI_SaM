@@ -1,0 +1,15 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "C": "ae2:logic_processor",
+    "E": "ae2:export_bus",
+    "L": "ae2:level_emitter"
+  },
+  "pattern": [
+    "LCE"
+  ],
+  "result": {
+    "id": "extendedae:threshold_export_bus"
+  }
+}

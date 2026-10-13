@@ -1,0 +1,11 @@
+{
+  "type": "ae2:transform",
+  "ingredients": [
+    "#c:dusts/entro",
+    "#c:ingots/gold",
+    "minecraft:lapis_lazuli"
+  ],
+  "result": {
+    "id": "extendedae:entro_ingot"
+  }
+}

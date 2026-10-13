@@ -1,0 +1,246 @@
+plugins {
+    id 'net.fabricmc.fabric-loom' version "${loom_version}"
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+    archivesName = project.archives_base_name
+}
+
+repositories {
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = "Modrinth"
+                url = "https://api.modrinth.com/maven"
+            }
+        }
+        filter {
+            includeGroup "maven.modrinth"
+        }
+    }
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = "BlameJared"
+                url = "https://maven.blamejared.com"
+            }
+        }
+        filter {
+            includeGroup "mezz.jei"
+            includeGroup "net.mezzdev.config"
+        }
+    }
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = "TerraformersMC"
+                url = "https://maven.terraformersmc.com/releases"
+            }
+        }
+        filter {
+            includeGroup "com.terraformersmc"
+        }
+    }
+}
+
+sourceSets {
+    main {
+        java {
+            // AE2 keeps client code in a separate folder. Fabric's merged Minecraft jar lets us compile it
+            // together with the common code, which matches how the NeoForge version is built.
+            srcDir "src/client/java"
+
+            // Not ported: data generators (we ship the pre-generated resources instead) and integrations with
+            // mods that don't exist for Fabric 26.3 yet.
+            exclude "appeng/datagen/**"
+            exclude "appeng/integration/modules/curios/**"
+            exclude "appeng/integration/modules/wthit/**"
+            exclude "appeng/client/api/integrations/emi/**"
+            exclude "appeng/api/integrations/rei/**"
+        }
+        resources {
+            srcDir "src/client/resources"
+            srcDir "src/generated/resources"
+            exclude "META-INF/accesstransformer.cfg"
+            exclude "META-INF/neoforge.mods.toml"
+            exclude "data/neoforge/**" // the raid hero gifts data map is replaced by GiveGiftToHeroMixin
+            exclude "data/curios/**"
+        }
+    }
+}
+
+loom {
+    accessWidenerPath = file("src/main/resources/ae2.classtweaker")
+
+    mods {
+        "ae2" {
+            sourceSet sourceSets.main
+        }
+        "guideme" {
+            sourceSet project(":guideme").sourceSets.main
+        }
+    }
+
+    runs {
+        configureEach {
+            vmArg "-Dappeng.tests=true"
+        }
+        // Runs all game tests (including AE2's test plots) on a headless server and exits
+        gametest {
+            server()
+            name "Game Test"
+            vmArg "-Dfabric-api.gametest"
+            vmArg "-Dfabric-api.gametest.report-file=${project.layout.buildDirectory.get()}/gametest/junit.xml"
+            runDir "build/gametest"
+            if (project.hasProperty("gametestFilter")) {
+                vmArg "-Dfabric-api.gametest.filter=${project.property("gametestFilter")}"
+            }
+        }
+    }
+}
+
+fabricApi {
+    // Client game tests drive a real client (see src/gametest). They live in their own source set and are not
+    // shipped with the mod.
+    configureTests {
+        createSourceSet = true
+        modId = "ae2-gametest"
+        enableGameTests = false // AE2's server game tests run through the "gametest" run above
+        enableClientGameTests = true
+        eula = true
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+
+    // NeoForge ships these annotation libraries, AE2 uses them
+    compileOnly "com.google.code.findbugs:jsr305:3.0.2"
+
+    // GuideME (Fabric port in the guideme subproject) provides AE2's guidebook
+    implementation project(":guideme")
+    include project(":guideme")
+
+    // Optional: JEI shows AE2's recipes and lets players transfer recipes into AE2's terminals
+    compileOnly "mezz.jei:jei-${project.minecraft_version}-common-api:${project.jei_version}"
+    compileOnly "mezz.jei:jei-${project.minecraft_version}-fabric-api:${project.jei_version}"
+    localRuntime "mezz.jei:jei-${project.minecraft_version}-fabric:${project.jei_version}"
+
+    // The client game test opens JEI's recipe screens
+    gametestCompileOnly "mezz.jei:jei-${project.minecraft_version}-common-api:${project.jei_version}"
+
+    // Optional: Jade shows information about AE2 blocks and parts in its in-world tooltip
+    compileOnly "maven.modrinth:jade:${project.jade_version}"
+    localRuntime "maven.modrinth:jade:${project.jade_version}"
+
+    // Optional: tells Iris how to render AE2's own render pipelines with shader packs
+    compileOnly "maven.modrinth:iris:${project.iris_version}"
+
+    // Optional: Mod Menu opens AE2's config screen
+    compileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
+    localRuntime "com.terraformersmc:modmenu:${project.modmenu_version}"
+
+    // Other popular mods, to check that AE2 works together with them: ./gradlew runClientGameTest -PcompatMods
+    if (project.hasProperty("compatMods")) {
+        localRuntime "maven.modrinth:sodium:${project.sodium_version}"
+        localRuntime "maven.modrinth:iris:${project.iris_version}"
+        localRuntime "maven.modrinth:techreborn:${project.techreborn_version}"
+        localRuntime "maven.modrinth:reborncore:${project.techreborn_version}"
+        localRuntime "maven.modrinth:rei:${project.rei_version}"
+        localRuntime "maven.modrinth:architectury-api:${project.architectury_version}"
+        localRuntime "maven.modrinth:cloth-config:${project.cloth_config_version}"
+    }
+
+    // De-facto standard energy API on Fabric (replaces NeoForge's EnergyHandler capability)
+    implementation "teamreborn:energy:${project.tr_energy_version}"
+    include "teamreborn:energy:${project.tr_energy_version}"
+}
+
+// With -PshaderPack=<zip file>, the client game test runs with that Iris shader pack enabled (needs -PcompatMods)
+if (project.hasProperty("shaderPack")) {
+    def shaderPack = file(project.property("shaderPack"))
+    def runDir = layout.projectDirectory.dir("build/run/clientGameTest")
+    def installShaderPack = tasks.register("installGameTestShaderPack") {
+        mustRunAfter "deleteGameTestRunDir"
+        doLast {
+            copy {
+                from shaderPack
+                into runDir.dir("shaderpacks")
+            }
+            def config = runDir.file("config/iris.properties").asFile
+            config.parentFile.mkdirs()
+            config.text = "enableShaders=true\nshaderPack=${shaderPack.name}\n"
+        }
+    }
+    tasks.matching { it.name == "runClientGameTest" }.configureEach {
+        dependsOn installShaderPack
+        jvmArgs "-Dae2.gametest.shaders=true"
+    }
+}
+
+// Runs the client game test against the built mod jar in a production environment, the way players install it:
+// ./gradlew prodClientGameTest
+configurations {
+    productionRuntimeMods {
+        transitive = false
+    }
+}
+
+dependencies {
+    productionRuntimeMods "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+    // Not part of the Fabric API jar, only needed to run the test
+    productionRuntimeMods fabricApi.module("fabric-client-gametest-api-v1", project.fabric_api_version)
+    productionRuntimeMods "mezz.jei:jei-${project.minecraft_version}-fabric:${project.jei_version}"
+    productionRuntimeMods "maven.modrinth:jade:${project.jade_version}"
+    productionRuntimeMods "com.terraformersmc:modmenu:${project.modmenu_version}"
+}
+
+def gametestJar = tasks.register("gametestJar", Jar) {
+    from sourceSets.gametest.output
+    archiveClassifier = "gametest"
+}
+
+tasks.register("prodClientGameTest", net.fabricmc.loom.task.prod.ClientProductionRunTask) {
+    mods.from(tasks.named("jar"))
+    mods.from(gametestJar)
+    mods.from(configurations.productionRuntimeMods)
+    jvmArgs.add("-Dfabric.client.gametest")
+    runDir = layout.buildDirectory.dir("run/prodClientGameTest")
+    useXVFB = false
+}
+
+processResources {
+    def version = project.version
+    inputs.property "version", version
+
+    // The guidebook pages, like in the NeoForge version
+    from('guidebook') {
+        into 'assets/ae2/ae2guide'
+    }
+
+    filesMatching("fabric.mod.json") {
+        expand "version": version
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = 25
+    it.options.encoding = "UTF-8"
+    it.options.compilerArgs += ["-Xmaxerrs", "100000"]
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+}
+
+jar {
+    from("LICENSE") {
+        rename { "${it}_ae2" }
+    }
+}

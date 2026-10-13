@@ -1,0 +1,11 @@
+{
+  "fabric:load_conditions": [
+    {
+      "condition": "ae2:tag_not_empty",
+      "tag": "c:nuggets/tantalum"
+    }
+  ],
+  "type": "ae2:matter_cannon",
+  "ammo": "#c:nuggets/tantalum",
+  "weight": 180.9479
+}

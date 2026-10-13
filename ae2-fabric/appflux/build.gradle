@@ -1,0 +1,127 @@
+plugins {
+    id 'net.fabricmc.fabric-loom'
+}
+
+// Fabric port of Applied Flux (https://github.com/GlodBlock/ExtendedAE, branch appflux/26.1.2-neoforge), which lets AE2
+// store energy in storage cells. Applied Flux is licensed under the LGPL-3.0, see LICENSE.
+version = project.appflux_version
+group = "com.glodblock.github"
+
+base {
+    archivesName = "appflux-fabric"
+}
+
+repositories {
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = "Modrinth"
+                url = "https://api.modrinth.com/maven"
+            }
+        }
+        filter {
+            includeGroup "maven.modrinth"
+        }
+    }
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = "BlameJared"
+                url = "https://maven.blamejared.com"
+            }
+        }
+        filter {
+            includeGroup "mezz.jei"
+            includeGroup "net.mezzdev.config"
+        }
+    }
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = "TerraformersMC"
+                url = "https://maven.terraformersmc.com/releases"
+            }
+        }
+        filter {
+            includeGroup "com.terraformersmc"
+        }
+    }
+}
+
+sourceSets {
+    main {
+        resources {
+            srcDir "src/generated/resources"
+            exclude ".cache/**"
+        }
+    }
+}
+
+loom {
+    accessWidenerPath = file("src/main/resources/appflux.classtweaker")
+}
+
+fabricApi {
+    // The client game test (src/gametest) stores energy in cells and moves it with the flux accessor:
+    // ./gradlew :appflux:runClientGameTest
+    configureTests {
+        createSourceSet = true
+        modId = "appflux-gametest"
+        enableGameTests = false
+        enableClientGameTests = true
+        eula = true
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${rootProject.minecraft_version}"
+    implementation "net.fabricmc:fabric-loader:${rootProject.loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${rootProject.fabric_api_version}"
+    compileOnly "com.google.code.findbugs:jsr305:3.0.2"
+    // FE on NeoForge, Team Reborn Energy on Fabric
+    compileOnly "teamreborn:energy:${rootProject.tr_energy_version}"
+    gametestCompileOnly "teamreborn:energy:${rootProject.tr_energy_version}"
+
+    implementation project(":")
+    implementation project(":guideme")
+    implementation project(":glodium")
+
+    compileOnly "mezz.jei:jei-${rootProject.minecraft_version}-common-api:${rootProject.jei_version}"
+    compileOnly "mezz.jei:jei-${rootProject.minecraft_version}-fabric-api:${rootProject.jei_version}"
+    localRuntime "mezz.jei:jei-${rootProject.minecraft_version}-fabric:${rootProject.jei_version}"
+    compileOnly "maven.modrinth:jade:${rootProject.jade_version}"
+    localRuntime "maven.modrinth:jade:${rootProject.jade_version}"
+    compileOnly "com.terraformersmc:modmenu:${rootProject.modmenu_version}"
+    localRuntime "com.terraformersmc:modmenu:${rootProject.modmenu_version}"
+}
+
+processResources {
+    def version = project.version
+    inputs.property "version", version
+    filesMatching("fabric.mod.json") {
+        expand "version": version
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = 25
+    it.options.encoding = "UTF-8"
+    it.options.compilerArgs += ["-Xmaxerrs", "100000"]
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+}
+
+jar {
+    from("LICENSE") {
+        rename { "${it}_appflux" }
+    }
+}
+
+// The client game test as a jar, so it can also run against the bundle (:pack:prodClientGameTest)
+def gametestJar = tasks.register("gametestJar", Jar) {
+    from sourceSets.gametest.output
+    archiveClassifier = "gametest"
+}

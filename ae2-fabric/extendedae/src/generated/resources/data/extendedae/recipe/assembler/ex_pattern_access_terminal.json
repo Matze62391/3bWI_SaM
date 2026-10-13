@@ -1,0 +1,23 @@
+{
+  "type": "extendedae:crystal_assembler",
+  "energy": 1000,
+  "input_items": [
+    {
+      "ingredient": "ae2:pattern_access_terminal"
+    },
+    {
+      "ingredient": "minecraft:redstone_lamp"
+    },
+    {
+      "amount": 2,
+      "ingredient": "ae2:logic_processor"
+    },
+    {
+      "amount": 4,
+      "ingredient": "ae2:quartz_fixture"
+    }
+  ],
+  "output": {
+    "id": "extendedae:ex_pattern_access_part"
+  }
+}

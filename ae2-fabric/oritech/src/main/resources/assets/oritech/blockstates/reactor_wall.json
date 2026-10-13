@@ -1,0 +1,11 @@
+{
+  "variants": {
+    "": {
+      "model": "oritech:block/reactor_wall"
+    }
+  },
+  "connect_to": {
+    "type": "tag",
+    "tag": "oritech:reactor_wall_blocks"
+  }
+}

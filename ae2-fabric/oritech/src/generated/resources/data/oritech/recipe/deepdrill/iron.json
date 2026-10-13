@@ -1,0 +1,12 @@
+{
+  "type": "oritech:bedrock_extractor",
+  "itemInputs": [
+    "oritech:iron_resource_node"
+  ],
+  "itemResults": [
+    {
+      "id": "minecraft:raw_iron"
+    }
+  ],
+  "time": 1
+}

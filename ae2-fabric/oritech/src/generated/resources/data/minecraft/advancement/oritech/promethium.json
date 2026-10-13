@@ -1,0 +1,33 @@
+{
+  "parent": "minecraft:oritech/atomicforge",
+  "criteria": {
+    "got_promethium": {
+      "conditions": {
+        "items": [
+          {
+            "items": "oritech:prometheum_ingot"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    }
+  },
+  "display": {
+    "description": {
+      "translate": "advancements.oritech.promethium.description"
+    },
+    "frame": "challenge",
+    "icon": {
+      "id": "oritech:prometheum_ingot"
+    },
+    "title": {
+      "translate": "advancements.oritech.promethium"
+    }
+  },
+  "requirements": [
+    [
+      "got_promethium"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

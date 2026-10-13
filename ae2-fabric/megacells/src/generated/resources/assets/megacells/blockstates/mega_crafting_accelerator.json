@@ -1,0 +1,11 @@
+{
+  "variants": {
+    "formed=false": {
+      "model": "megacells:block/crafting/accelerator"
+    },
+    "formed=true": {
+      "fabric:type": "megacells:crafting_cube",
+      "unit_type": "accelerator"
+    }
+  }
+}

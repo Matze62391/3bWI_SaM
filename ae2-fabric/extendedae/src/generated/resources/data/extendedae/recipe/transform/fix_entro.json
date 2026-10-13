@@ -1,0 +1,10 @@
+{
+  "type": "ae2:transform",
+  "ingredients": [
+    "#c:dusts/entro",
+    "ae2:fluix_crystal"
+  ],
+  "result": {
+    "id": "extendedae:entro_crystal"
+  }
+}

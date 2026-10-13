@@ -1,0 +1,114 @@
+package net.pedroksl.ae2addonlib.client;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import org.jetbrains.annotations.Nullable;
+
+import net.minecraft.client.KeyMapping;
+import net.minecraft.resources.Identifier;
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.pedroksl.ae2addonlib.core.network.serverPacket.AddonHotkeyPacket;
+import net.pedroksl.ae2addonlib.registry.HotkeyRegistry;
+
+import appeng.api.features.HotkeyAction;
+import appeng.core.network.ServerboundPacket;
+
+/**
+ * <p>Client registry and holder class.</p>
+ * Interacts with {@link HotkeyRegistry} to finalize registration on the client instance. Responsible for creating the mappings,
+ * initializing them with the default hotkey and linking the key presses to an {@link AddonHotkeyPacket} that notifies the server.
+ */
+public class Hotkeys {
+
+    private static final Map<String, AddonHotkey> HOTKEYS = new HashMap<>();
+    private final String modId;
+    private final KeyMapping.Category category;
+    private boolean finalized;
+
+    /**
+     * Constructor for this class.
+     * @param modId The MOD_ID of the inheritor's mod.
+     */
+    public Hotkeys(String modId) {
+        this.modId = modId;
+        this.category = KeyMapping.Category.register(Identifier.fromNamespaceAndPath(modId, "category"));
+    }
+
+    private AddonHotkey createHotkey(String id) {
+        var defaultHotkey = getDefaultHotkey(id);
+
+        if (finalized) {
+            throw new IllegalStateException("Hotkey registration already finalized!");
+        }
+        return new AddonHotkey(modId, id, new KeyMapping("key." + modId + "." + id, defaultHotkey, this.category));
+    }
+
+    private void registerHotkey(AddonHotkey hotkey) {
+        HOTKEYS.put(hotkey.name(), hotkey);
+    }
+
+    /**
+     * <p>Finalizes the hotkey registration on the client instance.</p>
+     * This method adds all pre-registered hotkeys to the actual hotkey pool.
+     * @param event The key registering event: {@link net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent}.
+     */
+    public void finalizeRegistration() {
+        for (var value : HOTKEYS.values()) {
+            if (value.modId().equals(modId)) {
+                KeyMappingHelper.registerKeyMapping(value.mapping());
+            }
+        }
+        finalized = true;
+    }
+
+    /**
+     * Registers a hotkey. Should be called by the static inheritor instance during the registration
+     * process in {@link HotkeyRegistry#register(HotkeyAction, String)}.
+     * @param id The hotkey id.
+     */
+    public void registerHotkey(String id) {
+        registerHotkey(createHotkey(id));
+    }
+
+    /**
+     * Checks all registered hotkeys to see if they should be activated. This method should be called in the
+     * {@link net.neoforged.neoforge.client.event.ClientTickEvent.Post} event.
+     */
+    public void checkHotkeys() {
+        HOTKEYS.forEach((name, hotkey) -> hotkey.check());
+    }
+
+    /**
+     * Gets the mapping for a string id.
+     * @param id The id of the mapping.
+     * @return The hotkey, if found.
+     */
+    @Nullable
+    public AddonHotkey getHotkeyMapping(@Nullable String id) {
+        return HOTKEYS.get(id);
+    }
+
+    /**
+     * Record to define a hotkey. Contains the necessary information to check for presses and notify the server if they happened.
+     * @param modId The MOD_ID of the owner's mod.
+     * @param name The string id of the hotkey mapping.
+     * @param mapping The {@link KeyMapping}.
+     */
+    public record AddonHotkey(String modId, String name, KeyMapping mapping) {
+        /**
+         * Method to check if the hotkey has been pressed and should be consumed.
+         */
+        public void check() {
+            while (this.mapping().consumeClick()) {
+                ServerboundPacket message = new AddonHotkeyPacket(this);
+                ClientPlayNetworking.send(message);
+            }
+        }
+    }
+
+    private int getDefaultHotkey(String id) {
+        return HotkeyRegistry.getDefaultHotkey(modId, id);
+    }
+}

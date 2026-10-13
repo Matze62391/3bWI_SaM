@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "oritech-gametest",
+  "version": "1.0.0",
+  "name": "Oritech Game Tests",
+  "description": "Client game tests for the Fabric port of Oritech. Not shipped with the mod.",
+  "license": "CC0-1.0",
+  "environment": "*",
+  "entrypoints": {
+    "fabric-client-gametest": [
+      "rearth.oritech.gametest.OritechClientGameTest"
+    ]
+  },
+  "depends": {
+    "oritech": "*"
+  }
+}

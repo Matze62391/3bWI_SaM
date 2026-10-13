@@ -1,0 +1,12 @@
+{
+  "type": "oritech:centrifuge",
+  "itemInputs": [
+    "#c:dusts/redstone"
+  ],
+  "itemResults": [
+    {
+      "id": "oritech:small_uranium_dust"
+    }
+  ],
+  "time": 100
+}

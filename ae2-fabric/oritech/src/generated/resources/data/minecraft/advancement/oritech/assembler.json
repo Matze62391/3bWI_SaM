@@ -1,0 +1,32 @@
+{
+  "parent": "minecraft:oritech/generator",
+  "criteria": {
+    "got_assembler": {
+      "conditions": {
+        "items": [
+          {
+            "items": "oritech:assembler"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    }
+  },
+  "display": {
+    "description": {
+      "translate": "advancements.oritech.assembler.description"
+    },
+    "icon": {
+      "id": "oritech:assembler"
+    },
+    "title": {
+      "translate": "advancements.oritech.assembler"
+    }
+  },
+  "requirements": [
+    [
+      "got_assembler"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

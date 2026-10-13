@@ -1,0 +1,14 @@
+{
+  "type": "oritech:atomic_forge",
+  "itemInputs": [
+    "oritech:duratium_ingot",
+    "oritech:advanced_computing_engine",
+    "oritech:advanced_computing_engine"
+  ],
+  "itemResults": [
+    {
+      "id": "oritech:super_ai_chip"
+    }
+  ],
+  "time": 50
+}

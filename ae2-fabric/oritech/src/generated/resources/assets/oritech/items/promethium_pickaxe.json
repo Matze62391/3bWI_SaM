@@ -1,0 +1,9 @@
+{
+  "model": {
+    "type": "minecraft:special",
+    "base": "oritech:item/promethium_pickaxe",
+    "model": {
+      "type": "geckolib:geckolib"
+    }
+  }
+}

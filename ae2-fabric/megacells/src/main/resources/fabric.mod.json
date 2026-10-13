@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "megacells",
+  "version": "${version}",
+  "name": "MEGA Cells",
+  "description": "ME Greater Accumulation Cells - For when kilobytes just won't do. Fabric port.",
+  "authors": ["90"],
+  "contact": {
+    "sources": "https://github.com/62832/MEGACells"
+  },
+  "license": "LGPL-3.0-only",
+  "icon": "logo.png",
+  "environment": "*",
+  "entrypoints": {
+    "ae2:addon": ["gripe._90.megacells.MEGACells"],
+    "client": ["gripe._90.megacells.client.MEGACellsClient"],
+    "ae2:part_capabilities": ["gripe._90.megacells.MEGACells::registerPartCapabilities"]
+  },
+  "mixins": ["megacells.mixins.json"],
+  "accessWidener": "megacells.classtweaker",
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "fabric-api": "*",
+    "minecraft": "~26.3",
+    "java": ">=25",
+    "ae2": "*"
+  }
+}

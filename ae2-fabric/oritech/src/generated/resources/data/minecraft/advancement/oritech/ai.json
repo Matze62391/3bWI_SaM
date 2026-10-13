@@ -1,0 +1,33 @@
+{
+  "parent": "minecraft:oritech/atomicforge",
+  "criteria": {
+    "got_ai": {
+      "conditions": {
+        "items": [
+          {
+            "items": "oritech:super_ai_chip"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    }
+  },
+  "display": {
+    "description": {
+      "translate": "advancements.oritech.ai.description"
+    },
+    "frame": "goal",
+    "icon": {
+      "id": "oritech:super_ai_chip"
+    },
+    "title": {
+      "translate": "advancements.oritech.ai"
+    }
+  },
+  "requirements": [
+    [
+      "got_ai"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

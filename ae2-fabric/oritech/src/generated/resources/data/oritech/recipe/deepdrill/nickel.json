@@ -1,0 +1,12 @@
+{
+  "type": "oritech:bedrock_extractor",
+  "itemInputs": [
+    "oritech:nickel_resource_node"
+  ],
+  "itemResults": [
+    {
+      "id": "oritech:raw_nickel"
+    }
+  ],
+  "time": 1
+}

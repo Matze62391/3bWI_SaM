@@ -1,0 +1,15 @@
+{
+  "type": "oritech:assembler",
+  "itemInputs": [
+    "#c:plates/plastic",
+    "#c:carbon_fibre",
+    "#c:ingots/electrum",
+    "#c:dusts/redstone"
+  ],
+  "itemResults": [
+    {
+      "id": "oritech:processing_unit"
+    }
+  ],
+  "time": 96
+}

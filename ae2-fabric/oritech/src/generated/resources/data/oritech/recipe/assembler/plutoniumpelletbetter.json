@@ -1,0 +1,16 @@
+{
+  "type": "oritech:assembler",
+  "itemInputs": [
+    "oritech:plutonium_dust",
+    "oritech:plutonium_dust",
+    "#c:plates/plastic",
+    "oritech:adamant_ingot"
+  ],
+  "itemResults": [
+    {
+      "count": 3,
+      "id": "oritech:plutonium_pellet"
+    }
+  ],
+  "time": 96
+}

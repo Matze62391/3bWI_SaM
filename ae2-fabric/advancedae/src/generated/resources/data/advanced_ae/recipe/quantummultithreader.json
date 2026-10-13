@@ -1,0 +1,29 @@
+{
+  "fabric:load_conditions": [
+    {
+      "condition": "fabric:not",
+      "value": {
+        "condition": "fabric:all_mods_loaded",
+        "values": [
+          "extendedae"
+        ]
+      }
+    }
+  ],
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "A": "advanced_ae:quantum_accelerator",
+    "C": "advanced_ae:quantum_core",
+    "S": "advanced_ae:shattered_singularity",
+    "U": "advanced_ae:quantum_unit"
+  },
+  "pattern": [
+    "SSS",
+    "AUA",
+    "ACA"
+  ],
+  "result": {
+    "id": "advanced_ae:quantum_multi_threader"
+  }
+}

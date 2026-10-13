@@ -1,0 +1,109 @@
+plugins {
+    id 'net.fabricmc.fabric-loom'
+}
+
+// Fabric port of ae2wtlib (https://github.com/Mari023/AE2WirelessTerminalLibrary), which adds wireless versions of
+// AE2's terminals and the universal terminal. ae2wtlib is licensed under the MIT license, see LICENSE.
+// Upstream ships its API as a separate mod (ae2wtlib_api), here both are one mod that also provides ae2wtlib_api.
+version = project.ae2wtlib_version
+group = "de.mari_023"
+
+base {
+    archivesName = "ae2wtlib-fabric"
+}
+
+repositories {
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = "Modrinth"
+                url = "https://api.modrinth.com/maven"
+            }
+        }
+        filter {
+            includeGroup "maven.modrinth"
+        }
+    }
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = "BlameJared"
+                url = "https://maven.blamejared.com"
+            }
+        }
+        filter {
+            includeGroup "mezz.jei"
+            includeGroup "net.mezzdev.config"
+        }
+    }
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = "TerraformersMC"
+                url = "https://maven.terraformersmc.com/releases"
+            }
+        }
+        filter {
+            includeGroup "com.terraformersmc"
+        }
+    }
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir "src/api/java"
+            // Integrations with mods that don't exist for Fabric 26.3 (EMI) or aren't used (REI)
+            exclude "de/mari_023/ae2wtlib/recipeviewer/AE2wtlibEmiPlugin.java"
+            exclude "de/mari_023/ae2wtlib/recipeviewer/REIPlugin.java"
+            exclude "de/mari_023/ae2wtlib/AE2wtlibTestPlots.java"
+        }
+        resources {
+            srcDir "src/api/resources"
+        }
+    }
+}
+
+loom {
+    accessWidenerPath = file("src/main/resources/ae2wtlib.classtweaker")
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${rootProject.minecraft_version}"
+    implementation "net.fabricmc:fabric-loader:${rootProject.loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${rootProject.fabric_api_version}"
+    compileOnly "com.google.code.findbugs:jsr305:3.0.2"
+    compileOnly "teamreborn:energy:${rootProject.tr_energy_version}"
+
+    implementation project(":")
+    implementation project(":guideme")
+
+    compileOnly "mezz.jei:jei-${rootProject.minecraft_version}-common-api:${rootProject.jei_version}"
+    compileOnly "mezz.jei:jei-${rootProject.minecraft_version}-fabric-api:${rootProject.jei_version}"
+    compileOnly "com.terraformersmc:modmenu:${rootProject.modmenu_version}"
+}
+
+processResources {
+    def version = project.version
+    inputs.property "version", version
+    filesMatching("fabric.mod.json") {
+        expand "version": version
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = 25
+    it.options.encoding = "UTF-8"
+    it.options.compilerArgs += ["-Xmaxerrs", "100000"]
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+}
+
+jar {
+    from("LICENSE") {
+        rename { "${it}_ae2wtlib" }
+    }
+}

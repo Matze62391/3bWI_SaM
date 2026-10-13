@@ -1,0 +1,12 @@
+{
+  "type": "oritech:bedrock_extractor",
+  "itemInputs": [
+    "oritech:redstone_resource_node"
+  ],
+  "itemResults": [
+    {
+      "id": "minecraft:redstone"
+    }
+  ],
+  "time": 1
+}

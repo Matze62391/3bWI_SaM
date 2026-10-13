@@ -1,0 +1,12 @@
+{
+  "type": "oritech:bedrock_extractor",
+  "itemInputs": [
+    "oritech:uranium_resource_node"
+  ],
+  "itemResults": [
+    {
+      "id": "oritech:raw_uranium"
+    }
+  ],
+  "time": 1
+}

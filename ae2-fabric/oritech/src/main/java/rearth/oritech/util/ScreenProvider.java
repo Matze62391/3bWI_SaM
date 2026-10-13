@@ -1,0 +1,136 @@
+package rearth.oritech.util;
+
+import net.minecraft.core.Direction;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import rearth.oritech.util.Tuple;
+import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.state.properties.Property;
+import rearth.oritech.port.neoforge.transfer.ResourceHandler;
+import rearth.oritech.port.neoforge.transfer.StacksResourceHandler;
+import rearth.oritech.port.neoforge.transfer.fluid.FluidResource;
+import rearth.oritech.port.neoforge.transfer.item.ItemResource;
+import rearth.oritech.Oritech;
+import rearth.oritech.api.transfer.fluid.FluidProvider;
+
+import java.util.List;
+import java.util.Optional;
+
+public interface ScreenProvider {
+
+    default List<Tuple<Component, Component>> getExtraExtensionLabels() {
+        return List.of();
+    }
+
+    record GuiSlot(int index, int x, int y, boolean output) {
+        public GuiSlot(int index, int x, int y) {
+            this(index, x, y, false);
+        }
+    }
+
+    record BarConfiguration(int x, int y, int width, int height) {
+    }
+
+    record ArrowConfiguration(Identifier empty, Identifier full, int x, int y, int width, int height,
+                              boolean horizontal) {
+    }
+
+    List<GuiSlot> getGuiSlots();
+
+    default boolean showEnergy() {
+        return true;
+    }
+
+    float getDisplayedEnergyUsage();
+
+    default float getDisplayedEnergyTransfer() {
+        return getDisplayedEnergyUsage() * 10;
+    }
+
+    float getProgress();
+
+    InventoryInputMode getInventoryInputMode();
+
+    StacksResourceHandler<ItemStack, ItemResource> getDisplayedInventory();
+
+
+    MenuType<?> getScreenHandlerType();
+
+    default boolean inputOptionsEnabled() {
+        return true;
+    }
+
+    default Property<Direction> getBlockFacingProperty() {
+        return BlockStateProperties.HORIZONTAL_FACING;
+    }
+
+    default boolean showProgress() {
+        return true;
+    }
+
+    default boolean showArmor() {
+        return false;
+    }
+
+    default boolean showExpansionPanel() {
+        return true;
+    }
+
+    default boolean hasRedstoneControlAvailable() {
+        return false;
+    }
+
+    default int receivedRedstoneSignal() {
+        return 0;
+    }
+
+    default String currentRedstoneEffect() {
+        return "";
+    }
+
+    default boolean showEnergyUsage() {
+        return true;
+    }
+
+    default boolean showEnergyTransfer() {
+        return true;
+    }
+
+    default BarConfiguration getEnergyConfiguration() {
+        return new BarConfiguration(8, 24, 16, 54);
+    }
+
+    default BarConfiguration getFluidConfiguration() {
+        return new BarConfiguration(147, 6, 21, 74);
+    }
+
+    default Optional<String> getWikiLink() {
+        return Optional.empty();
+    } // optional override. Expected format is "interaction/enderic_laser". Defaults to the item link defined in the pages markdown.
+
+    default ArrowConfiguration getIndicatorConfiguration() {
+        return new ArrowConfiguration(
+                Oritech.id("textures/gui/modular/arrow_empty.png"),
+                Oritech.id("textures/gui/modular/arrow_full.png"),
+                80, 35, 29, 16, true);
+    }
+
+    /**
+     * Returns the list of fluid storages that can be interacted with via the GUI
+     * (e.g. by clicking with a bucket or portable tank on the fluid display).
+     * <p>
+     * The default implementation returns the main fluid storage if the block entity
+     * implements {@link FluidProvider} and has a single-slot storage.
+     * Override for multi-tank machines to return all interactable tanks.
+     */
+    default List<ResourceHandler<FluidResource>> getInteractableFluidStorages() {
+        if (this instanceof FluidProvider bp) {
+            var storage = bp.getFluidLookup(null);
+            if (storage instanceof ResourceHandler<FluidResource> single) return List.of(single);
+        }
+        return List.of();
+    }
+
+}

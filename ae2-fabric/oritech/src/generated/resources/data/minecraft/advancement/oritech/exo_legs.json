@@ -1,0 +1,33 @@
+{
+  "parent": "minecraft:oritech/assembler",
+  "criteria": {
+    "got_exo_legs": {
+      "conditions": {
+        "items": [
+          {
+            "items": "oritech:exo_leggings"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    }
+  },
+  "display": {
+    "description": {
+      "translate": "advancements.oritech.exo_legs.description"
+    },
+    "frame": "goal",
+    "icon": {
+      "id": "oritech:exo_leggings"
+    },
+    "title": {
+      "translate": "advancements.oritech.exo_legs"
+    }
+  },
+  "requirements": [
+    [
+      "got_exo_legs"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

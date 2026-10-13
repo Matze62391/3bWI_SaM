@@ -1,0 +1,8 @@
+{
+  "type": "oritech:bio_generator",
+  "itemInputs": [
+    "#oritech:biomatter"
+  ],
+  "itemResults": [],
+  "time": 300
+}

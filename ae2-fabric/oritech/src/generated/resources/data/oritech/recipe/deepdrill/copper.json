@@ -1,0 +1,12 @@
+{
+  "type": "oritech:bedrock_extractor",
+  "itemInputs": [
+    "oritech:copper_resource_node"
+  ],
+  "itemResults": [
+    {
+      "id": "minecraft:raw_copper"
+    }
+  ],
+  "time": 1
+}

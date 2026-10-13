@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "megacells:mega_crafting_unit",
+    "ae2:engineering_processor"
+  ],
+  "result": {
+    "id": "megacells:mega_crafting_accelerator"
+  }
+}

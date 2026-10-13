@@ -1,0 +1,23 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "B": "ae2:quartz_glass",
+    "F": "#c:gems/fluix",
+    "I": "#c:ingots/infused_entro",
+    "Q": [
+      "minecraft:chiseled_quartz_block",
+      "minecraft:quartz_block",
+      "minecraft:quartz_pillar"
+    ]
+  },
+  "pattern": [
+    "BFB",
+    "IQI",
+    "BFB"
+  ],
+  "result": {
+    "count": 2,
+    "id": "extendedae:assembler_matrix_glass"
+  }
+}

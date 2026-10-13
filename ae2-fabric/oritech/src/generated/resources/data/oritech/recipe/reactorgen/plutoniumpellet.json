@@ -1,0 +1,8 @@
+{
+  "type": "oritech:reactor",
+  "itemInputs": [
+    "oritech:plutonium_pellet"
+  ],
+  "itemResults": [],
+  "time": 40000
+}

@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "B": "ae2:storage_bus",
+    "K": "minecraft:book",
+    "L": "ae2:logic_processor",
+    "R": "#c:dusts/redstone"
+  },
+  "pattern": [
+    " L ",
+    "RBR",
+    " K "
+  ],
+  "result": {
+    "id": "extendedae:tag_storage_bus"
+  }
+}

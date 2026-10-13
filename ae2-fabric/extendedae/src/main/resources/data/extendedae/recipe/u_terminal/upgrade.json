@@ -1,0 +1,13 @@
+{
+  "fabric:load_conditions": [
+    {
+      "condition": "fabric:all_mods_loaded",
+      "values": [
+        "ae2wtlib"
+      ]
+    }
+  ],
+  "type": "ae2wtlib:upgrade",
+  "terminal": "extendedae:wireless_ex_pat",
+  "terminalName": "ex_pattern_access"
+}

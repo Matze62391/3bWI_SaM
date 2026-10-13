@@ -1,0 +1,14 @@
+{
+  "type": "oritech:atomic_forge",
+  "itemInputs": [
+    "oritech:heisenberg_compensator",
+    "oritech:overcharged_crystal",
+    "oritech:overcharged_crystal"
+  ],
+  "itemResults": [
+    {
+      "id": "oritech:prometheum_ingot"
+    }
+  ],
+  "time": 240
+}

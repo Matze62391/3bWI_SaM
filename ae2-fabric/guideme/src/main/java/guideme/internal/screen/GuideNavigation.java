@@ -1,0 +1,111 @@
+package guideme.internal.screen;
+
+import com.mojang.blaze3d.Blaze3D;
+import guideme.Guide;
+import guideme.PageAnchor;
+import java.net.URI;
+import java.util.Objects;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.ConfirmLinkScreen;
+import net.minecraft.client.gui.screens.Screen;
+import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * Extracts the history navigation logic from GuideScreen to allow for jumping between search and guide display
+ * seamlessly without duplicating all the nav logic.
+ */
+public final class GuideNavigation {
+    private static final Logger LOG = LoggerFactory.getLogger(GuideNavigation.class);
+
+    private GuideNavigation() {
+    }
+
+    public static void navigateTo(Guide guide, PageAnchor anchor) {
+        var history = GlobalInMemoryHistory.get(guide);
+        var currentScreen = getCurrentGuideMeScreen();
+        Screen screenToReturnTo = null;
+        if (currentScreen instanceof GuideScreen guideScreen) {
+            screenToReturnTo = guideScreen.getReturnToOnClose();
+        } else if (currentScreen instanceof GuideSearchScreen searchScreen) {
+            screenToReturnTo = searchScreen.getReturnToOnClose();
+        } else {
+            screenToReturnTo = Minecraft.getInstance().gui.screen();
+        }
+
+        // Handle built-in pages
+        if (GuideSearchScreen.PAGE_ID.equals(anchor.pageId())) {
+            var guiScreen = GuideSearchScreen.open(guide, anchor.anchor());
+            guiScreen.setReturnToOnClose(screenToReturnTo);
+            Minecraft.getInstance().gui.setScreen(guiScreen);
+            return;
+        }
+
+        // Handle navigation within the same guide
+        if (currentScreen instanceof GuideScreen guideScreen && guideScreen.getGuide() == guide) {
+            if (Objects.equals(guideScreen.getCurrentPageId(), anchor.pageId())) {
+                guideScreen.scrollToAnchor(anchor.anchor());
+                if (anchor.anchor() != null) {
+                    history.push(anchor);
+                }
+            } else {
+                guideScreen.loadPageAndScrollTo(anchor);
+                history.push(anchor);
+            }
+            return;
+        }
+
+        GuideScreen guideScreen = GuideScreen.openNew(guide, anchor, history);
+        guideScreen.setReturnToOnClose(screenToReturnTo);
+        Minecraft.getInstance().gui.setScreen(guideScreen);
+    }
+
+    @Nullable
+    private static Screen getCurrentGuideMeScreen() {
+        var currentScreen = Minecraft.getInstance().gui.screen();
+        if (currentScreen instanceof GuideScreen || currentScreen instanceof GuideSearchScreen) {
+            return currentScreen;
+        }
+        return null;
+    }
+
+    public static void navigateForward(Guide guide) {
+        var history = GlobalInMemoryHistory.get(guide);
+        history.forward().ifPresent(pageAnchor -> navigateTo(guide, pageAnchor));
+    }
+
+    public static void navigateBack(Guide guide) {
+        var history = GlobalInMemoryHistory.get(guide);
+        history.back().ifPresent(pageAnchor -> navigateTo(guide, pageAnchor));
+    }
+
+    public static void openUrl(String href) {
+        URI uri;
+        try {
+            uri = URI.create(href);
+        } catch (IllegalArgumentException ignored) {
+            LOG.debug("Can't parse '{}' as URL", href);
+            return;
+        }
+
+        // Treat it as an external URL if it has a scheme
+        var minecraft = Minecraft.getInstance();
+        var previousScreen = minecraft.gui.screen();
+
+        if (uri.getScheme() != null) {
+            if (minecraft.options.chatLinksPrompt().get().booleanValue()) {
+                minecraft.gui.setScreen(new ConfirmLinkScreen(doOpen -> {
+                    if (doOpen) {
+                        Blaze3D.openUri(uri);
+                    }
+                    minecraft.gui.setScreen(previousScreen);
+                }, uri, false));
+            } else {
+                Blaze3D.openUri(uri);
+            }
+        } else {
+            LOG.debug("Can't open relative URL: '{}'", href);
+        }
+    }
+}

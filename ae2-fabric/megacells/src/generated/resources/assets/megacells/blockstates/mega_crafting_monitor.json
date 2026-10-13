@@ -1,0 +1,54 @@
+{
+  "variants": {
+    "facing=down,formed=false": {
+      "model": "megacells:block/crafting/monitor",
+      "x": 180
+    },
+    "facing=down,formed=true": {
+      "fabric:type": "megacells:crafting_cube",
+      "unit_type": "monitor"
+    },
+    "facing=east,formed=false": {
+      "model": "megacells:block/crafting/monitor",
+      "x": 90,
+      "y": 90
+    },
+    "facing=east,formed=true": {
+      "fabric:type": "megacells:crafting_cube",
+      "unit_type": "monitor"
+    },
+    "facing=north,formed=false": {
+      "model": "megacells:block/crafting/monitor",
+      "x": 90
+    },
+    "facing=north,formed=true": {
+      "fabric:type": "megacells:crafting_cube",
+      "unit_type": "monitor"
+    },
+    "facing=south,formed=false": {
+      "model": "megacells:block/crafting/monitor",
+      "x": 90,
+      "y": 180
+    },
+    "facing=south,formed=true": {
+      "fabric:type": "megacells:crafting_cube",
+      "unit_type": "monitor"
+    },
+    "facing=up,formed=false": {
+      "model": "megacells:block/crafting/monitor"
+    },
+    "facing=up,formed=true": {
+      "fabric:type": "megacells:crafting_cube",
+      "unit_type": "monitor"
+    },
+    "facing=west,formed=false": {
+      "model": "megacells:block/crafting/monitor",
+      "x": 90,
+      "y": 270
+    },
+    "facing=west,formed=true": {
+      "fabric:type": "megacells:crafting_cube",
+      "unit_type": "monitor"
+    }
+  }
+}

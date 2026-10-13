@@ -1,0 +1,15 @@
+{
+  "type": "oritech:industrial_chiller",
+  "fluidInput": {
+    "amount": 1000,
+    "ingredient": "minecraft:lava"
+  },
+  "itemInputs": [],
+  "itemResults": [
+    {
+      "count": 2,
+      "id": "minecraft:obsidian"
+    }
+  ],
+  "time": 200
+}

@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "b": "oritech:portable_tank",
+    "c": "oritech:industrial_support_beam",
+    "f": "#c:ingots/copper",
+    "s": "#c:silicon"
+  },
+  "pattern": [
+    "fff",
+    "fcf",
+    "sbs"
+  ],
+  "result": {
+    "id": "oritech:refinery_chamber_module"
+  }
+}

@@ -1,0 +1,182 @@
+package appeng.client.integrations.itemlists;
+
+import com.mojang.blaze3d.platform.Lighting;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+
+import org.jetbrains.annotations.Nullable;
+import org.joml.Matrix3x2f;
+import org.joml.Quaternionf;
+
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.navigation.ScreenRectangle;
+import net.minecraft.client.gui.render.pip.PictureInPictureRenderer;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.block.FluidRenderer;
+import net.minecraft.client.renderer.block.MovingBlockRenderState;
+import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.client.renderer.state.gui.pip.PictureInPictureRenderState;
+import net.minecraft.client.renderer.texture.TextureAtlas;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.util.Mth;
+import net.minecraft.world.level.biome.Biomes;
+import net.minecraft.world.level.material.Fluid;
+
+public class FluidBlockPictureInPictureRenderer
+        extends PictureInPictureRenderer<FluidBlockPictureInPictureRenderer.State> {
+    private static final RenderType CUTOUT_BLOCK_SHEET = RenderTypes.entityCutoutCull(TextureAtlas.LOCATION_BLOCKS);
+    private static final RenderType TRANSLUCENT_BLOCK_SHEET = RenderTypes
+            .entityTranslucentCull(TextureAtlas.LOCATION_BLOCKS);
+
+    @Override
+    public Class<State> getRenderStateClass() {
+        return State.class;
+    }
+
+    @Override
+    protected void renderToTexture(State renderState, PoseStack poseStack, SubmitNodeCollector submitNodeCollector) {
+        var minecraft = Minecraft.getInstance();
+        var fluidModelSet = minecraft.getModelManager().getFluidStateModelSet();
+
+        minecraft.gameRenderer.lighting().setupFor(Lighting.Entry.LEVEL);
+
+        var fluidState = renderState.fluid.defaultFluidState();
+        var renderType = fluidModelSet.get(fluidState).layer().translucent() ? TRANSLUCENT_BLOCK_SHEET
+                : CUTOUT_BLOCK_SHEET;
+
+        poseStack.pushPose();
+        setupOrthographicProjection(poseStack);
+
+        // We reuse the MovingBlockRenderState here to get a programmatic BlockAndTintGetter to fake out the biome
+        // If we didn't, it'd not actually color water appropriately.
+        var blockAndTintGetter = new MovingBlockRenderState();
+        blockAndTintGetter.blockState = fluidState.createLegacyBlock();
+        var level = Minecraft.getInstance().level;
+        blockAndTintGetter.biome = level.registryAccess().lookupOrThrow(Registries.BIOME).getOrThrow(Biomes.PLAINS);
+
+        submitNodeCollector.submitCustomGeometry(poseStack, renderType, (pose, buffer) -> {
+            var fluidRenderer = new FluidRenderer(fluidModelSet);
+            fluidRenderer.tesselate(
+                    blockAndTintGetter,
+                    BlockPos.ZERO,
+                    layer -> new LiquidVertexConsumer(buffer, pose),
+                    fluidState.createLegacyBlock(), fluidState);
+        });
+
+        poseStack.popPose();
+    }
+
+    @Override
+    protected float getTranslateY(int height, int guiScale) {
+        return height / 2.0F;
+    }
+
+    @Override
+    protected String getTextureLabel() {
+        return "AE2 Fluid in GUI";
+    }
+
+    public record State(
+            Matrix3x2f pose,
+            int x0, int y0,
+            int x1, int y1,
+            ScreenRectangle bounds,
+            @Nullable ScreenRectangle scissorArea,
+            Fluid fluid) implements PictureInPictureRenderState {
+        @Override
+        public float scale() {
+            return 16;
+        }
+    }
+
+    private static void setupOrthographicProjection(PoseStack poseStack) {
+        // Set up orthographic rendering for the block
+        float angle = 36;
+        float rotation = 45;
+
+        poseStack.scale(1, 1, -1);
+        poseStack.rotate(new Quaternionf().rotationY(Mth.DEG_TO_RAD * -180));
+
+        Quaternionf flip = new Quaternionf().rotationZ(Mth.DEG_TO_RAD * 180);
+        flip.mul(new Quaternionf().rotationX(Mth.DEG_TO_RAD * angle));
+
+        Quaternionf rotate = new Quaternionf().rotationY(Mth.DEG_TO_RAD * rotation);
+        poseStack.rotate(flip);
+        poseStack.rotate(rotate);
+
+        // Move into the center of the block for the transforms
+        poseStack.translate(-0.5f, -0.5f, -0.5f);
+    }
+
+    /**
+     * The only purpose of this vertex consumer proxy is to transform vertex positions emitted by the
+     * {@link FluidRenderer} into absolute coordinates. The renderer assumes it is being called in the context of
+     * tessellating a chunk section (16x16x16) and emits corresponding coordinates, while we batch all visible chunks in
+     * the guidebook together.
+     */
+    private static class LiquidVertexConsumer implements VertexConsumer {
+        private final VertexConsumer parent;
+        private final PoseStack.Pose pose;
+
+        public LiquidVertexConsumer(VertexConsumer parent, PoseStack.Pose pose) {
+            this.parent = parent;
+            this.pose = pose;
+        }
+
+        @Override
+        public VertexConsumer addVertex(float x, float y, float z) {
+            parent.addVertex(pose, x, y, z);
+            return this;
+        }
+
+        @Override
+        public VertexConsumer setColor(int r, int g, int b, int a) {
+            parent.setColor(r, g, b, a);
+            return this;
+        }
+
+        @Override
+        public VertexConsumer setColor(int color) {
+            parent.setColor(color);
+            return this;
+        }
+
+        @Override
+        public VertexConsumer setUv(float u, float v) {
+            parent.setUv(u, v);
+            return this;
+        }
+
+        @Override
+        public VertexConsumer setUv1(int u, int v) {
+            parent.setUv1(u, v);
+            return this;
+        }
+
+        @Override
+        public VertexConsumer setUv2(int u, int v) {
+            parent.setUv2(u, v);
+            return this;
+        }
+
+        @Override
+        public VertexConsumer setUv3(float u, float v) {
+            parent.setUv3(u, v);
+            return this;
+        }
+
+        @Override
+        public VertexConsumer setNormal(float x, float y, float z) {
+            parent.setNormal(x, y, z);
+            return this;
+        }
+
+        @Override
+        public VertexConsumer setLineWidth(float width) {
+            parent.setLineWidth(width);
+            return this;
+        }
+    }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "oritech:centrifuge_fluid",
+  "fluidInput": {
+    "amount": 1000,
+    "ingredient": "#c:naphtha"
+  },
+  "fluidOutputs": [
+    {
+      "amount": 1000,
+      "id": "oritech:still_silicon_wash"
+    }
+  ],
+  "itemInputs": [
+    "#c:dusts/quartz"
+  ],
+  "itemResults": [],
+  "time": 100
+}

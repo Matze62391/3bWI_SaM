@@ -1,0 +1,32 @@
+{
+  "parent": "minecraft:oritech/fluxite",
+  "criteria": {
+    "got_atomic_forge": {
+      "conditions": {
+        "items": [
+          {
+            "items": "oritech:atomic_forge"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    }
+  },
+  "display": {
+    "description": {
+      "translate": "advancements.oritech.atomicforge.description"
+    },
+    "icon": {
+      "id": "oritech:atomic_forge"
+    },
+    "title": {
+      "translate": "advancements.oritech.atomicforge"
+    }
+  },
+  "requirements": [
+    [
+      "got_atomic_forge"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

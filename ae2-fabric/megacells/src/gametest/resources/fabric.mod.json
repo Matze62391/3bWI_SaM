@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "megacells-gametest",
+  "version": "1.0.0",
+  "name": "MEGA Cells Game Tests",
+  "description": "Client game tests for the Fabric port of MEGA Cells. Not shipped with the mod.",
+  "license": "LGPL-3.0-only",
+  "environment": "*",
+  "entrypoints": {
+    "fabric-client-gametest": [
+      "gripe._90.megacells.gametest.MEGAClientGameTest"
+    ]
+  },
+  "depends": {
+    "megacells": "*"
+  }
+}
